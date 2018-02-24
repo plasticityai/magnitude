@@ -482,7 +482,7 @@ class Magnitude(object):
         """Generates a random vector based on the hash of the key."""
         is_str, key = self._oov_key_t(key)
         if not is_str:
-            seed = self._seed(str(type(key)))
+            seed = self._seed(type(key).__name__)
             Magnitude.OOV_RNG_LOCK.acquire()
             np.random.seed(seed=seed)
             random_vector = (np.random.rand(self.emb_dim) * 2.0) - 1.0

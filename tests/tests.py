@@ -804,7 +804,7 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(isclose(self.vectors_feat.query("PRP")[0], 
             0.463890807802))
         self.assertTrue(isclose(self.vectors_feat.query(5)[0], 
-            -0.702699902327))
+            -0.750681075834))
         self.assertTrue(isclose(self.vectors_feat.query(5)[-1], 
             1.46936807866e-38))
 
