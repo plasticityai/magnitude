@@ -14,11 +14,21 @@ stages:
 before_script:
   # Setup package manager
   - apt-get update 2>&1 >/dev/null
-  - apt-get install curl wget -y
+  - apt-get install curl wget git -y
   - apt-get install python-setuptools -y
   - apt-get install python3-setuptools -y
   - apt-get install python-dev -y
   - apt-get install python3-dev -y
+  - apt-get install openssh-server -y
+  # Add GitLab SSH private deploy key
+  - eval $(ssh-agent -s)
+  - tmpfile=$(mktemp ~/pk.XXXXXX)
+  - echo "$SSH_PRIVATE_KEY" > $tmpfile
+  - ssh-add $tmpfile
+  - rm $tmpfile
+  # Setup SSH configuration
+  - mkdir -p ~/.ssh
+  - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
   # Install gettext for envsubst
   - apt-get install gettext -y
 
@@ -67,6 +77,8 @@ Test Python 3:
 Deploy to PyPI:
   stage: Deploy to PyPI
   script:
+    - git tag -a $(python setup.py -V) -m "Release $(python setup.py -V)" 
+    - git push origin --tags
     - envsubst < deployment/.pypirc > ~/.pypirc
     - chmod 600 ~/.pypirc
     - python setup.py sdist upload -r pypitest
