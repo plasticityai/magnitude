@@ -39,9 +39,9 @@ It uses [SQLite](http://www.sqlite.org), a fast, popular embedded database, as i
 | Process memory (RAM) utilization                                                                                                                      | 4.875GB     | **18KB**              | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
 | Process memory (RAM) utilization after 100 key queries                                                                                                | 4.875GB     | **168KB**             | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
 | Process memory (RAM) utilization after 100 key queries + similarity search                                                                            | 8.228GB     | **342KB**<sup>2</sup> | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| Integrity checks and tests                                                                                                                            | ✅           | ✅                     | ✅                    | ✅                   |
 | Universal format between word2vec (`.txt`, `.bin`), GloVE (`.txt`), and fastText (`.vec`) with converter utility                                      | ❌           | ✅                     | ✅                    | ✅                   |
 | Simple, Pythonic interface                                                                                                                            | ❌           | ✅                     | ✅                    | ✅                   |
-| Integrity checks and tests                                                                                                                            | ❌           | ✅                     | ✅                    | ✅                   |
 | Few dependencies                                                                                                                                      | ❌           | ✅                     | ✅                    | ✅                   |
 | Support for larger than memory memory models                                                                                                          | ❌           | ✅                     | ✅                    | ✅                   |
 | Lazy loading whenever possible for speed and performance                                                                                              | ❌           | ✅                     | ✅                    | ✅                   |
@@ -50,13 +50,13 @@ It uses [SQLite](http://www.sqlite.org), a fast, popular embedded database, as i
 | Concatenting multiple vector models together                                                                                                          | ❌           | ✅                     | ✅                    | ✅                   |
 | Basic out-of-vocabulary key lookup <br /><sup>(character n-gram feature hashing)</sup>                                                                | ❌           | ✅                     | ✅                    | ✅                   |
 | Advanced out-of-vocabulary key lookup with support for misspellings <br /><sup>(character n-gram feature hashing to similar in-vocabulary keys)</sup> | ❌           | ❌                     | ✅                    | ✅                   |
-| Approximate most similar search with an [annoy](#other-notable-projects) index                                                               | ❌           | ❌                     | ❌                    | ✅                   |
+| Approximate most similar search with an [annoy](#other-notable-projects) index                                                                        | ❌           | ❌                     | ❌                    | ✅                   |
 | Built-in training for new models                                                                                                                      | ✅           | ❌                     | ❌                    | ❌                   |
 
 
 <sup>1: *same value as previous column*</sup><br />
 <sup>2: *uses `mmap` to read from disk, so the OS will still allocate pages of memory when memory is available, but it can be shared between processes and isn't managed within each process for extremely large files which is a performance win*</sup><br/>
-<sup>All [benchmarks](https://gitlab.com/Plasticity/magnitude/blob/master/tests/benchmark.py) were performed on the Google News pre-trained word vectors (`GoogleNews-vectors-negative300.bin`) with a MacBook Pro (Retina, 15-inch, Mid 2014) 2.2GHz quad-core Intel Core i7 @ 16GB RAM on SSD over an average of trials where feasible.</sup>
+<sup>\*: All [benchmarks](https://gitlab.com/Plasticity/magnitude/blob/master/tests/benchmark.py) were performed on the Google News pre-trained word vectors (`GoogleNews-vectors-negative300.bin`) with a MacBook Pro (Retina, 15-inch, Mid 2014) 2.2GHz quad-core Intel Core i7 @ 16GB RAM on SSD over an average of trials where feasible.</sup>
 
 ## Pre-converted Magnitude Formats of Popular Embeddings Models
 
@@ -85,7 +85,7 @@ from pymagnitude import *
 vectors = Magnitude("/path/to/vectors.magnitude")
 ```
 
-If needed, and included for convenience, you can also open a `.bin`, `.txt`, `.vec` file directly with Magnitude. This is, however, less efficient and very slow for large models as it will convert the file to a `.magnitude` file on the first run into a temporary directory. The temporary directory is not guaranteed to persist and does not persist when your computer reboots. You should [pre-convert `.bin`, `.txt`, `.vec` with `python -m pymagnitude.converter`](#file-format-and-converter) typically for faster speeds, but this feature is useful for one-off use-cases. A warning will be generated when instantiating a Magnitude object directly with a `.bin`, `.txt`, `.vec`. You can supress warnings by setting the  `supress_warnings` argument in the constructor to `True`.
+If needed, and included for convenience, you can also open a `.bin`, `.txt`, `.vec` file directly with Magnitude. This is, however, less efficient and very slow for large models as it will convert the file to a `.magnitude` file on the first run into a temporary directory. The temporary directory is not guaranteed to persist and does not persist when your computer reboots. You should [pre-convert `.bin`, `.txt`, `.vec` files with `python -m pymagnitude.converter`](#file-format-and-converter) typically for faster speeds, but this feature is useful for one-off use-cases. A warning will be generated when instantiating a Magnitude object directly with a `.bin`, `.txt`, `.vec`. You can supress warnings by setting the  `supress_warnings` argument in the constructor to `True`.
 
 ---------------
 
@@ -320,7 +320,7 @@ The input format will automatically be determined by the extension / the content
 
 The flags for  `pymagnitude.converter` are specified below:
 * You can pass in the `-h` flag for help and to list all flags.
-* You can use the `-p <PRECISION>` flag to specify the decimal precision to retain (selecting a lower number will create smaller files). The actual underlying values are stored as integers instead of floats so this essentially [quantization](https://www.tensorflow.org/performance/quantization) for smaller model footprints.
+* You can use the `-p <PRECISION>` flag to specify the decimal precision to retain (selecting a lower number will create smaller files). The actual underlying values are stored as integers instead of floats so this is essentially [quantization](https://www.tensorflow.org/performance/quantization) for smaller model footprints.
 * You can add an approximate nearest neighbors index to the file (increases size) with the `-a` flag which will enable the use of the `most_similar_approx` function. The `-t <TREES>` flag controls the number of trees in the approximate neigherest neighbors index (higher is more accurcate) when used in conjunction with the `-a` flag (if not supplied, the number of trees is automatically determined).
 * You can pass the `-s` flag to disable adding subword information to the file (which will make the file smaller), but disable advanced out-of-vocabulary key support.
 
