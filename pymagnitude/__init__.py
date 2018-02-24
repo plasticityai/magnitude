@@ -1187,7 +1187,7 @@ class FeaturizerMagnitude(Magnitude):
         namespace: an optional namespace that will be prepended to each query
                    if provided
     """
-    def __init__(self, number_of_values, namespace = None, **kwargs):
+    def __init__(self, number_of_values = 1000000, namespace = None, **kwargs):
         
         self.namespace = namespace
 

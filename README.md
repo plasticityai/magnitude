@@ -1,7 +1,7 @@
 <div align="center"><img src="https://gitlab.com/Plasticity/magnitude/raw/master/images/magnitude.png" alt="magnitude" height="50"></div>
 
 ## <div align="center">Magnitude: a fast, simple vector embedding utility library<br /><br />[![pipeline status](https://gitlab.com/Plasticity/magnitude/badges/master/pipeline.svg)](https://gitlab.com/Plasticity/magnitude/commits/master)&nbsp;&nbsp;&nbsp;[![PyPI version](https://badge.fury.io/py/pymagnitude.svg)](https://pypi.python.org/pypi/pymagnitude/)&nbsp;&nbsp;&nbsp;[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://gitlab.com/Plasticity/magnitude/blob/master/LICENSE.txt)&nbsp;&nbsp;&nbsp;&nbsp;[![Python version](https://img.shields.io/pypi/pyversions/pymagnitude.svg)](https://pypi.python.org/pypi/pymagnitude/)</div>
-A universal Python package for utilizing vector embeddings in machine learning models in a fast, efficient manner developed by [Plasticity](https://www.plasticity.ai/). It is primarily intended to be a faster alternative to [Gensim](https://radimrehurek.com/gensim/), but can be used as a generic key-vector store for domains outside NLP.
+A feature-packed Python package and vector storage file format for utilizing vector embeddings in machine learning models in a fast, efficient, and simple manner developed by [Plasticity](https://www.plasticity.ai/). It is primarily intended to be a faster alternative to [Gensim](https://radimrehurek.com/gensim/), but can be used as a generic key-vector store for domains outside NLP.
 
 ## Installation
 You can install this package with `pip`:
@@ -13,45 +13,45 @@ pip3 install pymagnitude # Python 3
 ## Motivation
 Vector space embedding models have become increasingly common in machine learning and traditionally have been popular for natural language processing applications. A fast, lightweight tool to consume these large vector space embedding models efficiently is lacking.
 
-The Magnitude file format (`.magnitude`) for vector embeddings is intended to be a more efficient universal vector embedding format that allows for lazy-loading for faster cold starts in development, LRU memory caching for performance in production, multiple key queries with optional padding, performant similiarity calculations, and other nice to have features for edge cases like handling out-of-vocabulary keys or misspelled keys and concatenating multiple vector models together. It also is intended to work with large vector models that may not fit in memory.
+The Magnitude file format (`.magnitude`) for vector embeddings is intended to be a more efficient universal vector embedding format that allows for lazy-loading for faster cold starts in development, LRU memory caching for performance in production, multiple key queries, direct featurization to the inputs for a neural network, performant similiarity calculations, and other nice to have features for edge cases like handling out-of-vocabulary keys or misspelled keys and concatenating multiple vector models together. It also is intended to work with large vector models that may not fit in memory.
 
-It uses [SQLite](http://www.sqlite.org), a fast, popular embedded database, as its underlying data store. It uses indexes for fast key lookups as well as uses memory-mapping, SIMD instructions, and spatial indexing for fast similarity search in the vector space off-disk with good memory performance even between multiple processes. Moreover, memory maps are cached between runs so even after closing a process, speed improvements are reaped.
+It uses [SQLite](http://www.sqlite.org), a fast, popular embedded database, as its underlying data store. It uses indexes for fast key lookups as well as uses memory mapping, SIMD instructions, and spatial indexing for fast similarity search in the vector space off-disk with good memory performance even between multiple processes. Moreover, memory maps are cached between runs so even after closing a process, speed improvements are reaped.
 
 ## Benchmarks and Features
 
-| **Metric**                                                                                                               | **Gensim**  | **Magnitude Light**   | **Magnitude Medium** | **Magnitude Heavy** |
-| ------------------------------------------------------------------------------------------------------------------------ | :---------: | :-------------------: | :------------------: | :-----------------: |
-| Initial load time                                                                                                        | 70.26s      | **0.7210s**           | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| Cold single key query                                                                                                    | **0.0001s** | **0.0001s**           | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| Warm single key query <br /><sup>*(same key as cold query)*</sup>                                                        | 0.0044s     | **0.00004s**          | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| Cold multiple key query <br /><sup>*(n=25)*</sup>                                                                        | 3.0050s     | **0.0442s**           | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| Warm multiple key query <br /><sup>*(n=25) (same keys as cold query)*</sup>                                              | **0.0001s** | **0.00004s**          | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| First `most_similar` search query <br /><sup>*(n=10) (worst case)*</sup>                                                 | **18.493s** | 247.05s               | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| First `most_similar` search query <br /><sup>*(n=10) (average case) (w/ disk persistent cache)*</sup>                    | 18.917s     | **1.8217s**           | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| Subsequent `most_similar` search <br /><sup>*(n=10) (different key than first query)*</sup>                              | 0.2546s     | **0.2434s**           | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| Warm subsequent `most_similar` search <br /><sup>*(n=10) (same key as first query)*</sup>                                | 0.2374s     | **0.00004s**          | **0.00004s**         | **0.00004s**        |
-| First `most_similar_approx` search query <br /><sup>*(n=10, effort=1.0) (worst case)*</sup>                              | N/A         | N/A                   | N/A                  | **29.610s**         |
-| First `most_similar_approx` search query <br /><sup>*(n=10, effort=1.0) (average case) (w/ disk persistent cache)*</sup> | N/A         | N/A                   | N/A                  | **0.9155s**         |
-| Subsequent `most_similar_approx` search <br /><sup>*(n=10, effort=1.0) (different key than first query)*</sup>           | N/A         | N/A                   | N/A                  | **0.1873s**         |
-| Subsequent `most_similar_approx` search <br /><sup>*(n=10, effort=0.1) (different key than first query)*</sup>           | N/A         | N/A                   | N/A                  | **0.0199s**         |
-| Warm subsequent `most_similar_approx` search <br /><sup>*(n=10, effort=1.0) (same key as first query)*</sup>             | N/A         | N/A                   | N/A                  | **0.00004s**        |
-| File size                                                                                                                | **3.64GB**  | 4.21GB                | 5.29GB               | 10.74GB             |
-| Process memory (RAM) utilization                                                                                         | 4.875GB     | **18KB**              | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| Process memory (RAM) utilization after 100 key queries                                                                   | 4.875GB     | **168KB**             | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| Process memory (RAM) utilization after 100 key queries + similarity search                                               | 8.228GB     | **342KB**<sup>2</sup> | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
-| Universal format between word2vec (`.txt`, `.bin`), GloVE (`.txt`), and fastText (`.vec`) with converter utility         | ❌           | ✅                     | ✅                    | ✅                   |
-| Simple, Pythonic interface                                                                                               | ❌           | ✅                     | ✅                    | ✅                   |
-| Integrity checks and tests                                                                                               | ❌           | ✅                     | ✅                    | ✅                   |
-| Few dependencies                                                                                                         | ❌           | ✅                     | ✅                    | ✅                   |
-| Support for larger than memory memory models                                                                             | ❌           | ✅                     | ✅                    | ✅                   |
-| Lazy loading whenever possible for speed and performance                                                                 | ❌           | ✅                     | ✅                    | ✅                   |
-| Optimized for `threading` and `multiprocessing`                                                                          | ❌           | ✅                     | ✅                    | ✅                   |
-| Bulk and multiple key lookup with padding, truncation, placeholder, and featurization support                            | ❌           | ✅                     | ✅                    | ✅                   |
-| Concatenting multiple vector models together                                                                             | ❌           | ✅                     | ✅                    | ✅                   |
-| Basic out-of-vocabulary key lookup <br /><sup>(character n-gram feature hashing)</sup>                                   | ❌           | ✅                     | ✅                    | ✅                   |
-| Advanced out-of-vocabulary key lookup <br /><sup>(character n-gram feature hashing to similar in-vocabulary keys)</sup>  | ❌           | ❌                     | ✅                    | ✅                   |
-| Approximate Most Similar Search with [Annoy Index](https://github.com/spotify/annoy)                                     | ❌           | ❌                     | ❌                    | ✅                   |
-| Built-in training for new models                                                                                         | ✅           | ❌                     | ❌                    | ❌                   |
+| **Metric**                                                                                                                                            | **Gensim**  | **Magnitude Light**   | **Magnitude Medium** | **Magnitude Heavy** |
+| ------------------------------------------------------------------------------------------------------------------------                              | :---------: | :-------------------: | :------------------: | :-----------------: |
+| Initial load time                                                                                                                                     | 70.26s      | **0.7210s**           | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| Cold single key query                                                                                                                                 | **0.0001s** | **0.0001s**           | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| Warm single key query <br /><sup>*(same key as cold query)*</sup>                                                                                     | 0.0044s     | **0.00004s**          | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| Cold multiple key query <br /><sup>*(n=25)*</sup>                                                                                                     | 3.0050s     | **0.0442s**           | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| Warm multiple key query <br /><sup>*(n=25) (same keys as cold query)*</sup>                                                                           | **0.0001s** | **0.00004s**          | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| First `most_similar` search query <br /><sup>*(n=10) (worst case)*</sup>                                                                              | **18.493s** | 247.05s               | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| First `most_similar` search query <br /><sup>*(n=10) (average case) (w/ disk persistent cache)*</sup>                                                 | 18.917s     | **1.8217s**           | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| Subsequent `most_similar` search <br /><sup>*(n=10) (different key than first query)*</sup>                                                           | 0.2546s     | **0.2434s**           | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| Warm subsequent `most_similar` search <br /><sup>*(n=10) (same key as first query)*</sup>                                                             | 0.2374s     | **0.00004s**          | **0.00004s**         | **0.00004s**        |
+| First `most_similar_approx` search query <br /><sup>*(n=10, effort=1.0) (worst case)*</sup>                                                           | N/A         | N/A                   | N/A                  | **29.610s**         |
+| First `most_similar_approx` search query <br /><sup>*(n=10, effort=1.0) (average case) (w/ disk persistent cache)*</sup>                              | N/A         | N/A                   | N/A                  | **0.9155s**         |
+| Subsequent `most_similar_approx` search <br /><sup>*(n=10, effort=1.0) (different key than first query)*</sup>                                        | N/A         | N/A                   | N/A                  | **0.1873s**         |
+| Subsequent `most_similar_approx` search <br /><sup>*(n=10, effort=0.1) (different key than first query)*</sup>                                        | N/A         | N/A                   | N/A                  | **0.0199s**         |
+| Warm subsequent `most_similar_approx` search <br /><sup>*(n=10, effort=1.0) (same key as first query)*</sup>                                          | N/A         | N/A                   | N/A                  | **0.00004s**        |
+| File size                                                                                                                                             | **3.64GB**  | 4.21GB                | 5.29GB               | 10.74GB             |
+| Process memory (RAM) utilization                                                                                                                      | 4.875GB     | **18KB**              | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| Process memory (RAM) utilization after 100 key queries                                                                                                | 4.875GB     | **168KB**             | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| Process memory (RAM) utilization after 100 key queries + similarity search                                                                            | 8.228GB     | **342KB**<sup>2</sup> | ━&nbsp;<sup>1</sup>  | ━&nbsp;<sup>1</sup> |
+| Universal format between word2vec (`.txt`, `.bin`), GloVE (`.txt`), and fastText (`.vec`) with converter utility                                      | ❌           | ✅                     | ✅                    | ✅                   |
+| Simple, Pythonic interface                                                                                                                            | ❌           | ✅                     | ✅                    | ✅                   |
+| Integrity checks and tests                                                                                                                            | ❌           | ✅                     | ✅                    | ✅                   |
+| Few dependencies                                                                                                                                      | ❌           | ✅                     | ✅                    | ✅                   |
+| Support for larger than memory memory models                                                                                                          | ❌           | ✅                     | ✅                    | ✅                   |
+| Lazy loading whenever possible for speed and performance                                                                                              | ❌           | ✅                     | ✅                    | ✅                   |
+| Optimized for `threading` and `multiprocessing`                                                                                                       | ❌           | ✅                     | ✅                    | ✅                   |
+| Bulk and multiple key lookup with padding, truncation, placeholder, and featurization support                                                         | ❌           | ✅                     | ✅                    | ✅                   |
+| Concatenting multiple vector models together                                                                                                          | ❌           | ✅                     | ✅                    | ✅                   |
+| Basic out-of-vocabulary key lookup <br /><sup>(character n-gram feature hashing)</sup>                                                                | ❌           | ✅                     | ✅                    | ✅                   |
+| Advanced out-of-vocabulary key lookup with support for misspellings <br /><sup>(character n-gram feature hashing to similar in-vocabulary keys)</sup> | ❌           | ❌                     | ✅                    | ✅                   |
+| Approximate most similar search with an [annoy](https://github.com/spotify/annoy) index                                                               | ❌           | ❌                     | ❌                    | ✅                   |
+| Built-in training for new models                                                                                                                      | ✅           | ❌                     | ❌                    | ❌                   |
 
 
 <sup>1: *same value as previous column*</sup><br />
@@ -89,11 +89,11 @@ If needed, and included for convenience, you can also open a `.bin`, `.txt`, `.v
 
 ---------------
 
-* <sup>By default, lazy loading is enabled. You can pass in an optional `lazy_loading` argument to the constructor with the value `-1` to disable lazy-loading and pre-load all vectors into memory (a la Gensim), `0` (default) to enable lazy-loading with an unbounded in-memory cache, or an integer greater than zero `X` to enable lazy-loading with an LRU cache that holds the `X` most recently used vectors in memory.</sup> 
+* <sup>By default, lazy loading is enabled. You can pass in an optional `lazy_loading` argument to the constructor with the value `-1` to disable lazy-loading and pre-load all vectors into memory (a la Gensim), `0` (default) to enable lazy-loading with an unbounded in-memory LRU cache, or an integer greater than zero `X` to enable lazy-loading with an LRU cache that holds the `X` most recently used vectors in memory.</sup> 
 * <sup>If you want the data for the `most_similar` functions to be pre-loaded eagerly on initialization, set `eager` to `True`.</sup>
-* <sup>Note, even when `lazy_loading` is set to `-1` or `eager` is set to `True` data will be pre-loaded into memory in a background thread to prevent the constructor from blocking for a few minutes for large models. If you really want blocking behavior you can pass `True` to the `blocking` argument.</sup>
-* <sup>By default, NumPy arrays are returned for queries. Set the optional argument `use_numpy` to `False` if you wish to recieve a python lists instead.</sup>
-* <sup>By default, querying for keys is case-insensitive Set the optional argument `case_insensitive` to `False` if you wish to perform case sensitive searches.</sup>
+* <sup>Note, even when `lazy_loading` is set to `-1` or `eager` is set to `True` data will be pre-loaded into memory in a background thread to prevent the constructor from blocking for a few minutes for large models. If you really want blocking behavior, you can pass `True` to the `blocking` argument.</sup>
+* <sup>By default, NumPy arrays are returned for queries. Set the optional argument `use_numpy` to `False` if you wish to recieve Python lists instead.</sup>
+* <sup>By default, querying for keys is case-insensitive. Set the optional argument `case_insensitive` to `False` if you wish to perform case sensitive searches.</sup>
 * <sup>Optionally, you can include the `pad_to_length` argument which will specify the length all examples should be padded to if passing in multple examples. Any examples that are longer than the pad length will be truncated.</sup>
 * <sup>Optionally, you can set the `truncate_left` argument to `True` if you want the beginning of the the list of keys in each example to be truncated instead of the end in case it is longer than `pad_to_length` when specified.</sup>
 * <sup>Optionally, you can set the `pad_left` argument to `True` if you want the padding to appear at the beginning versus the end (which is the default).</sup>
@@ -207,21 +207,21 @@ Optionally, you can pass a `max_distance` argument to `most_similar`. Since they
 
 ---------------
 
-You can also query for the most similar most similar keys giving positive and negative examples like so: 
+You can also query for the most similar keys giving positive and negative examples (which, incidentally, solves analogies) like so: 
 ```python
-vectors.most_similar(positive = ["woman", "king"], negative = ["man"]) # vector for queen
+vectors.most_similar(positive = ["woman", "king"], negative = ["man"]) # queen
 ```
 
 ---------------
 
 Similar to `vectors.most_similar`, a `vectors.most_similar_cosmul` function exists that uses the 3CosMul function from [Levy and Goldberg](http://www.aclweb.org/anthology/W14-1618):
 ```python
-vectors.most_similar_cosmul(positive = ["woman", "king"], negative = ["man"]) # vector for queen
+vectors.most_similar_cosmul(positive = ["woman", "king"], negative = ["man"]) # queen
 ```
 
 ---------------
 
-You can also query for the most similar keys using a approximate nearest neighbors index (when the file has the index information) which is much faster, but doesn't guarantee the exact answer: 
+You can also query for the most similar keys using an approximate nearest neighbors index which is much faster, but doesn't guarantee the exact answer: 
 ```python
 vectors.most_similar_approx("cat")
 vectors.most_similar_approx(positive = ["woman", "king"], negative = ["man"])
@@ -269,12 +269,16 @@ vectors.similarity("uberx", "uberxl") # 0.955000000200815
 
 If using a Magnitude file with advanced out-of-vocabulary support (Medium or Heavy), out-of-vocabulary keys will also be embedded close to similar keys (determined by string similarity) that *are in* the vocabulary:
 ```python
+vectors = Magnitude("/path/to/GoogleNews-vectors-negative300.magnitude")
+"uberx" in vectors # False
+"uber" in vectors # True
 vectors.similarity("uberx", "uber") # 0.7383483267618451
 ```
 
 #### Misspellings
 This also makes Magnitude robust to a lot of spelling errors:
 ```python
+vectors = Magnitude("/path/to/GoogleNews-vectors-negative300.magnitude")
 "missispi" in vectors # False
 vectors.similarity("missispi", "mississippi") # 0.35961736624824003
 "discrimnatory" in vectors # False
@@ -286,7 +290,7 @@ vectors.similarity("hiiiiiiiiii", "hi") # 0.7069775034853861
 Character n-grams are used to create this effect for out-of-vocabulary keys. The inspiration for this feature was taken from Facebook AI Research's [Enriching Word Vectors with Subword Information](https://arxiv.org/pdf/1607.04606.pdf), but instead of utilizing character n-grams at train time, character n-grams are used at inference so the effect can be somewhat replicated (but not perfectly replicated) in older models that were not trained with character n-grams like word2vec and GloVE.
 
 ### Concatenation
-Optionally, you can combine vectors from multiple models to feed stronger information into a machine learning like so:
+Optionally, you can combine vectors from multiple models to feed stronger information into a machine learning model like so:
 ```python
 from pymagnitude import *
 word2vec = Magnitude("/path/to/GoogleNews-vectors-negative300.magnitude")
@@ -296,13 +300,13 @@ vectors.query("cat") # returns 350-dimensional NumPy array ('cat' from word2vec 
 vectors.query(("cat", "cats")) # returns 350-dimensional NumPy array ('cat' from word2vec concatenated with 'cats' from glove)
 ```
 
-You can can concatenate more than two vector models, simply by passing more arguments to constructor.
+You can concatenate more than two vector models, simply by passing more arguments to constructor.
 
 ### Additional Featurization (Parts of Speech, etc.)
 
 
 ## Concurrency and Parallelism
-The library is thread safe (it uses a different connection to the underlying store per thread), is read-only, and it never writes to the file. Because of the light-memory usage, you can also run it in multiple processes (`multiprocessing`) with different address spaces without having to duplicate the data in-memory like with other libraries like Gensim and without having to create a multi-process shared variable since data is read off-disk and each process keeps its own LRU memory cache and for heavier functions like `most_similar` a shared memory mapped file is created to share memory between processes.
+The library is thread safe (it uses a different connection to the underlying store per thread), is read-only, and it never writes to the file. Because of the light-memory usage, you can also run it in multiple processes (or use `multiprocessing`) with different address spaces without having to duplicate the data in-memory like with other libraries like Gensim and without having to create a multi-process shared variable since data is read off-disk and each process keeps its own LRU memory cache. For heavier functions, like `most_similar` a shared memory mapped file is created to share memory between processes.
 
 ## File Format and Converter
 The Magnitude package uses the `.magnitude` file format instead of `.bin`, `.txt`, or `.vec` as with other vector models like word2vec, GloVE, and fastText. There is an included command-line utility for converting word2vec, GloVE, fastText files to Magnitude files.
@@ -312,7 +316,7 @@ You can convert them like so:
 python -m pymagnitude.converter -i <PATH TO FILE TO BE CONVERTED> -o <OUTPUT PATH FOR MAGNITUDE FILE>
 ```
 
-The input format will automatically be determined by the extension / the contents of the input file. When the vectors are converted, they will also be [unit-length-normalized](https://en.wikipedia.org/wiki/Unit_vector). You should only need to perform this conversion once for a model. After converting, the Magnitude file format is static and it will not be modified or written to make concurrent read access safe.
+The input format will automatically be determined by the extension / the contents of the input file. When the vectors are converted, they will also be [unit-length normalized](https://en.wikipedia.org/wiki/Unit_vector). You should only need to perform this conversion once for a model. After converting, the Magnitude file format is static and it will not be modified or written to make concurrent read access safe.
 
 The flags for  `pymagnitude.converter` are specified below:
 * You can pass in the `-h` flag for help and to list all flags.
@@ -326,13 +330,13 @@ Optionally, you can bulk convert many files by passing an input folder and outpu
 Other documentation is not available at this time. See the source file directly (it is well commented) if you need more information about a method's arguments or want to see all supported features.
 
 ## Other Languages
-Currently, reading Magnitude files is only supported in Python, since it has become the de-facto language for machine learning. This is sufficient for most use cases. Extending the file format to other languages shouldn't be difficult as SQLite has a native C implementation and has many other implementations in various languages. The file format itself and the protocol for reading and searching is also fairly straightforward upon reading the source code of this repository.
+Currently, reading Magnitude files is only supported in Python, since it has become the de-facto language for machine learning. This is sufficient for most use cases. Extending the file format to other languages shouldn't be difficult as SQLite has a native C implementation and has bindings in most languages. The file format itself and the protocol for reading and searching is also fairly straightforward upon reading the source code of this repository.
 
 ## Other Domains
 Currently, natural language processing is the most popular domain that uses pre-trained vector embedding models for word vector representations. There are, however, other domains like computer vision that have started using pre-trained vector embedding models like [Deep1B](https://github.com/arbabenko/GNOIMI) for image representation. This library intends to stay agnostic to various domains and instead provides a generic key-vector store and interface that is useful for all domains.
 
 ## Contributing
-The main repository for this project can be found on [GitLab](https://gitlab.com/Plasticity/magnitude). The [GitHub repository](https://github.com/plasticityai/magnitude) is only a mirror. Pull requests for unit tests, bug fixes, performance improvements, or adding additional utilties / functionalities are welcome on [GitLab](https://gitlab.com/Plasticity/magnitude).
+The main repository for this project can be found on [GitLab](https://gitlab.com/Plasticity/magnitude). The [GitHub repository](https://github.com/plasticityai/magnitude) is only a mirror. Pull requests for more tests, better error-checking, bug fixes, performance improvements, or adding additional utilties / functionalities are welcome on [GitLab](https://gitlab.com/Plasticity/magnitude).
 
 You can contact us at [opensource@plasticity.ai](mailto:opensource@plasticity.ai).
 
