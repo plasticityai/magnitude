@@ -4,8 +4,8 @@ from distutils.core import setup
 setup(
     name='pymagnitude',
     packages=find_packages(exclude=['tests', 'tests.*']),
-    version='0.0.16',
-    description='A universal Python package for utilizing vector embeddings in a fast, efficient manner.',
+    version='0.0.17',
+    description='A fast, efficient universal vector embedding utility package.',
     author='Plasticity',
     author_email='support@plasticity.ai',
     url='http://plasticity.ai/api',
