@@ -371,7 +371,7 @@ Currently, reading Magnitude files is only supported in Python, since it has bec
 Currently, natural language processing is the most popular domain that uses pre-trained vector embedding models for word vector representations. There are, however, other domains like computer vision that have started using pre-trained vector embedding models like [Deep1B](https://github.com/arbabenko/GNOIMI) for image representation. This library intends to stay agnostic to various domains and instead provides a generic key-vector store and interface that is useful for all domains.
 
 ## Contributing
-The main repository for this project can be found on [GitLab](https://gitlab.com/Plasticity/magnitude). The [GitHub repository](https://github.com/plasticityai/magnitude) is only a mirror. Pull requests for more tests, better error-checking, bug fixes, performance improvements, or adding additional utilties / functionalities are welcome on [GitLab](https://gitlab.com/Plasticity/magnitude).
+The main repository for this project can be found on [GitLab](https://gitlab.com/Plasticity/magnitude). The [GitHub repository](https://github.com/plasticityai/magnitude) is only a mirror. Pull requests for more tests, better error-checking, bug fixes, performance improvements, or documentation or adding additional utilties / functionalities are welcome on [GitLab](https://gitlab.com/Plasticity/magnitude).
 
 You can contact us at [opensource@plasticity.ai](mailto:opensource@plasticity.ai).
 
