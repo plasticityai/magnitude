@@ -89,7 +89,7 @@ Deploy to PyPI:
     - cd $CI_PROJECT_DIR
     - rm -rf ../tagger
     - sleep 60 # Wait for GitLab to mirror to GitHub
-    - curl -u plasticity-admin:$GITHUB_TOKEN -d "{\"tag_name\": \"$(python setup.py -V)\", \"name\": \"Release $(python setup.py -V)\"}" -H "Content-Type: application/json" -X POST https://api.github.com/repos/plasticityai/$CI_PROJECT_NAME/releases
+    - curl -u plasticity-admin:$GITHUB_TOKEN -d "{\"tag_name\":\"$(python setup.py -V)\", \"name\":\"Release $(python setup.py -V)\"}" -H "Content-Type:"" application/json" -X POST https://api.github.com/repos/plasticityai/$CI_PROJECT_NAME/releases
     - envsubst < deployment/.pypirc > ~/.pypirc
     - chmod 600 ~/.pypirc
     - python setup.py sdist upload -r pypitest

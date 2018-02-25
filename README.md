@@ -343,11 +343,11 @@ You can contact us at [opensource@plasticity.ai](mailto:opensource@plasticity.ai
 ## Other Notable Projects
 * [spotify/annoy](https://github.com/spotify/annoy) - Powers the approximate nearest neighbors algorithm behind `most_similar_approx` in Magnitude using random-projection trees and hierarchical 2-means. Thanks to author [Erik Bernhardsson](https://github.com/erikbern) for helping out with some of the integration details between Magnitude and Annoy.
 
-## Citing
+## Citing this Repository
 
-If you'd like to cite this repository you can use the following DOI: &nbsp;&nbsp;&nbsp;&nbsp;[![DOI](https://zenodo.org/badge/122715432.svg)](https://zenodo.org/badge/latestdoi/122715432)
+If you'd like to cite this repository you can use the following DOI badge: &nbsp;[![DOI](https://zenodo.org/badge/122715432.svg)](https://zenodo.org/badge/latestdoi/122715432)
 
-You can create a BibTeX citation from the DOI using a service like [doi2bib](https://www.doi2bib.org/).
+Clicking on the badge will lead to a page that will help you generate proper BibTeX citations, JSON-LD citations, and other citations.
 
 ## LICENSE and Attribution
 
