@@ -210,6 +210,8 @@ def convert(input_file_path, output_file_path=None,
     try_deleting(output_file_path+"-shm")
     try_deleting(output_file_path+"-wal")
     conn = sqlite3.connect(output_file_path)
+    files_to_remove.append(output_file_path+"-shm")
+    files_to_remove.append(output_file_path+"-wal")
     db = conn.cursor()
 
     # Make the database fast
