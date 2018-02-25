@@ -4,7 +4,7 @@ from distutils.core import setup
 setup(
     name='pymagnitude',
     packages=find_packages(exclude=['tests', 'tests.*']),
-    version='0.0.18',
+    version='0.0.19',
     description='A fast, efficient universal vector embedding utility package.',
     author='Plasticity',
     author_email='support@plasticity.ai',
