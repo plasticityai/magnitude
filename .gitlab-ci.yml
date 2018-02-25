@@ -77,8 +77,8 @@ before_script:
 Deploy to PyPI:
   stage: Deploy to PyPI
   script:
-    - rm -rf ../$tagger
-    - mkdir -p ../$tagger
+    - rm -rf ../tagger
+    - mkdir -p ../tagger
     - cd ../tagger
     - git clone $CI_REPOSITORY_URL
     - cd $CI_PROJECT_NAME
@@ -87,7 +87,7 @@ Deploy to PyPI:
     - git tag -a $(python setup.py -V) -m "Release $(python setup.py -V)"
     - git push origin --tags
     - cd $CI_PROJECT_DIR
-    - rm -rf ../$tagger
+    - rm -rf ../tagger
     - envsubst < deployment/.pypirc > ~/.pypirc
     - chmod 600 ~/.pypirc
     - python setup.py sdist upload -r pypitest
