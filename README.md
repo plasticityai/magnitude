@@ -1,6 +1,6 @@
 <div align="center"><img src="https://gitlab.com/Plasticity/magnitude/raw/master/images/magnitude.png" alt="magnitude" height="50"></div>
 
-## <div align="center">Magnitude: a fast, simple vector embedding utility library<br /><br />[![pipeline status](https://gitlab.com/Plasticity/magnitude/badges/master/pipeline.svg)](https://gitlab.com/Plasticity/magnitude/commits/master)&nbsp;&nbsp;&nbsp;[![PyPI version](https://badge.fury.io/py/pymagnitude.svg)](https://pypi.python.org/pypi/pymagnitude/)&nbsp;&nbsp;&nbsp;[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://gitlab.com/Plasticity/magnitude/blob/master/LICENSE.txt)&nbsp;&nbsp;&nbsp;&nbsp;[![Python version](https://img.shields.io/pypi/pyversions/pymagnitude.svg)](https://pypi.python.org/pypi/pymagnitude/)</div>
+## <div align="center">Magnitude: a fast, simple vector embedding utility library<br /><br />[![pipeline status](https://gitlab.com/Plasticity/magnitude/badges/master/pipeline.svg)](https://gitlab.com/Plasticity/magnitude/commits/master)&nbsp;&nbsp;&nbsp;[![PyPI version](https://badge.fury.io/py/pymagnitude.svg)](https://pypi.python.org/pypi/pymagnitude/)&nbsp;&nbsp;&nbsp;[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://gitlab.com/Plasticity/magnitude/blob/master/LICENSE.txt)&nbsp;&nbsp;&nbsp;&nbsp;[![Python version](https://img.shields.io/pypi/pyversions/pymagnitude.svg)](https://pypi.python.org/pypi/pymagnitude/)&nbsp;&nbsp;&nbsp;&nbsp;[![DOI](https://zenodo.org/badge/122715432.svg)](https://zenodo.org/badge/latestdoi/122715432)</div>
 A feature-packed Python package and vector storage file format for utilizing vector embeddings in machine learning models in a fast, efficient, and simple manner developed by [Plasticity](https://www.plasticity.ai/). It is primarily intended to be a faster alternative to [Gensim](https://radimrehurek.com/gensim/), but can be used as a generic key-vector store for domains outside NLP.
 
 ## Installation
@@ -342,6 +342,12 @@ You can contact us at [opensource@plasticity.ai](mailto:opensource@plasticity.ai
 
 ## Other Notable Projects
 * [spotify/annoy](https://github.com/spotify/annoy) - Powers the approximate nearest neighbors algorithm behind `most_similar_approx` in Magnitude using random-projection trees and hierarchical 2-means. Thanks to author [Erik Bernhardsson](https://github.com/erikbern) for helping out with some of the integration details between Magnitude and Annoy.
+
+## Citing
+
+If you'd like to cite this repository you can use the following DOI: &nbsp;&nbsp;&nbsp;&nbsp;[![DOI](https://zenodo.org/badge/122715432.svg)](https://zenodo.org/badge/latestdoi/122715432)
+
+You can create a BibTeX citation from the DOI using a service like [doi2bib](https://www.doi2bib.org/).
 
 ## LICENSE and Attribution
 
