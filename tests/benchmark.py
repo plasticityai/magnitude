@@ -202,8 +202,8 @@ def create_gensim():
                                                       binary=True)
     return keyed_vectors
 
-def create_magnitude(eager=False, **kwargs):
-    vectors = Magnitude(MAGNITUDE_PATH, eager=eager, **kwargs)
+def create_magnitude(case_insensitive = True, eager=False, **kwargs):
+    vectors = Magnitude(MAGNITUDE_PATH, case_insensitive = case_insensitive, eager=eager, **kwargs)
     return vectors
 
 ################################
