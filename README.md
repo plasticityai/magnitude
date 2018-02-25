@@ -93,7 +93,7 @@ If needed, and included for convenience, you can also open a `.bin`, `.txt`, `.v
 * <sup>If you want the data for the `most_similar` functions to be pre-loaded eagerly on initialization, set `eager` to `True`.</sup>
 * <sup>Note, even when `lazy_loading` is set to `-1` or `eager` is set to `True` data will be pre-loaded into memory in a background thread to prevent the constructor from blocking for a few minutes for large models. If you really want blocking behavior, you can pass `True` to the `blocking` argument.</sup>
 * <sup>By default, NumPy arrays are returned for queries. Set the optional argument `use_numpy` to `False` if you wish to recieve Python lists instead.</sup>
-* <sup>By default, querying for keys is case-insensitive. Set the optional argument `case_insensitive` to `False` if you wish to perform case sensitive searches.</sup>
+* <sup>By default, querying for keys is case-sensitive. Set the optional argument `case_insensitive` to `True` if you wish to perform case-insensitive searches.</sup>
 * <sup>Optionally, you can include the `pad_to_length` argument which will specify the length all examples should be padded to if passing in multple examples. Any examples that are longer than the pad length will be truncated.</sup>
 * <sup>Optionally, you can set the `truncate_left` argument to `True` if you want the beginning of the the list of keys in each example to be truncated instead of the end in case it is longer than `pad_to_length` when specified.</sup>
 * <sup>Optionally, you can set the `pad_left` argument to `True` if you want the padding to appear at the beginning versus the end (which is the default).</sup>
@@ -303,7 +303,42 @@ vectors.query(("cat", "cats")) # returns 350-dimensional NumPy array ('cat' from
 You can concatenate more than two vector models, simply by passing more arguments to constructor.
 
 ### Additional Featurization (Parts of Speech, etc.)
+You can automatically create vectors from additional features you may have such as parts of speech, syntax dependency information, or any other information using the `FeaturizerMagnitude` class:
 
+```python
+from pymagnitude import *
+pos_vectors = FeaturizerMagnitude(100, namespace = "PartsOfSpeech")
+pos_vectors.dim # 4 - number of dims automatically determined by Magnitude from 100
+pos_vectors.query("NN") # - array([ 0.08040417, -0.71705252,  0.61228951,  0.32322192]) 
+pos_vectors.query("JJ") # - array([-0.11681135,  0.10259253,  0.8841201 , -0.44063763])
+pos_vectors.query("NN") # - array([ 0.08040417, -0.71705252,  0.61228951,  0.32322192]) (deterministic hashing so the same value is returned every time for the same key)
+dependency_vectors = FeaturizerMagnitude(100, namespace = "SyntaxDependencies")
+dependency_vectors.dim # 4 - number of dims automatically determined by Magnitude from 100
+dependency_vectors.query("nsubj") # - array([-0.81043793,  0.55401352, -0.10838071,  0.15656626])
+dependency_vectors.query("prep") # - array([-0.30862918, -0.44487267, -0.0054573 , -0.84071788])
+```
+
+Magnitude will use the [feature hashing trick](https://en.wikipedia.org/wiki/Feature_hashing) internally to directly use the hash of the feature value to create a unique vector for that feature value.
+
+The first argument to `FeaturizerMagnitude` should be an approximate upper-bound on the number of values for the feature. Since there are < 100 [parts of speech tags](https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html) and < 100 [syntax dependencies](http://universaldependencies.org/u/dep/all.html), we choose 100 for both in the example above. The value chosen will determine how many dimensions Magnitude will automatically assign to the particular the `FeaturizerMagnitude` object to reduce the chance of a hash collision. The `namespace` argument can be any string that describes your additional feature. It is optional, but highly recommended.
+
+You can then concatenate these features for use with a standard Magnitude object:
+```python
+from pymagnitude import *
+word2vec = Magnitude("/path/to/GoogleNews-vectors-negative300.magnitude")
+pos_vectors = FeaturizerMagnitude(100, namespace = "PartsOfSpeech")
+dependency_vectors = FeaturizerMagnitude(100, namespace = "SyntaxDependencies")
+vectors = Magnitude(word2vec, pos_vectors, dependency_vectors) # concatenate word2vec with pos and dependencies
+vectors.query([
+    ("I", "PRP", "nsubj"), 
+    ("saw", "VBD", "ROOT"), 
+    ("a", "DT", "det"), 
+    ("cat", "NN", "dobj"), 
+    (".",  ".", "punct")
+  ]) # array of size 5 x (300 + 4 + 4) or 5 x 308
+```
+
+A machine learning model, given this output, now has access to parts of speech information and syntax dependency information instead of just word vector information. In this case, this additional information can give neural networks stronger signal for semantic information and reduce the need for training data.
 
 ## Concurrency and Parallelism
 The library is thread safe (it uses a different connection to the underlying store per thread), is read-only, and it never writes to the file. Because of the light-memory usage, you can also run it in multiple processes (or use `multiprocessing`) with different address spaces without having to duplicate the data in-memory like with other libraries like Gensim and without having to create a multi-process shared variable since data is read off-disk and each process keeps its own LRU memory cache. For heavier functions, like `most_similar` a shared memory mapped file is created to share memory between processes.

@@ -110,7 +110,7 @@ class Magnitude(object):
     """
 
     def __init__(self, path, lazy_loading=0, blocking=False,
-                 use_numpy=True, case_insensitive=True,
+                 use_numpy=True, case_insensitive=False,
                  pad_to_length=None, truncate_left=False,
                  pad_left=False, placeholders=0, ngram_oov=True,
                  supress_warnings=False, batch_size=3000000,
@@ -218,12 +218,6 @@ class Magnitude(object):
         """).fetchall()
         self.max_duplicate_keys = (duplicate_keys_query[0][0] 
             if duplicate_keys_query[0][0] is not None else 1)
-
-        # Define collate clause
-        if not self.case_insensitive:
-            self.collate_clause = " COLLATE BINARY "
-        else:
-            self.collate_clause = "  "
 
         # Iterate to pre-load
         def _preload_memory():
@@ -392,77 +386,87 @@ class Magnitude(object):
         """Transforms a key for out-of-vocabulary lookup.
         """
         is_str = isinstance(key, str) or isinstance(key, unicode)
-        if self.case_insensitive and is_str:
+        if is_str:
             key = Magnitude.BOW+self._key_t(key)+Magnitude.EOW
             # Replace 2+ consecutive characters with just two
             # (ex. hiiiiiiii -> hii)
             key = re.sub(r"([^<])\1{2,}",r"\1\1", key)
         return is_str, key
 
-    def _db_query_similar_keys_vector(self, key, topn = 3):
-        """Finds similar keys in the database and gets the mean vector.""" 
-        current_subword_start = self.subword_end
-        BOWEOW_length = len(Magnitude.BOW)+len(Magnitude.EOW)
-        true_key_len = len(key) - BOWEOW_length
-        key_shrunk = re.sub(r"([^<])\1+",r"\1", key)
-        beginning_and_end_clause = ""
-        exact_match = []
-        if true_key_len <= 6:
-            beginning_and_end_clause = """
-                magnitude.key LIKE '"""+ \
-                key[len(Magnitude.BOW):len(Magnitude.BOW)+1].replace(
-                    "'", "\\'")+"""%' AND LENGTH(magnitude.key) <= """ + \
-                    str(true_key_len) \
-                + """  DESC,
-                magnitude.key LIKE '%"""+ \
-                key[-len(Magnitude.EOW)-1:-len(Magnitude.EOW)].replace(
-                    "'", "\\'")+"""' AND LENGTH(magnitude.key) <= """ + \
-                    str(true_key_len) \
-                + """ DESC,
+    def _db_query_similar_keys_vector(self, key, orig_key, topn = 3):
+        """Finds similar keys in the database and gets the mean vector."""
+        if self.subword: 
+            current_subword_start = self.subword_end
+            BOWEOW_length = len(Magnitude.BOW)+len(Magnitude.EOW)
+            true_key_len = len(key) - BOWEOW_length
+            key_shrunk = re.sub(r"([^<])\1+",r"\1", key)
+            beginning_and_end_clause = ""
+            exact_match = []
+            if true_key_len <= 6:
+                beginning_and_end_clause = """
+                    magnitude.key LIKE '"""+ \
+                    key[len(Magnitude.BOW):len(Magnitude.BOW)+1].replace(
+                        "'", "\\'")+"""%' AND LENGTH(magnitude.key) <= """ + \
+                        str(true_key_len) \
+                    + """  DESC,
+                    magnitude.key LIKE '%"""+ \
+                    key[-len(Magnitude.EOW)-1:-len(Magnitude.EOW)].replace(
+                        "'", "\\'")+"""' AND LENGTH(magnitude.key) <= """ + \
+                        str(true_key_len) \
+                    + """ DESC,
+                """
+                if true_key_len <= 5 and key_shrunk != key:
+                    exact_match = list(char_ngrams(key_shrunk, 
+                        true_key_len, true_key_len))
+            search_query = """
+                SELECT magnitude.*
+                FROM magnitude_subword, magnitude
+                WHERE char_ngrams MATCH ?
+                AND magnitude.rowid = magnitude_subword.rowid
+                ORDER BY 
+                    ((
+                        LENGTH(offsets(magnitude_subword))
+                        - 
+                        LENGTH(REPLACE(offsets(magnitude_subword), ' ', ''))
+                    ) + 1) DESC,
+                    """ + beginning_and_end_clause + """
+                    LENGTH(magnitude.key) ASC
+                LIMIT ?;
             """
-            if true_key_len <= 5 and key_shrunk != key:
-                exact_match = list(char_ngrams(key_shrunk, 
-                    true_key_len, true_key_len))
-        search_query = """
-            SELECT magnitude.*
-            FROM magnitude_subword, magnitude
-            WHERE char_ngrams MATCH ?
-            AND magnitude.rowid = magnitude_subword.rowid
-            ORDER BY 
-                ((
-                    LENGTH(offsets(magnitude_subword))
-                    - 
-                    LENGTH(REPLACE(offsets(magnitude_subword), ' ', ''))
-                ) + 1) DESC,
-                """ + beginning_and_end_clause + """
-                LENGTH(magnitude.key) ASC
-            LIMIT ?;
-        """
-        if len(exact_match) > 0:
-            results = self._db().execute(search_query, 
-                (' OR '.join(exact_match), topn)).fetchall()
-        else:
-            results = []
-        if len(results) == 0:
-            while (len(results) < topn and
-                current_subword_start > self.subword_start):
+            if len(exact_match) > 0:
                 results = self._db().execute(search_query, 
-                    (' OR '.join(char_ngrams(key, 
-                    current_subword_start, self.subword_end)), 
-                    topn)).fetchall()
-                current_subword_start -= 1
-            # if current_subword_start > self.subword_start:
-            #     results = self._db().execute(search_query, 
-            #         ('(' + ') AND ('.join([
-            #         ' OR '.join(char_ngrams(key, 
-            #         current_subword_start, self.subword_end)),
-            #         ' OR '.join(char_ngrams(key, 
-            #         self.subword_start, self.subword_start)) 
-            #         ]) + ')', topn)).fetchall()
+                    (' OR '.join(exact_match), topn)).fetchall()
+            else:
+                results = []
+            if len(results) == 0:
+                while (len(results) < topn and
+                    current_subword_start >= self.subword_start):
+                    results = self._db().execute(search_query, 
+                        (' OR '.join(char_ngrams(key, 
+                        current_subword_start, self.subword_end)), 
+                        topn)).fetchall()
+                    current_subword_start -= 1
+                # if current_subword_start > self.subword_start:
+                #     results = self._db().execute(search_query, 
+                #         ('(' + ') AND ('.join([
+                #         ' OR '.join(char_ngrams(key, 
+                #         current_subword_start, self.subword_end)),
+                #         ' OR '.join(char_ngrams(key, 
+                #         self.subword_start, self.subword_start)) 
+                #         ]) + ')', topn)).fetchall()
+        else:
+            results = self._db().execute(
+                """
+                    SELECT * 
+                    FROM `magnitude` 
+                    WHERE key = ?
+                    ORDER BY key = ? COLLATE BINARY DESC
+                    LIMIT ?;
+                """,
+                (orig_key, orig_key, topn)).fetchall()
         final_results = []
         for result in results:
-            result_key, vec = self._db_full_result_to_vec(result, 
-                    use_cache = False)
+            result_key, vec = self._db_full_result_to_vec(result)
             final_results.append(vec)
         if len(final_results) > 0:
             mean_vector = np.mean(final_results, axis=0)
@@ -480,6 +484,7 @@ class Magnitude(object):
 
     def _out_of_vocab_vector(self, key):
         """Generates a random vector based on the hash of the key."""
+        orig_key = key
         is_str, key = self._oov_key_t(key)
         if not is_str:
             seed = self._seed(type(key).__name__)
@@ -494,7 +499,7 @@ class Magnitude(object):
             np.random.seed(seed=seed)
             random_vector = (np.random.rand(self.emb_dim) * 2.0) - 1.0
             Magnitude.OOV_RNG_LOCK.release()
-        else:  
+        else:
             ngrams = char_ngrams(key, Magnitude.NGRAM_BEG,
                                  Magnitude.NGRAM_END)
             window_end = min(len(key), Magnitude.NGRAM_END)
@@ -514,9 +519,8 @@ class Magnitude(object):
                 mode='constant', constant_values=0.0)
         if is_str:
             random_vector = random_vector / np.linalg.norm(random_vector)
-        if self.subword:
             final_vector = (random_vector * 0.3 + 
-                self._db_query_similar_keys_vector(key) * 0.7)
+                self._db_query_similar_keys_vector(key, orig_key) * 0.7)
             final_vector = final_vector / np.linalg.norm(final_vector)
         else:
             final_vector = random_vector
@@ -536,17 +540,14 @@ class Magnitude(object):
             return [v / float(10**self.precision) for v in result] + \
                 [0.0] * self.placeholders
 
-    def _db_full_result_to_vec(self, result, use_cache = True, 
-                               overwrite_cache =  False):
-        result_key = self._key_t(result[0])
-        overwrite_cache = overwrite_cache and result[0] == result_key
-        if (self._query_is_cached(result_key) and use_cache and 
-            not overwrite_cache):
+    def _db_full_result_to_vec(self, result):
+        """Converts a full database result to a vector."""
+        result_key = result[0]
+        if self._query_is_cached(result_key):
             return (result_key, self.query(result_key))
         else:
             vec = self._db_result_to_vec(result[1:])
-            if use_cache or overwrite_cache:
-                self._vector_for_key_cached._cache.put((result_key,), vec)
+            self._vector_for_key_cached._cache.put((result_key,), vec)
             return (result_key, vec)
 
     def _vector_for_key(self, key):
@@ -559,19 +560,19 @@ class Magnitude(object):
                 ORDER BY key = ? COLLATE BINARY DESC
                 LIMIT 1;""",
             (key, key)).fetchall()
-        if len(results) == 0:
+        if len(results) == 0 or self._key_t(results[0][0]) != self._key_t(key):
             return None
         else:
             return self._db_result_to_vec(results[0][1:])
 
     def _vectors_for_keys(self, keys):
         """Queries the database for multiple keys."""
-        keys = [self._key_t(key) for key in keys]
         unseen_keys = tuple(key for key in keys
                             if not self._query_is_cached(key))
         unseen_keys_map = {}
         if len(unseen_keys) > 0:
-            unseen_keys_map = {k: i for i, k in enumerate(unseen_keys)}
+            unseen_keys_map = {self._key_t(k): i for i, k in 
+                enumerate(unseen_keys)}
             results = self._db().execute(
                 """
                     SELECT * 
@@ -583,14 +584,15 @@ class Magnitude(object):
             unseen_vectors = [None] * len(unseen_keys)
             seen_keys = set()
             for result in results:
-                result_key, vec = self._db_full_result_to_vec(result, 
-                    use_cache = False)
-                if result_key in unseen_keys_map:
-                    i = unseen_keys_map[result_key]
-                    if ((result_key not in seen_keys or result[0] == result_key)
+                result_key, vec = self._db_full_result_to_vec(result)
+                result_key_t = self._key_t(result_key)
+                if result_key_t in unseen_keys_map:
+                    i = unseen_keys_map[result_key_t]
+                    if ((result_key_t not in seen_keys 
+                        or result_key==unseen_keys[i])
                         and 
-                        (self.case_insensitive or result[0] == result_key)):
-                        seen_keys.add(result_key)
+                        (self.case_insensitive or result_key==unseen_keys[i])):
+                        seen_keys.add(result_key_t)
                         unseen_vectors[i] = vec
             for i in range(len(unseen_vectors)):
                 self._vector_for_key_cached._cache.put((unseen_keys[i],),  
@@ -599,7 +601,8 @@ class Magnitude(object):
                     unseen_vectors[i] = \
                         self._out_of_vocab_vector_cached(unseen_keys[i])
         vectors = [self.query(key) if key not in unseen_keys_map else
-                   unseen_vectors[unseen_keys_map[key]] for key in keys]
+                   unseen_vectors[unseen_keys_map[self._key_t(key)]] 
+                   for key in keys]
         return vectors
 
     def _key_for_index(self, index, return_vector=True):
@@ -619,10 +622,9 @@ class Magnitude(object):
             raise IndexError("The index %d is out-of-range" % index)
         else:
             if return_vector:
-                return self._db_full_result_to_vec(results[0], 
-                    use_cache = False)
+                return self._db_full_result_to_vec(results[0])
             else:
-                return self._key_t(results[0][0])
+                return results[0][0]
 
     def _keys_for_indices(self, indices, return_vector=True):
         """Queries the database for the keys of multiple indices."""
@@ -647,10 +649,9 @@ class Magnitude(object):
             unseen_keys = [None] * len(unseen_indices)
             for result in results:
                 i = unseen_indices_map[result[0] - 1]
-                result_key = self._key_t(result[1])
+                result_key = result[1]
                 if return_vector:
-                    unseen_keys[i] = self._db_full_result_to_vec(result[1:],
-                        use_cache = False)
+                    unseen_keys[i] = self._db_full_result_to_vec(result[1:])
                 else:
                     unseen_keys[i] = result_key
                 self._key_for_index_cached._cache.put(
@@ -676,10 +677,9 @@ class Magnitude(object):
         truncate_left = truncate_left or self.truncate_left
 
         if not isinstance(q, list):  # Single key
-            key = self._key_t(q)
-            vec = self._vector_for_key_cached(key)
+            vec = self._vector_for_key_cached(q)
             if vec is None:
-                return self._out_of_vocab_vector_cached(key)
+                return self._out_of_vocab_vector_cached(q)
             else:
                 return vec
         elif isinstance(q, list) \
@@ -895,11 +895,12 @@ class Magnitude(object):
         # Build the result
         results = []
         for key, similarity in izip(keys, topn_indices_2):
+            key_t = self._key_t(key)
             if len(results) >= topn:
                 break
-            if key in exclude_keys:
+            if key_t in exclude_keys:
                 continue
-            exclude_keys.add(key)
+            exclude_keys.add(key_t)
             if return_similarities:
                 results.append((key, -1 * similarity[0]))
             else:
@@ -1107,15 +1108,8 @@ build the appropriate indexes into the `.magnitude` file.")
                 SELECT * 
                 FROM `magnitude`
             """)
-        cache_fully_ready = (
-            len(self._vector_for_key_cached._cache._data) == self.length)
-        if cache_fully_ready:
-            for result in results:
-                yield self._db_full_result_to_vec(result)
-        else:
-           for result in results:
-                yield self._db_full_result_to_vec(result, use_cache = False,
-                    overwrite_cache = True)
+        for result in results:
+            yield self._db_full_result_to_vec(result)
         db.connection.close()
 
     def __len__(self):

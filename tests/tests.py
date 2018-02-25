@@ -82,10 +82,23 @@ class MagnitudeTest(unittest.TestCase):
             unicode))
 
     def test_case_insensitive(self):
-        for i, (k, _) in enumerate(self.vectors):
+        some_keys_are_not_lower = False
+        for i, (k, _) in enumerate(self.vectors_cs):
             if i > 1000:
                 break
-            self.assertTrue(k.lower() == k)
+            some_keys_are_not_lower = (some_keys_are_not_lower or 
+                k.lower() != k)
+        self.assertTrue(some_keys_are_not_lower)
+        self.assertTrue("QuEEn" in self.vectors)
+        self.assertTrue("QUEEN" in self.vectors)
+        self.assertTrue("queen" in self.vectors)
+        self.assertTrue(isclose(self.vectors.query("Queen"), 
+            self.vectors.query("QuEEn")).all())
+        self.assertEqual(self.vectors.most_similar("I", 
+            return_similarities = False)[0], 'myself')
+        self.assertEqual(self.vectors.most_similar("i", 
+            return_similarities = False)[0], 'ive')
+        self.assertTrue(self.vectors.similarity("a", "A") > .9)
 
     def test_case_sensitive(self):
         some_keys_are_not_lower = False
@@ -95,6 +108,16 @@ class MagnitudeTest(unittest.TestCase):
             some_keys_are_not_lower = (some_keys_are_not_lower or 
                 k.lower() != k)
         self.assertTrue(some_keys_are_not_lower)
+        self.assertTrue("QuEEn" not in self.vectors_cs)
+        self.assertTrue("QUEEN" in self.vectors_cs)
+        self.assertTrue("queen" in self.vectors_cs)
+        self.assertTrue(not isclose(self.vectors_cs.query("Queen"), 
+            self.vectors_cs.query("QuEEn")).all())
+        self.assertEqual(self.vectors_cs.most_similar("I", 
+            return_similarities = False)[0], 'myself')
+        self.assertEqual(self.vectors_cs.most_similar("i", 
+            return_similarities = False)[0], 'ive')
+        self.assertTrue(self.vectors_cs.similarity("a", "A") > .9)
 
 
     def test_iter_case_insensitive(self):
@@ -601,7 +624,7 @@ class MagnitudeTest(unittest.TestCase):
             u'princess',
             u'king',
             u'monarch',
-            u'very_pampered_mcelhatton'
+            u'very_pampered_McElhatton'
         ])
 
     def test_most_similar(self):

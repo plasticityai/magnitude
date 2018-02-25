@@ -4,7 +4,7 @@ from distutils.core import setup
 setup(
     name='pymagnitude',
     packages=find_packages(exclude=['tests', 'tests.*']),
-    version='0.0.20',
+    version='0.0.21',
     description='A fast, efficient universal vector embedding utility package.',
     author='Plasticity',
     author_email='support@plasticity.ai',
@@ -27,11 +27,17 @@ setup(
     ],
     classifiers=[
         'Intended Audience :: Developers',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.0',
+        'Programming Language :: Python :: 3.1',
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4'
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7'
     ],
 )
