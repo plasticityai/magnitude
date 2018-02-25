@@ -80,7 +80,7 @@ Deploy to PyPI:
     - rm -rf ../tagger
     - mkdir -p ../tagger
     - cd ../tagger
-    - git clone $CI_REPOSITORY_URL
+    - git clone git@gitlab.com:$CI_PROJECT_PATH.git
     - cd $CI_PROJECT_NAME
     - git config --global user.email "dev_ci_bot@plasticity.ai"
     - git config --global user.name "Plasticity Developer Bot"
