@@ -77,15 +77,15 @@ before_script:
 Deploy to PyPI:
   stage: Deploy to PyPI
   script:
-    - export ORIG_DIR=$(pwd)
-    - mkdir -p ../tagger
+    - mkdir -p ../$tagger
     - cd ../tagger
     - git clone $CI_REPOSITORY_URL
+    - cd $CI_PROJECT_NAME
     - git config --global user.email "dev_ci_bot@plasticity.ai"
     - git config --global user.name "Plasticity Developer Bot"
     - git tag -a $(python setup.py -V) -m "Release $(python setup.py -V)"
     - git push origin --tags
-    - cd $ORIG_DIR
+    - cd $CI_PROJECT_DIR
     - envsubst < deployment/.pypirc > ~/.pypirc
     - chmod 600 ~/.pypirc
     - python setup.py sdist upload -r pypitest
