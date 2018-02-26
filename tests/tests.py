@@ -27,19 +27,19 @@ class MagnitudeTest(unittest.TestCase):
 
     def setUp(self):
         self.vectors = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
-            case_insensitive = True)
+            case_insensitive = True, eager = False)
         self.vectors_cs = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
-            case_insensitive = False)
+            case_insensitive = False, eager = False)
         self.vectors_sw = Magnitude(MagnitudeTest.MAGNITUDE_SUBWORD_PATH,
-            case_insensitive = True)
+            case_insensitive = True, eager = False)
         self.vectors_approx = Magnitude(MagnitudeTest.MAGNITUDE_APPROX_PATH,
-            case_insensitive = True)
+            case_insensitive = True, eager = False)
         self.tmp_vectors = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
-            case_insensitive = True)
+            case_insensitive = True, eager = False)
         self.concat_1 = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
-            case_insensitive = True)
+            case_insensitive = True, eager = False)
         self.concat_2 = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
-            case_insensitive = True)
+            case_insensitive = True, eager = False)
         self.concat = Magnitude(self.concat_1, self.concat_2)
         self.vectors_feat = FeaturizerMagnitude(100, case_insensitive = True)
         self.v = {
@@ -187,7 +187,7 @@ class MagnitudeTest(unittest.TestCase):
 
     def test_oov_dim_placeholders(self):
         self.vectors_placeholders = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
-            placeholders = 5, case_insensitive = True)
+            placeholders = 5, case_insensitive = True, eager = False)
         self.assertEqual(self.vectors_placeholders.query("*<<<<").shape, 
             self.vectors_placeholders.query("cat").shape)
         self.assertTrue(isclose(self.vectors.query("*<<<<")[0], 
@@ -197,7 +197,7 @@ class MagnitudeTest(unittest.TestCase):
     def test_oov_subword_dim_placeholders(self):
         self.vectors_placeholders = Magnitude(
             MagnitudeTest.MAGNITUDE_SUBWORD_PATH, placeholders = 5,
-            case_insensitive = True)
+            case_insensitive = True, eager = False)
         self.assertEqual(self.vectors_placeholders.query("*<<<<").shape, 
             self.vectors_placeholders.query("cat").shape)
         self.assertTrue(isclose(self.vectors.query("*<<<<")[0], 
@@ -241,9 +241,9 @@ class MagnitudeTest(unittest.TestCase):
 
     def test_oov_values(self):
         self.vectors_oov_1 = Magnitude(MagnitudeTest.MAGNITUDE_PATH, 
-            case_insensitive = True, ngram_oov = False)
+            case_insensitive = True, ngram_oov = False, eager = False)
         self.vectors_oov_2 = Magnitude(MagnitudeTest.MAGNITUDE_PATH, 
-            case_insensitive = True, ngram_oov = False)
+            case_insensitive = True, ngram_oov = False, eager = False)
 
         self.assertTrue(isclose(self.vectors_oov_1.query("*<")[0],
             -0.0759614511397))
@@ -275,9 +275,9 @@ class MagnitudeTest(unittest.TestCase):
 
     def test_oov_subword_values(self):
         self.vectors_oov_1 = Magnitude(MagnitudeTest.MAGNITUDE_SUBWORD_PATH, 
-            case_insensitive = True, ngram_oov = False)
+            case_insensitive = True, ngram_oov = False, eager = False)
         self.vectors_oov_2 = Magnitude(MagnitudeTest.MAGNITUDE_SUBWORD_PATH, 
-            case_insensitive = True, ngram_oov = False)
+            case_insensitive = True, ngram_oov = False, eager = False)
 
         self.assertTrue(isclose(self.vectors_oov_1.query("discriminatoryy")[0],
             -0.0573252095591))
@@ -305,9 +305,9 @@ class MagnitudeTest(unittest.TestCase):
 
     def test_oov_stability(self):
         self.vectors_oov_1 = Magnitude(MagnitudeTest.MAGNITUDE_PATH, 
-            case_insensitive = True, ngram_oov = False)
+            case_insensitive = True, ngram_oov = False, eager = False)
         self.vectors_oov_2 = Magnitude(MagnitudeTest.MAGNITUDE_PATH, 
-            case_insensitive = True, ngram_oov = False)
+            case_insensitive = True, ngram_oov = False, eager = False)
         
         for i in range(5):
             self.assertTrue(isclose(self.vectors_oov_1.query("*<"), 
@@ -330,9 +330,9 @@ class MagnitudeTest(unittest.TestCase):
 
     def test_ngram_oov_stability(self):
         self.vectors_oov_1 = Magnitude(MagnitudeTest.MAGNITUDE_PATH, 
-            case_insensitive = True, ngram_oov = True)
+            case_insensitive = True, ngram_oov = True, eager = False)
         self.vectors_oov_2 = Magnitude(MagnitudeTest.MAGNITUDE_PATH, 
-            case_insensitive = True, ngram_oov = True)
+            case_insensitive = True, ngram_oov = True, eager = False)
 
         for i in range(5):
             self.assertTrue(isclose(self.vectors_oov_1.query("*<"), 
@@ -355,9 +355,9 @@ class MagnitudeTest(unittest.TestCase):
 
     def test_ngram_oov_subword_stability(self):
         self.vectors_oov_1 = Magnitude(MagnitudeTest.MAGNITUDE_SUBWORD_PATH,
-            case_insensitive = True)
+            case_insensitive = True, eager = False)
         self.vectors_oov_2 = Magnitude(MagnitudeTest.MAGNITUDE_SUBWORD_PATH,
-            case_insensitive = True)
+            case_insensitive = True, eager = False)
 
         for i in range(5):
             self.assertTrue(isclose(self.vectors_oov_1.query("*<"), 
@@ -380,7 +380,7 @@ class MagnitudeTest(unittest.TestCase):
 
     def test_placeholders(self):
         self.vectors_placeholders = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
-            case_insensitive = True, placeholders = 5)
+            case_insensitive = True, placeholders = 5, eager = False)
         self.assertEqual(self.vectors_placeholders.query("cat").shape, (305,))
         self.assertEqual(self.vectors_placeholders.query("cat")[0],
             self.vectors.query("cat")[0])
@@ -391,7 +391,7 @@ class MagnitudeTest(unittest.TestCase):
 
     def test_list(self):
         self.vectors_list = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
-            case_insensitive = True, use_numpy = False)
+            case_insensitive = True, use_numpy = False, eager = False)
         self.assertTrue(isinstance(self.vectors_list.query("cat"), list))
         self.vectors_list.close()
 
@@ -507,7 +507,7 @@ class MagnitudeTest(unittest.TestCase):
 
     def test_list_multiple(self):
         self.vectors_list = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
-            case_insensitive = True, use_numpy = False)
+            case_insensitive = True, use_numpy = False, eager = False)
         q = [["I", "saw", "a", "cat"], ["He", "went", "to", "the", "mall"]]
         self.assertTrue(isinstance(self.vectors_list.query(q[0]), list))
         self.assertTrue(isclose(self.vectors.query(q[0]),
