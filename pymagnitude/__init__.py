@@ -1061,7 +1061,7 @@ build the appropriate indexes into the `.magnitude` file.")
             for chunk in chunks:
                 yield decompressor.decompress(chunk[1])
                 if self.closed:
-                    break
+                    return
         db.connection.close()
 
     def get_approx_index(self):
@@ -1110,7 +1110,7 @@ build the appropriate indexes into the `.magnitude` file.")
         for result in results:
             yield self._db_full_result_to_vec(result)
             if self.closed:
-                break
+                return
         db.connection.close()
 
     def __len__(self):
