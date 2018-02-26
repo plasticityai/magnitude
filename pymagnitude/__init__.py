@@ -228,7 +228,7 @@ class Magnitude(object):
         self.setup_for_mmap = False
         self._all_vectors = None
         self._approx_index = None
-        if eager and blocking:
+        if eager:
             mmap_thread = threading.Thread(target=self.get_vectors_mmap)
             mmap_thread.daemon = True
             mmap_thread.start()
