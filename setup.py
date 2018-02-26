@@ -4,7 +4,7 @@ from distutils.core import setup
 setup(
     name='pymagnitude',
     packages=find_packages(exclude=['tests', 'tests.*']),
-    version='0.0.21',
+    version='0.1.0',
     description='A fast, efficient universal vector embedding utility package.',
     long_description="""
 About
