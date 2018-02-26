@@ -118,6 +118,7 @@ class Magnitude(object):
                  eager=True, dtype = np.float32, _namespace = None, 
                  _number_of_values = 1000000):
         """Initializes a new Magnitude object."""
+        self.closed = False
         self.uid = str(uuid.uuid4()).replace("-", "")
 
         if path is None:
@@ -169,9 +170,6 @@ class Magnitude(object):
                     hide this message.""")
                 sys.stdout.flush()
             self.path = convert_vector_file(self.path)
-
-        if self.memory_db:
-            self._create_empty_db()
 
         # Get metadata about the vectors
         self.length = self._db().execute(
@@ -318,8 +316,6 @@ class Magnitude(object):
         own cursor.
         """
         identifier = threading.current_thread().ident
-        if self.memory_db:
-            identifier = self.uid
         conn_exists = identifier in self._cursors
         if not conn_exists or force_new:
             if self.fd:
@@ -327,6 +323,7 @@ class Magnitude(object):
                     check_same_thread=False)
             else:
                 conn = sqlite3.connect(self.path, check_same_thread=False)
+                self._create_empty_db(conn.cursor())
             self._all_conns.append(conn)
         if not conn_exists:
             self._conns[identifier] = conn
@@ -335,7 +332,7 @@ class Magnitude(object):
             return conn.cursor()
         return self._cursors[identifier]
 
-    def _create_empty_db(self):
+    def _create_empty_db(self, db):
         # Calculates the number of dimensions needed to prevent hashing from
         # creating a collision error of a certain value for the number of 
         # expected feature values being hashed
@@ -343,13 +340,13 @@ class Magnitude(object):
         number_of_dims = max(math.ceil(math.log(((self._number_of_values ** 2) /
             (-2*math.log(-collision_error_allowed+1))), 100)), 2)
 
-        self._db().execute("DROP TABLE IF EXISTS `magnitude`;")
-        self._db().execute("""
+        db.execute("DROP TABLE IF EXISTS `magnitude`;")
+        db.execute("""
             CREATE TABLE `magnitude` (
                 key TEXT COLLATE NOCASE
             );
         """)
-        self._db().execute("""
+        db.execute("""
             CREATE TABLE `magnitude_format` (
                 key TEXT COLLATE NOCASE,
                 value INTEGER
@@ -364,9 +361,9 @@ class Magnitude(object):
                 ?, ?
             );
         """;
-        self._db().execute(insert_format_query, ('size', 0))
-        self._db().execute(insert_format_query, ('dim', number_of_dims))
-        self._db().execute(insert_format_query, ('precision', 0))
+        db.execute(insert_format_query, ('size', 0))
+        db.execute(insert_format_query, ('dim', number_of_dims))
+        db.execute(insert_format_query, ('precision', 0))
 
     def _padding_vector(self):
         """Generates a padding vector."""
@@ -994,8 +991,6 @@ build the appropriate indexes into the `.magnitude` file.")
         """Gets a numpy.memmap of all vectors, blocks if it is still 
         being built.
         """
-        db_iter = iter(self)
-        values = imap(lambda kv: kv[1], db_iter)
         if self._all_vectors is None:
             while True:
                 if not self.setup_for_mmap:
@@ -1015,6 +1010,7 @@ build the appropriate indexes into the `.magnitude` file.")
                     tlock = self.MMAP_THREAD_LOCK.acquire(False)
                     plock = self.MMAP_PROCESS_LOCK.acquire(blocking=False)
                     if tlock and plock:
+                        values = imap(lambda kv: kv[1], iter(self))
                         try:
                             with open(path_to_mmap_temp, "w+b") as mmap_file:
                                 all_vectors = np.memmap(
@@ -1064,6 +1060,8 @@ build the appropriate indexes into the `.magnitude` file.")
                 """, (self.approx_trees,))
             for chunk in chunks:
                 yield decompressor.decompress(chunk[1])
+                if self.closed:
+                    break
         db.connection.close()
 
     def get_approx_index(self):
@@ -1111,6 +1109,8 @@ build the appropriate indexes into the `.magnitude` file.")
             """)
         for result in results:
             yield self._db_full_result_to_vec(result)
+            if self.closed:
+                break
         db.connection.close()
 
     def __len__(self):
@@ -1131,6 +1131,7 @@ build the appropriate indexes into the `.magnitude` file.")
 
     def close(self):
         """Cleans up the object"""
+        self.closed = True
         if hasattr(self, 'fd'):
             try:
                 os.close(self.fd)
