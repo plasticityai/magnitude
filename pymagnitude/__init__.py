@@ -97,6 +97,7 @@ class Magnitude(object):
         batch_size: Controls the maximum vector size used in memory directly
         eager: Start loading non-critical resources in the background in 
                anticipation they will be used.
+        dtype: The dtype to use when use_numpy is True.
         _number_of_values: When the path is set to None and Magnitude is being
                           used to solely featurize keys directly into vectors,
                           _number_of_values should be set to the 
@@ -114,7 +115,7 @@ class Magnitude(object):
                  pad_to_length=None, truncate_left=False,
                  pad_left=False, placeholders=0, ngram_oov=True,
                  supress_warnings=False, batch_size=3000000,
-                 eager=True, _namespace = None, 
+                 eager=True, dtype = np.float32, _namespace = None, 
                  _number_of_values = 1000000):
         """Initializes a new Magnitude object."""
         self.uid = str(uuid.uuid4()).replace("-", "")
@@ -138,6 +139,7 @@ class Magnitude(object):
         self.ngram_oov = ngram_oov
         self.supress_warnings = supress_warnings
         self.batch_size = batch_size
+        self.dtype = dtype
         self._namespace = _namespace
         self._number_of_values = _number_of_values
 
@@ -369,7 +371,7 @@ class Magnitude(object):
     def _padding_vector(self):
         """Generates a padding vector."""
         if self.use_numpy:
-            return np.zeros((self.dim,), dtype=np.float32)
+            return np.zeros((self.dim,), dtype=self.dtype)
         else:
             return [0.0] * self.dim
 
@@ -492,7 +494,7 @@ class Magnitude(object):
             np.random.seed(seed=seed)
             random_vector = (np.random.rand(self.emb_dim) * 2.0) - 1.0
             Magnitude.OOV_RNG_LOCK.release()
-            random_vector[-1] = np.float32(key)/np.finfo(np.float32).max
+            random_vector[-1] = self.dtype(key)/np.finfo(self.dtype).max
         elif not self.ngram_oov or len(key) < Magnitude.NGRAM_BEG:
             seed = self._seed(key)
             Magnitude.OOV_RNG_LOCK.acquire()
@@ -532,7 +534,7 @@ class Magnitude(object):
     def _db_result_to_vec(self, result):
         """Converts a database result to a vector."""
         if self.use_numpy:
-            vec = np.zeros((self.dim,), dtype=np.float32)
+            vec = np.zeros((self.dim,), dtype=self.dtype)
             vec[0:self.emb_dim] = result
             vec = vec / float(10**self.precision)
             return vec
@@ -693,8 +695,7 @@ class Magnitude(object):
             else:
                 vectors = vectors[0:keys_length]
             if self.use_numpy:
-                tensor = np.zeros((pad_to_length, self.dim),
-                                  dtype=np.float32)
+                tensor = np.zeros((pad_to_length, self.dim), dtype=self.dtype)
             else:
                 tensor = [self._padding_vector() for i in range(pad_to_length)]
             if pad_left:
@@ -707,7 +708,7 @@ class Magnitude(object):
             pad_to_length = pad_to_length if pad_to_length else max_q
             if self.use_numpy:
                 tensor = np.zeros((len(q), pad_to_length, self.dim),
-                                  dtype=np.float32)
+                                  dtype=self.dtype)
             else:
                 tensor = [[self._padding_vector() for i in range(pad_to_length)]
                     for j in range(len(q))]
@@ -824,7 +825,7 @@ class Magnitude(object):
                 negative_vecs = -1.0 * np.sum(self._query_numpy(negative), 
                     axis=0)
             else:
-                negative_vecs = np.zeros((self.dim,), dtype=np.float32)
+                negative_vecs = np.zeros((self.dim,), dtype=self.dtype)
             mean_vector = (positive_vecs + negative_vecs) / \
                 float(len(positive) + len(negative))
             mean_unit_vector = mean_vector / np.linalg.norm(mean_vector)
@@ -1002,7 +1003,7 @@ build the appropriate indexes into the `.magnitude` file.")
                 try:
                     if not self.memory_db:
                         all_vectors = np.memmap(
-                            self.path_to_mmap, dtype='float32', mode='r', 
+                            self.path_to_mmap, dtype=self.dtype, mode='r', 
                             shape=(self.length, self.dim))
                         self._all_vectors = all_vectors
                     else:
@@ -1017,7 +1018,7 @@ build the appropriate indexes into the `.magnitude` file.")
                         try:
                             with open(path_to_mmap_temp, "w+b") as mmap_file:
                                 all_vectors = np.memmap(
-                                    mmap_file, dtype='float32', mode='w+', 
+                                    mmap_file, dtype=self.dtype, mode='w+', 
                                     shape=(self.length, self.dim))
                                 for i, value in enumerate(values):
                                     all_vectors[i] = value
