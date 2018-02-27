@@ -147,6 +147,7 @@ class Magnitude(object):
         # Define conns and cursors store
         self._conns = {}
         self._cursors = {}
+        self._threads = []
 
         # Convert the input file if not .magnitude
         if self.path.endswith('.bin') or \
@@ -221,7 +222,7 @@ class Magnitude(object):
 
         # Iterate to pre-load
         def _preload_memory():
-            for key, vector in self:
+            for key, vector in self._iter(put_cache = True):
                 pass
 
         # Start creating mmap in background
@@ -230,11 +231,13 @@ class Magnitude(object):
         self._approx_index = None
         if eager:
             mmap_thread = threading.Thread(target=self.get_vectors_mmap)
+            self._threads.append(mmap_thread)
             mmap_thread.daemon = True
             mmap_thread.start()
             if self.approx:
                 approx_mmap_thread = threading.Thread(
                     target=self.get_approx_index)
+                self._threads.append(approx_mmap_thread)
                 approx_mmap_thread.daemon = True
                 approx_mmap_thread.start()
 
@@ -259,6 +262,7 @@ class Magnitude(object):
                     _preload_memory()
                 else:
                     preload_thread = threading.Thread(target=_preload_memory)
+                    self._threads.append(preload_thread)
                     preload_thread.daemon = True
                     preload_thread.start()
         elif self.lazy_loading > 0:
@@ -539,14 +543,15 @@ class Magnitude(object):
             return [v / float(10**self.precision) for v in result] + \
                 [0.0] * self.placeholders
 
-    def _db_full_result_to_vec(self, result):
+    def _db_full_result_to_vec(self, result, put_cache = True):
         """Converts a full database result to a vector."""
         result_key = result[0]
         if self._query_is_cached(result_key):
             return (result_key, self.query(result_key))
         else:
             vec = self._db_result_to_vec(result[1:])
-            self._vector_for_key_cached._cache.put((result_key,), vec)
+            if put_cache:
+                self._vector_for_key_cached._cache.put((result_key,), vec)
             return (result_key, vec)
 
     def _vector_for_key(self, key):
@@ -1010,7 +1015,8 @@ build the appropriate indexes into the `.magnitude` file.")
                     tlock = self.MMAP_THREAD_LOCK.acquire(False)
                     plock = self.MMAP_PROCESS_LOCK.acquire(blocking=False)
                     if tlock and plock:
-                        values = imap(lambda kv: kv[1], iter(self))
+                        values = imap(lambda kv: kv[1], 
+                            self._iter(put_cache = False))
                         try:
                             with open(path_to_mmap_temp, "w+b") as mmap_file:
                                 all_vectors = np.memmap(
@@ -1019,7 +1025,10 @@ build the appropriate indexes into the `.magnitude` file.")
                                 for i, value in enumerate(values):
                                     all_vectors[i] = value
                                 all_vectors.flush()
-                            os.rename(path_to_mmap_temp, self.path_to_mmap)
+                            if not self.closed:
+                                os.rename(path_to_mmap_temp, self.path_to_mmap)
+                            else:
+                                return
                         finally:
                             self.MMAP_THREAD_LOCK.release()
                             try:
@@ -1050,19 +1059,24 @@ build the appropriate indexes into the `.magnitude` file.")
     def get_approx_index_chunks(self):
         """Gets decompressed chunks of the AnnoyIndex of the vectors from 
         the database."""
-        db = self._db(force_new = True)
-        with lz4.frame.LZ4FrameDecompressor() as decompressor:
-            chunks = db.execute(
-                """
-                    SELECT rowid,index_file
-                    FROM `magnitude_approx`
-                    WHERE trees = ?
-                """, (self.approx_trees,))
-            for chunk in chunks:
-                yield decompressor.decompress(chunk[1])
-                if self.closed:
-                    return
-        db.connection.close()
+        try:
+            db = self._db(force_new = True)
+            with lz4.frame.LZ4FrameDecompressor() as decompressor:
+                chunks = db.execute(
+                    """
+                        SELECT rowid,index_file
+                        FROM `magnitude_approx`
+                        WHERE trees = ?
+                    """, (self.approx_trees,))
+                for chunk in chunks:
+                    yield decompressor.decompress(chunk[1])
+                    if self.closed:
+                        return
+        except Exception as e:
+            if self.closed:
+                pass
+            else:
+                raise e
 
     def get_approx_index(self):
         """Gets an AnnoyIndex of the vectors from the database."""
@@ -1088,8 +1102,11 @@ build the appropriate indexes into the `.magnitude` file.")
                                 as mmap_file:
                                 for chunk in chunks:
                                     mmap_file.write(chunk)
-                            os.rename(path_to_approx_mmap_temp, 
-                                self.path_to_approx_mmap)
+                            if not self.closed:
+                                os.rename(path_to_approx_mmap_temp, 
+                                    self.path_to_approx_mmap)
+                            else:
+                                return
                         finally:
                             self.APPROX_MMAP_THREAD_LOCK.release()
                             try:
@@ -1099,19 +1116,29 @@ build the appropriate indexes into the `.magnitude` file.")
                 sleep(1)  # Block before trying again
         return self._approx_index
 
+    def _iter(self, put_cache):
+        """Yields keys and vectors for all vectors in the store."""
+        try:
+            db = self._db(force_new = True)
+            results = db.execute(
+                """
+                    SELECT * 
+                    FROM `magnitude`
+                """)
+            for result in results:
+                yield self._db_full_result_to_vec(result, 
+                    put_cache = put_cache)
+                if self.closed:
+                    return
+        except Exception as e:
+            if self.closed:
+                pass
+            else:
+                raise e
+
     def __iter__(self):
         """Yields keys and vectors for all vectors in the store."""
-        db = self._db(force_new = True)
-        results = db.execute(
-            """
-                SELECT * 
-                FROM `magnitude`
-            """)
-        for result in results:
-            yield self._db_full_result_to_vec(result)
-            if self.closed:
-                return
-        db.connection.close()
+        return self._iter(put_cache = True)
 
     def __len__(self):
         """Returns the number of vectors."""
@@ -1132,15 +1159,17 @@ build the appropriate indexes into the `.magnitude` file.")
     def close(self):
         """Cleans up the object"""
         self.closed = True
-        if hasattr(self, 'fd'):
-            try:
-                os.close(self.fd)
-            except:
-                pass
+        while any([t.is_alive() for t in self._threads]):
+            sleep(.5)
         for conn in self._all_conns:
             try:
                 conn.close()
             except Exception as e:
+                pass
+        if hasattr(self, 'fd'):
+            try:
+                os.close(self.fd)
+            except:
                 pass
         try:
             self._all_vectors._mmap.close()

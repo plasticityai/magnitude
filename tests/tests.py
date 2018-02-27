@@ -27,7 +27,7 @@ class MagnitudeTest(unittest.TestCase):
 
     def setUp(self):
         self.vectors = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
-            case_insensitive = True, eager = False)
+            case_insensitive = True, eager = True)
         self.vectors_cs = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
             case_insensitive = False, eager = False)
         self.vectors_sw = Magnitude(MagnitudeTest.MAGNITUDE_SUBWORD_PATH,
@@ -83,7 +83,7 @@ class MagnitudeTest(unittest.TestCase):
 
     def test_case_insensitive(self):
         some_keys_are_not_lower = False
-        for i, (k, _) in enumerate(self.vectors_cs):
+        for i, (k, _) in enumerate(self.vectors):
             if i > 1000:
                 break
             some_keys_are_not_lower = (some_keys_are_not_lower or 
