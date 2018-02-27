@@ -140,6 +140,7 @@ class Magnitude(object):
         self.ngram_oov = ngram_oov
         self.supress_warnings = supress_warnings
         self.batch_size = batch_size
+        self.eager = eager
         self.dtype = dtype
         self._namespace = _namespace
         self._number_of_values = _number_of_values
@@ -222,14 +223,15 @@ class Magnitude(object):
 
         # Iterate to pre-load
         def _preload_memory():
-            for key, vector in self._iter(put_cache = True):
-                pass
+            if not self.eager: # So that it doesn't loop over the vectors twice
+                for key, vector in self._iter(put_cache = True):
+                    pass
 
         # Start creating mmap in background
         self.setup_for_mmap = False
         self._all_vectors = None
         self._approx_index = None
-        if eager:
+        if self.eager:
             mmap_thread = threading.Thread(target=self.get_vectors_mmap)
             self._threads.append(mmap_thread)
             mmap_thread.daemon = True
@@ -281,7 +283,7 @@ class Magnitude(object):
             self._out_of_vocab_vector_cached = _out_of_vocab_vector_cached
             self._key_for_index_cached = _key_for_index_cached
 
-        if eager and blocking:
+        if self.eager and blocking:
             self.get_vectors_mmap()  # Wait for mmap to be available
             if self.approx:
                 self.get_approx_index()  # Wait for approx mmap to be available
@@ -1016,7 +1018,7 @@ build the appropriate indexes into the `.magnitude` file.")
                     plock = self.MMAP_PROCESS_LOCK.acquire(blocking=False)
                     if tlock and plock:
                         values = imap(lambda kv: kv[1], 
-                            self._iter(put_cache = False))
+                            self._iter(put_cache = self.lazy_loading == -1))
                         try:
                             with open(path_to_mmap_temp, "w+b") as mmap_file:
                                 all_vectors = np.memmap(
