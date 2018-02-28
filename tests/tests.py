@@ -177,6 +177,17 @@ class MagnitudeTest(unittest.TestCase):
     def test_contains_false(self):
         self.assertTrue("blah123" not in self.vectors)
 
+    def test_special_characters(self):
+        self.assertTrue("Wilkes-Barre/Scranton" in self.vectors)
+        self.assertTrue("out-of-vocabulary" not in self.vectors)
+        self.assertTrue('quotation"s' not in self.vectors)
+        self.assertTrue("quotation's" not in self.vectors)
+        self.assertTrue("colon;s" not in self.vectors)
+        self.assertEqual(self.vectors.query("out-of-vocabulary").shape,
+            self.vectors.query("Wilkes-Barre/Scranton").shape)
+        self.assertEqual(self.vectors.query("cat").shape, 
+            self.vectors.query('quotation"s').shape)
+
     def test_oov_dim(self):
         self.assertEqual(self.vectors.query("*<<<<").shape, 
             self.vectors.query("cat").shape)
