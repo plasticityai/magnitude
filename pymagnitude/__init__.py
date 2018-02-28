@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import gc
 import os
@@ -59,6 +60,7 @@ class Magnitude(object):
     BOW = BOW
     EOW = EOW
     RARE_CHAR = u"\uF002".encode('utf-8')
+    FTS_SPECIAL = set('*^')
     MMAP_THREAD_LOCK = {}
     OOV_RNG_LOCK = threading.Lock()
 
@@ -421,12 +423,12 @@ class Magnitude(object):
                     + """ DESC,
                 """
                 if true_key_len <= 5 and key_shrunk != key:
-                    exact_match = list(char_ngrams(key_shrunk, 
-                        true_key_len, true_key_len))
+                    exact_match = list(char_ngrams(
+                        key_shrunk, true_key_len, true_key_len))
             search_query = """
                 SELECT magnitude.*
                 FROM magnitude_subword, magnitude
-                WHERE char_ngrams MATCH ?
+                WHERE char_ngrams {0}
                 AND magnitude.rowid = magnitude_subword.rowid
                 ORDER BY 
                     ((
@@ -439,17 +441,35 @@ class Magnitude(object):
                 LIMIT ?;
             """
             if len(exact_match) > 0:
-                results = self._db().execute(search_query, 
-                    (' OR '.join(exact_match), topn)).fetchall()
+                # Handle fts3 special characters
+                if any((c in Magnitude.FTS_SPECIAL) 
+                        for c in ''.join(exact_match)):
+                    q = search_query.format(
+                        'IN (' + ', '.join('?' * len(exact_match)) + ')')
+                    params = exact_match + [topn]
+                else:
+                    q = search_query.format('MATCH ?')
+                    params = (' OR '.join('"{0}"'.format(
+                        e.replace('"', '""')) for e in exact_match), topn)
+                results = self._db().execute(q, params).fetchall()
             else:
                 results = []
             if len(results) == 0:
                 while (len(results) < topn and
-                    current_subword_start >= self.subword_start):
-                    results = self._db().execute(search_query, 
-                        (' OR '.join(char_ngrams(key, 
-                        current_subword_start, self.subword_end)), 
-                        topn)).fetchall()
+                        current_subword_start >= self.subword_start):
+                    ngrams = list(char_ngrams(
+                        key, current_subword_start, self.subword_end))
+                    # Handle fts3 special characters
+                    if any((c in Magnitude.FTS_SPECIAL) 
+                            for c in ''.join(ngrams)):
+                        q = search_query.format(
+                            'IN (' + ', '.join('?' * len(ngrams)) + ')')
+                        params = ngrams + [topn]
+                    else:
+                        q = search_query.format('MATCH ?')
+                        params = (' OR '.join('"{0}"'.format(
+                            n.replace('"', '""')) for n in ngrams), topn)
+                    results = self._db().execute(q, params).fetchall()
                     current_subword_start -= 1
                 # if current_subword_start > self.subword_start:
                 #     results = self._db().execute(search_query, 
