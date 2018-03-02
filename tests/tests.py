@@ -183,10 +183,25 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue('quotation"s' not in self.vectors)
         self.assertTrue("quotation's" not in self.vectors)
         self.assertTrue("colon;s" not in self.vectors)
-        self.assertEqual(self.vectors.query("out-of-vocabulary").shape,
+        self.assertTrue("sh**" not in self.vectors)
+        self.assertTrue("'s" not in self.vectors_cs)
+        self.assertTrue('"s' not in self.vectors)
+        self.assertEqual(self.vectors.query("cat").shape,
             self.vectors.query("Wilkes-Barre/Scranton").shape)
+        self.assertEqual(self.vectors.query("cat").shape,
+            self.vectors.query("out-of-vocabulary").shape)
         self.assertEqual(self.vectors.query("cat").shape, 
             self.vectors.query('quotation"s').shape)
+        self.assertEqual(self.vectors.query("cat").shape,
+            self.vectors.query("quotation's").shape)
+        self.assertEqual(self.vectors.query("cat").shape,
+            self.vectors.query("colon;s").shape)
+        self.assertEqual(self.vectors.query("cat").shape,
+            self.vectors.query("sh**").shape)
+        self.assertEqual(self.vectors.query("cat").shape,
+            self.vectors_cs.query("'s").shape)
+        self.assertEqual(self.vectors.query("cat").shape,
+            self.vectors.query('"s').shape)
 
     def test_oov_dim(self):
         self.assertEqual(self.vectors.query("*<<<<").shape, 

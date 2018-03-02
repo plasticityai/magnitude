@@ -404,24 +404,23 @@ class Magnitude(object):
         """Finds similar keys in the database and gets the mean vector."""
         if self.subword: 
             current_subword_start = self.subword_end
-            BOWEOW_length = len(Magnitude.BOW)+len(Magnitude.EOW)
+            BOW_length = len(Magnitude.BOW)
+            EOW_length = len(Magnitude.EOW)
+            BOWEOW_length = BOW_length + EOW_length
             true_key_len = len(key) - BOWEOW_length
             key_shrunk = re.sub(r"([^<])\1+",r"\1", key)
             beginning_and_end_clause = ""
             exact_match = []
             if true_key_len <= 6:
                 beginning_and_end_clause = """
-                    magnitude.key LIKE '"""+ \
-                    key[len(Magnitude.BOW):len(Magnitude.BOW)+1].replace(
-                        "'", "\\'")+"""%' AND LENGTH(magnitude.key) <= """ + \
-                        str(true_key_len) \
-                    + """  DESC,
-                    magnitude.key LIKE '%"""+ \
-                    key[-len(Magnitude.EOW)-1:-len(Magnitude.EOW)].replace(
-                        "'", "\\'")+"""' AND LENGTH(magnitude.key) <= """ + \
-                        str(true_key_len) \
-                    + """ DESC,
-                """
+                    magnitude.key LIKE "{0}%" 
+                        AND LENGTH(magnitude.key) <= {2} DESC, 
+                    magnitude.key LIKE "%{1}" 
+                        AND LENGTH(magnitude.key) <= {2} DESC,"""
+                beginning_and_end_clause = beginning_and_end_clause.format(
+                    key[BOW_length:BOW_length+1].replace("'", "''"),
+                    key[-EOW_length-1:-EOW_length].replace("'", "''"),
+                    str(true_key_len))
                 if true_key_len <= 5 and key_shrunk != key:
                     exact_match = list(char_ngrams(
                         key_shrunk, true_key_len, true_key_len))
@@ -431,11 +430,10 @@ class Magnitude(object):
                 WHERE char_ngrams {0}
                 AND magnitude.rowid = magnitude_subword.rowid
                 ORDER BY 
-                    ((
-                        LENGTH(offsets(magnitude_subword))
-                        - 
-                        LENGTH(REPLACE(offsets(magnitude_subword), ' ', ''))
-                    ) + 1) DESC,
+                    (
+                        (LENGTH(offsets(magnitude_subword)) - 
+                         LENGTH(REPLACE(offsets(magnitude_subword), ' ', ''))) 
+                    + 1) DESC,
                     """ + beginning_and_end_clause + """
                     LENGTH(magnitude.key) ASC
                 LIMIT ?;
