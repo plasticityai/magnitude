@@ -402,6 +402,13 @@ class Magnitude(object):
 
     def _db_query_similar_keys_vector(self, key, orig_key, topn = 3):
         """Finds similar keys in the database and gets the mean vector."""
+        def _sql_escape_single(s):
+            return s.replace("'", "''")
+
+        def _sql_escape_fts(s):
+            return ''.join("\\"+c if c in Magnitude.FTS_SPECIAL 
+                else c for c in s).replace('"', '""')
+
         if self.subword: 
             current_subword_start = self.subword_end
             BOW_length = len(Magnitude.BOW)
@@ -413,13 +420,13 @@ class Magnitude(object):
             exact_match = []
             if true_key_len <= 6:
                 beginning_and_end_clause = """
-                    magnitude.key LIKE "{0}%" 
+                    magnitude.key LIKE '{0}%'
                         AND LENGTH(magnitude.key) <= {2} DESC, 
-                    magnitude.key LIKE "%{1}" 
+                    magnitude.key LIKE '%{1}'
                         AND LENGTH(magnitude.key) <= {2} DESC,"""
                 beginning_and_end_clause = beginning_and_end_clause.format(
-                    key[BOW_length:BOW_length+1].replace("'", "''"),
-                    key[-EOW_length-1:-EOW_length].replace("'", "''"),
+                    _sql_escape_single(key[BOW_length:BOW_length+1]),
+                    _sql_escape_single(key[-EOW_length-1:-EOW_length]),
                     str(true_key_len))
                 if true_key_len <= 5 and key_shrunk != key:
                     exact_match = list(char_ngrams(
@@ -427,7 +434,7 @@ class Magnitude(object):
             search_query = """
                 SELECT magnitude.*
                 FROM magnitude_subword, magnitude
-                WHERE char_ngrams {0}
+                WHERE char_ngrams MATCH ?
                 AND magnitude.rowid = magnitude_subword.rowid
                 ORDER BY 
                     (
@@ -439,17 +446,9 @@ class Magnitude(object):
                 LIMIT ?;
             """
             if len(exact_match) > 0:
-                # Handle fts3 special characters
-                if any((c in Magnitude.FTS_SPECIAL) 
-                        for c in ''.join(exact_match)):
-                    q = search_query.format(
-                        'IN (' + ', '.join('?' * len(exact_match)) + ')')
-                    params = exact_match + [topn]
-                else:
-                    q = search_query.format('MATCH ?')
-                    params = (' OR '.join('"{0}"'.format(
-                        e.replace('"', '""')) for e in exact_match), topn)
-                results = self._db().execute(q, params).fetchall()
+                params = (' OR '.join('"{0}"'.format(_sql_escape_fts(e)) 
+                    for e in exact_match), topn)
+                results = self._db().execute(search_query, params).fetchall()
             else:
                 results = []
             if len(results) == 0:
@@ -457,26 +456,11 @@ class Magnitude(object):
                         current_subword_start >= self.subword_start):
                     ngrams = list(char_ngrams(
                         key, current_subword_start, self.subword_end))
-                    # Handle fts3 special characters
-                    if any((c in Magnitude.FTS_SPECIAL) 
-                            for c in ''.join(ngrams)):
-                        q = search_query.format(
-                            'IN (' + ', '.join('?' * len(ngrams)) + ')')
-                        params = ngrams + [topn]
-                    else:
-                        q = search_query.format('MATCH ?')
-                        params = (' OR '.join('"{0}"'.format(
-                            n.replace('"', '""')) for n in ngrams), topn)
-                    results = self._db().execute(q, params).fetchall()
+                    params = (' OR '.join('"{0}"'.format(_sql_escape_fts(n)) 
+                        for n in ngrams), topn)
+                    results = self._db().execute(search_query, 
+                        params).fetchall()
                     current_subword_start -= 1
-                # if current_subword_start > self.subword_start:
-                #     results = self._db().execute(search_query, 
-                #         ('(' + ') AND ('.join([
-                #         ' OR '.join(char_ngrams(key, 
-                #         current_subword_start, self.subword_end)),
-                #         ' OR '.join(char_ngrams(key, 
-                #         self.subword_start, self.subword_start)) 
-                #         ]) + ')', topn)).fetchall()
         else:
             results = self._db().execute(
                 """
