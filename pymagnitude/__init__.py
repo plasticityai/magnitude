@@ -53,6 +53,21 @@ except NameError:
 
 DEFAULT_LRU_CACHE_SIZE = 1000
 
+def _sqlite_try_max_variable_number(num):
+    """ Tests whether SQLite can handle num variables """
+    db = sqlite3.connect(':memory:')
+    try:
+        db.cursor().execute(
+            "SELECT 1 IN ("+",".join(["?"]*num)+")", 
+            ([0]*num)
+        ).fetchall()
+        return num
+    except:
+        return -1
+    finally:
+        db.close()
+        
+
 class Magnitude(object):
 
     NGRAM_BEG = 1
@@ -63,9 +78,11 @@ class Magnitude(object):
     FTS_SPECIAL = set('*^')
     MMAP_THREAD_LOCK = {}
     OOV_RNG_LOCK = threading.Lock()
-
+    SQLITE_MAX_VARIABLE_NUMBER = max(max((_sqlite_try_max_variable_number(n) 
+        for n in [99, 999, 9999, 99999])), 1)
+    
     def __new__(cls, *args, **kwargs):
-        ''' Returns a concatenated magnitude object, if Magnitude parameters '''
+        """ Returns a concatenated magnitude object, if Magnitude parameters """
         if len(args) > 0 and isinstance(args[0], Magnitude): 
             obj = object.__new__(ConcatenatedMagnitude, *args, **kwargs)
             obj.__init__(*args, **kwargs)  
@@ -536,6 +553,19 @@ class Magnitude(object):
         else:
             return final_vector.tolist()
 
+    def _db_batch_generator(self, params):
+        """ Generates batches of paramaters that respect
+        SQLite's MAX_VARIABLE_NUMBER """
+        if len(params) <= Magnitude.SQLITE_MAX_VARIABLE_NUMBER:
+            yield params
+        else:
+            it = iter(params)
+            for batch in \
+                iter(lambda: tuple(
+                    islice(it, Magnitude.SQLITE_MAX_VARIABLE_NUMBER)
+                    ), ()):
+                yield batch
+
     def _db_result_to_vec(self, result):
         """Converts a database result to a vector."""
         if self.use_numpy:
@@ -581,27 +611,33 @@ class Magnitude(object):
         if len(unseen_keys) > 0:
             unseen_keys_map = {self._key_t(k): i for i, k in 
                 enumerate(unseen_keys)}
-            results = self._db().execute(
-                """
-                    SELECT * 
-                    FROM `magnitude` 
-                    WHERE key
-                    IN ("""+ ' ,'.join(['?'] * len(unseen_keys)) + """);
-                """,
-                unseen_keys)
             unseen_vectors = [None] * len(unseen_keys)
             seen_keys = set()
-            for result in results:
-                result_key, vec = self._db_full_result_to_vec(result)
-                result_key_t = self._key_t(result_key)
-                if result_key_t in unseen_keys_map:
-                    i = unseen_keys_map[result_key_t]
-                    if ((result_key_t not in seen_keys 
-                        or result_key==unseen_keys[i])
-                        and 
-                        (self.case_insensitive or result_key==unseen_keys[i])):
-                        seen_keys.add(result_key_t)
-                        unseen_vectors[i] = vec
+            for unseen_keys_batch in self._db_batch_generator(unseen_keys):
+                results = self._db().execute(
+                    """
+                        SELECT * 
+                        FROM `magnitude` 
+                        WHERE key
+                        IN (""" + ' ,'.join(['?'] * len(unseen_keys_batch)) \
+                        + """);
+                    """,
+                    unseen_keys_batch)
+                for result in results:
+                    result_key, vec = self._db_full_result_to_vec(result)
+                    result_key_t = self._key_t(result_key)
+                    if result_key_t in unseen_keys_map:
+                        i = unseen_keys_map[result_key_t]
+                        if (
+                            (result_key_t not in seen_keys 
+                                or result_key == unseen_keys[i])
+                            and 
+                            (
+                                self.case_insensitive or 
+                                result_key == unseen_keys[i])
+                        ):
+                            seen_keys.add(result_key_t)
+                            unseen_vectors[i] = vec
             for i in range(len(unseen_vectors)):
                 self._vector_for_key_cached._cache.put((unseen_keys[i],),  
                     unseen_vectors[i])
@@ -646,25 +682,31 @@ class Magnitude(object):
                 columns = "*"
             unseen_indices_map = {(index - 1): i for i, index in
                                   enumerate(unseen_indices)}
-            results = self._db().execute(
-                """
-                    SELECT rowid, """+ columns + """
-                    FROM `magnitude` 
-                    WHERE rowid IN ("""+
-                ' ,'.join(['?'] * len(unseen_indices)) +
-                """);""",
-                unseen_indices)
             unseen_keys = [None] * len(unseen_indices)
-            for result in results:
-                i = unseen_indices_map[result[0] - 1]
-                result_key = result[1]
-                if return_vector:
-                    unseen_keys[i] = self._db_full_result_to_vec(result[1:])
-                else:
-                    unseen_keys[i] = result_key
-                self._key_for_index_cached._cache.put(
-                    ((unseen_indices[i] - 1,), frozenset(
-                        [('return_vector', return_vector)])), unseen_keys[i])
+            for unseen_indices_batch in \
+                self._db_batch_generator(unseen_indices):
+                results = self._db().execute(
+                    """
+                        SELECT rowid, """+ columns + """
+                        FROM `magnitude` 
+                        WHERE rowid IN ("""+
+                    ' ,'.join(['?'] * len(unseen_indices_batch)) +
+                    """);""",
+                    unseen_indices_batch)
+                for result in results:
+                    i = unseen_indices_map[result[0] - 1]
+                    result_key = result[1]
+                    if return_vector:
+                        unseen_keys[i] = self._db_full_result_to_vec(result[1:])
+                    else:
+                        unseen_keys[i] = result_key
+                    self._key_for_index_cached._cache.put(
+                        (
+                            (unseen_indices[i] - 1,), 
+                            frozenset([('return_vector', return_vector)])
+                        ), 
+                        unseen_keys[i]
+                    )
             for i in range(len(unseen_keys)):
                 if unseen_keys[i] is None:
                     raise IndexError("The index %d is out-of-range" % \
