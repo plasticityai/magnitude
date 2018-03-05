@@ -514,14 +514,14 @@ class Magnitude(object):
             seed = self._seed(type(key).__name__)
             Magnitude.OOV_RNG_LOCK.acquire()
             np.random.seed(seed=seed)
-            random_vector = (np.random.rand(self.emb_dim) * 2.0) - 1.0
+            random_vector = np.random.uniform(-1, 1, (self.emb_dim,))
             Magnitude.OOV_RNG_LOCK.release()
             random_vector[-1] = self.dtype(key)/np.finfo(self.dtype).max
         elif not self.ngram_oov or len(key) < Magnitude.NGRAM_BEG:
             seed = self._seed(key)
             Magnitude.OOV_RNG_LOCK.acquire()
             np.random.seed(seed=seed)
-            random_vector = (np.random.rand(self.emb_dim) * 2.0) - 1.0
+            random_vector = np.random.uniform(-1, 1, (self.emb_dim,))
             Magnitude.OOV_RNG_LOCK.release()
         else:
             ngrams = char_ngrams(key, Magnitude.NGRAM_BEG,
@@ -532,8 +532,7 @@ class Magnitude(object):
                 seed = self._seed(ngram)
                 Magnitude.OOV_RNG_LOCK.acquire()
                 np.random.seed(seed=seed)
-                random_vectors.append((np.random.rand(self.emb_dim) * 2.0) 
-                    - 1.0)
+                random_vectors.append(np.random.uniform(-1, 1, (self.emb_dim,)))
                 Magnitude.OOV_RNG_LOCK.release()
             random_vector = np.mean(random_vectors, axis=0)
 
