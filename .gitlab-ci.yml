@@ -7,8 +7,7 @@ variables:
   MAGNITUDE_FILE: http://magnitude.plasticity.ai/word2vec/GoogleNews-vectors-negative300.magnitude
 
 stages:
-  - Test Python 2
-  - Test Python 3
+  - Test
   - Deploy to PyPI
 
 before_script:
@@ -27,7 +26,7 @@ before_script:
   - apt-get install gettext -y
 
 Test Python 2:
-  stage: Test Python 2
+  stage: Test
   script:
     - wget --quiet http://magnitude.plasticity.ai/word2vec/GoogleNews-vectors-negative300.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec+subword/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.subword.magnitude
@@ -46,7 +45,7 @@ Test Python 2:
     - python2 -m tests.tests -i GoogleNews-vectors-negative300.magnitude -s GoogleNews-vectors-negative300.subword.magnitude -a GoogleNews-vectors-negative300.approx.magnitude -- -v
 
 Test Python 3:
-  stage: Test Python 3
+  stage: Test
   script:
     - wget --quiet http://magnitude.plasticity.ai/word2vec/GoogleNews-vectors-negative300.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec+subword/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.subword.magnitude
