@@ -4,7 +4,7 @@ from distutils.core import setup
 setup(
     name='pymagnitude',
     packages=find_packages(exclude=['tests', 'tests.*']),
-    version='0.1.10',
+    version='0.1.11',
     description='A fast, efficient universal vector embedding utility package.',
     long_description="""
 About
@@ -31,6 +31,7 @@ You can see the full documentation and README at the `GitLab repository <https:/
         'pip >= 9.0.1',
         'numpy >= 1.14.0',
         'xxhash >= 1.0.1',
+        'fasteners >= 0.14.1',
         'lockfile >= 0.12.2',
         'annoy >= 1.11.4',
         'lz4 >= 1.0.0'
