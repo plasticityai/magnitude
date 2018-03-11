@@ -21,7 +21,6 @@ import numpy as np
 import uuid
 
 from annoy import AnnoyIndex
-from lockfile import LockFile as InterProcessLock
 from functools import partial
 from itertools import islice, chain, tee
 from numbers import Number
@@ -33,6 +32,11 @@ from pymagnitude.converter import BOW, EOW
 from pymagnitude.converter import fast_md5_file
 from pymagnitude.converter import char_ngrams
 from pymagnitude.third_party.repoze.lru import lru_cache
+
+if os.name == 'nt':
+    from lockfile import LockFile as InterProcessLock
+else:
+    from fasteners import InterProcessLock
 
 try:
     from itertools import imap
@@ -1062,7 +1066,7 @@ build the appropriate indexes into the `.magnitude` file.")
                 except:
                     path_to_mmap_temp = self.path_to_mmap + '.tmp'
                     tlock = self.MMAP_THREAD_LOCK.acquire(False)
-                    plock = self.MMAP_PROCESS_LOCK.acquire(timeout=0)
+                    plock = self.MMAP_PROCESS_LOCK.acquire(0)
                     if tlock and plock:
                         values = imap(lambda kv: kv[1], 
                             self._iter(put_cache = self.lazy_loading == -1))
@@ -1143,8 +1147,7 @@ build the appropriate indexes into the `.magnitude` file.")
                     path_to_approx_mmap_temp = self.path_to_approx_mmap \
                         + '.tmp'
                     tlock = self.APPROX_MMAP_THREAD_LOCK.acquire(False)
-                    plock = self.APPROX_MMAP_PROCESS_LOCK.acquire(
-                        timeout=0)
+                    plock = self.APPROX_MMAP_PROCESS_LOCK.acquire(0)
                     if tlock and plock:
                         try:
                             with open(path_to_approx_mmap_temp, "w+b") \
