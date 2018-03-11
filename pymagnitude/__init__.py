@@ -21,6 +21,7 @@ import numpy as np
 import uuid
 
 from annoy import AnnoyIndex
+from fasteners import InterProcessLock
 from functools import partial
 from itertools import islice, chain, tee
 from numbers import Number
@@ -32,11 +33,6 @@ from pymagnitude.converter import BOW, EOW
 from pymagnitude.converter import fast_md5_file
 from pymagnitude.converter import char_ngrams
 from pymagnitude.third_party.repoze.lru import lru_cache
-
-if os.name == 'nt':
-    from lockfile import LockFile as InterProcessLock
-else:
-    from fasteners import InterProcessLock
 
 try:
     from itertools import imap
