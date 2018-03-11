@@ -21,7 +21,7 @@ import numpy as np
 import uuid
 
 from annoy import AnnoyIndex
-from fasteners import InterProcessLock
+from lockfile import LockFile as InterProcessLock
 from functools import partial
 from itertools import islice, chain, tee
 from numbers import Number
@@ -344,8 +344,12 @@ class Magnitude(object):
         conn_exists = identifier in self._cursors
         if not conn_exists or force_new:
             if self.fd:
-                conn = sqlite3.connect('/dev/fd/%d' % self.fd,
-                    check_same_thread=False)
+                if os.name == 'nt':
+                    conn = sqlite3.connect(self.path,
+                        check_same_thread=False)
+                else:
+                    conn = sqlite3.connect('/dev/fd/%d' % self.fd,
+                        check_same_thread=False)
             else:
                 conn = sqlite3.connect(self.path, check_same_thread=False)
                 self._create_empty_db(conn.cursor())
@@ -1058,7 +1062,7 @@ build the appropriate indexes into the `.magnitude` file.")
                 except:
                     path_to_mmap_temp = self.path_to_mmap + '.tmp'
                     tlock = self.MMAP_THREAD_LOCK.acquire(False)
-                    plock = self.MMAP_PROCESS_LOCK.acquire(blocking=False)
+                    plock = self.MMAP_PROCESS_LOCK.acquire(timeout=0)
                     if tlock and plock:
                         values = imap(lambda kv: kv[1], 
                             self._iter(put_cache = self.lazy_loading == -1))
@@ -1140,7 +1144,7 @@ build the appropriate indexes into the `.magnitude` file.")
                         + '.tmp'
                     tlock = self.APPROX_MMAP_THREAD_LOCK.acquire(False)
                     plock = self.APPROX_MMAP_PROCESS_LOCK.acquire(
-                        blocking=False)
+                        timeout=0)
                     if tlock and plock:
                         try:
                             with open(path_to_approx_mmap_temp, "w+b") \
