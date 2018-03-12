@@ -789,7 +789,7 @@ class Magnitude(object):
 
     def index(self, q, return_vector=True):
         """Gets a key for an index or multiple indices."""
-        if hasattr(q, "__iter__"):
+        if isinstance(q, list) or isinstance(q, tuple):
             return self._keys_for_indices(q, return_vector=return_vector)
         else:
             return self._key_for_index_cached(q, return_vector=return_vector)
@@ -1253,7 +1253,7 @@ build the appropriate indexes into the `.magnitude` file.")
     def __getitem__(self, q):
         """Performs the index method when indexed."""
         if isinstance(q, slice):
-            return self.index(range(*q.indices(self.length)),
+            return self.index(list(range(*q.indices(self.length))),
                               return_vector=True)
         else:
             return self.index(q, return_vector=True)
