@@ -85,6 +85,12 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(isinstance(self.vectors.index(0, return_vector=False),
                                    unicode))
 
+    def test_slice(self):
+        sliced = self.vectors[0:5]
+        self.assertEqual(len(sliced), 5)
+        self.assertEqual(sliced[0][0], self.vectors[0][0])
+        self.assertTrue(isclose(sliced[0][1], self.vectors[0][1]).all())
+
     def test_case_insensitive(self):
         some_keys_are_not_lower = False
         for i, (k, _) in enumerate(self.vectors):

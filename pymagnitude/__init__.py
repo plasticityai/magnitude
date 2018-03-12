@@ -187,7 +187,7 @@ class Magnitude(object):
                     Refer to the README for more information.
 
                     You can pass `supress_warnings=True` to the constructor to
-                    hide this message.""") # noqa
+                    hide this message.""")  # noqa
                 sys.stdout.flush()
             self.path = convert_vector_file(self.path)
 
@@ -237,7 +237,7 @@ class Magnitude(object):
             );
         """).fetchall()
         self.max_duplicate_keys = (
-            duplicate_keys_query[0][0] if duplicate_keys_query[0][0] is not None else 1) # noqa
+            duplicate_keys_query[0][0] if duplicate_keys_query[0][0] is not None else 1)  # noqa
 
         # Iterate to pre-load
         def _preload_memory():
@@ -366,7 +366,7 @@ class Magnitude(object):
         # expected feature values being hashed
         collision_error_allowed = .001
         number_of_dims = max(math.ceil(math.log(
-            ((self._number_of_values ** 2) / (-2 * math.log(-collision_error_allowed + 1))), 100)), 2) # noqa
+            ((self._number_of_values ** 2) / (-2 * math.log(-collision_error_allowed + 1))), 100)), 2)  # noqa
 
         db.execute("DROP TABLE IF EXISTS `magnitude`;")
         db.execute("""
@@ -679,8 +679,8 @@ class Magnitude(object):
     def _keys_for_indices(self, indices, return_vector=True):
         """Queries the database for the keys of multiple indices."""
         unseen_indices = tuple(int(index + 1) for index in indices
-                               if self._key_for_index_cached._cache.get(((index,), # noqa
-                                                                         frozenset([('return_vector', return_vector)]))) is None) # noqa
+                               if self._key_for_index_cached._cache.get(((index,),  # noqa
+                                                                         frozenset([('return_vector', return_vector)]))) is None)  # noqa
         unseen_indices_map = {}
         if len(unseen_indices) > 0:
             columns = "key"
@@ -789,7 +789,7 @@ class Magnitude(object):
 
     def index(self, q, return_vector=True):
         """Gets a key for an index or multiple indices."""
-        if isinstance(q, list) or isinstance(q, tuple):
+        if hasattr(q, "__iter__"):
             return self._keys_for_indices(q, return_vector=return_vector)
         else:
             return self._key_for_index_cached(q, return_vector=return_vector)
@@ -808,7 +808,7 @@ class Magnitude(object):
         key_0_len_ge_0 = key_0_is_list and len(key[0]) > 0
         key_0_0_is_number = (key_0_is_list and key_0_len_ge_0 and
                              isinstance(key[0][0], Number))
-        if (key_is_ndarray or key_0_is_number or key_0_is_ndarray or key_0_0_is_number): # noqa
+        if (key_is_ndarray or key_0_is_number or key_0_is_ndarray or key_0_0_is_number):  # noqa
             return key
         elif not self.use_numpy:
             return np.asarray(self.query(key))
@@ -816,8 +816,8 @@ class Magnitude(object):
             return self.query(key)
 
     def _query_is_cached(self, key):
-        return ((self._vector_for_key_cached._cache.get((key,)) is not None) or ( # noqa
-            self._out_of_vocab_vector_cached._cache.get((key,)) is not None)) # noqa
+        return ((self._vector_for_key_cached._cache.get((key,)) is not None) or (  # noqa
+            self._out_of_vocab_vector_cached._cache.get((key,)) is not None))  # noqa
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def distance(self, key, q):
@@ -1127,6 +1127,7 @@ build the appropriate indexes into the `.magnitude` file.")
                                 for i, value in enumerate(values):
                                     all_vectors[i] = value
                                 all_vectors.flush()
+                                del all_vectors
                             if not self.closed:
                                 os.rename(path_to_mmap_temp, self.path_to_mmap)
                             else:
@@ -1374,7 +1375,7 @@ class ConcatenatedMagnitude(object):
             return np.concatenate(l, axis=-1)
         else:
             return [self._hstack((l3[example] for l3 in l),
-                                 use_numpy=use_numpy) for example in xrange(len(l[0]))] # noqa
+                                 use_numpy=use_numpy) for example in xrange(len(l[0]))]  # noqa
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def query(self, q, pad_to_length=None,

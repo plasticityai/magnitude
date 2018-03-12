@@ -84,7 +84,7 @@ def fast_md5_file(path, block_size=256 * 128):
 
 def char_ngrams(key, beg, end):
     return chain.from_iterable((imap(lambda ngram: ''.join(ngram), zip(
-        *[key[i:] for i in xrange(j)])) for j in xrange(beg, min(len(key) + 1, end + 1)))) # noqa
+        *[key[i:] for i in xrange(j)])) for j in xrange(beg, min(len(key) + 1, end + 1))))  # noqa
 
 
 def convert(input_file_path, output_file_path=None,
