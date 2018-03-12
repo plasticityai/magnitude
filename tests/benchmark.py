@@ -10,7 +10,6 @@ import random
 import sys
 import time
 import tempfile
-import numpy as np
 
 from functools import partial
 from sys import platform as _platform
@@ -28,6 +27,8 @@ REPEATS = 1
 ################################
 # Utilities
 ################################
+
+
 def get_size(obj, seen=None):
     """Recursively finds size of objects
        Source: https://goshippo.com/blog/measure-real-size-any-python-object/
@@ -47,12 +48,13 @@ def get_size(obj, seen=None):
     elif hasattr(obj, '__dict__'):
         try:
             size += get_size(obj.__dict__, seen)
-        except:
+        except BaseException:
             pass
     elif hasattr(obj, '__iter__') and not isinstance(obj,
                                                      (str, bytes, bytearray)):
         size += sum([get_size(i, seen) for i in obj])
     return size
+
 
 def _clear_memory_buffers():
     # Various methods of clearing the memory buffers/caches
@@ -60,6 +62,7 @@ def _clear_memory_buffers():
         os.system("purge")
     else:
         os.system("sync && echo 3 > /proc/sys/vm/drop_caches")
+
 
 def _clear_mmap():
     os.system("rm -rf " + os.path.join(tempfile.gettempdir(), '*.magmmap'))
@@ -109,6 +112,7 @@ def run_benchmark(name, func_1, func_2=None,
     print("==================================")
     return return_1, return_2
 
+
 def run_memory_benchmark(name, obj_1, obj_2):
     divider = float((1024**2))
     print("==================================")
@@ -121,6 +125,7 @@ def run_memory_benchmark(name, obj_1, obj_2):
     print("Recursively calculating memory usage of '" + str(obj_2) + "'")
     print("'%s' is using %.6f MB" % (str(obj_2), get_size(obj_2) / divider))
     print("==================================")
+
 
 def run_integrity_checks(vectors_magnitude, vectors_gensim,
                          small_n=10, big_n=1000):
@@ -154,9 +159,9 @@ def run_integrity_checks(vectors_magnitude, vectors_gensim,
                   (result_1, result_2, key1, key2))
     print("Checking analogy...")
     results_1 = vectors_magnitude.most_similar(positive=["king", "woman"],
-        negative=["man"])
+                                               negative=["man"])
     results_2 = vectors_gensim.most_similar(positive=["king", "woman"],
-        negative=["man"]) 
+                                            negative=["man"])
     print(results_1)
     print(results_2)
     print("Checking 3cosmul analogy...")
@@ -165,9 +170,9 @@ def run_integrity_checks(vectors_magnitude, vectors_gensim,
         negative=["man"])
     results_2 = vectors_gensim.most_similar_cosmul(
         positive=["king", "woman"],
-        negative=["man"]) 
+        negative=["man"])
     print(results_1)
-    print(results_2) 
+    print(results_2)
     print("Checking %d random most_similar calls..." % small_n)
     for key in small_keys:
         results_1 = vectors_magnitude.most_similar(key)
@@ -202,8 +207,13 @@ def create_gensim():
                                                       binary=True)
     return keyed_vectors
 
-def create_magnitude(case_insensitive = True, eager=False, **kwargs):
-    vectors = Magnitude(MAGNITUDE_PATH, case_insensitive = case_insensitive, eager=eager, **kwargs)
+
+def create_magnitude(case_insensitive=True, eager=False, **kwargs):
+    vectors = Magnitude(
+        MAGNITUDE_PATH,
+        case_insensitive=case_insensitive,
+        eager=eager,
+        **kwargs)
     return vectors
 
 ################################
@@ -215,19 +225,22 @@ def initial_load_magnitude(start):
     start()
     vectors = create_magnitude()
 
+
 def intitial_load_gensim(start):
     start()
     vectors = create_gensim()
 
+
 def cold_query_magnitude(start):
     vectors = create_magnitude()
     keys = ["cat", "parrot", "monkey", "buffalo",
-               "lion", "snake", "lizard", "tiger", "alligator",
-               "ostrich", "elephant", "whale", "dolphin", "fish",
-               "jellyfish", "fox", "rabbit", "badger", "bear",
-               "chicken", "kangaroo", "deer", "duck", "shark"]
+            "lion", "snake", "lizard", "tiger", "alligator",
+            "ostrich", "elephant", "whale", "dolphin", "fish",
+            "jellyfish", "fox", "rabbit", "badger", "bear",
+            "chicken", "kangaroo", "deer", "duck", "shark"]
     start()
     vectors.query("dog")
+
 
 def cold_query_gensim(start):
     vectors = create_gensim()
@@ -235,15 +248,18 @@ def cold_query_gensim(start):
     vectors.get_vector("dog")
     return vectors
 
+
 def warm_query_magnitude(start, vectors):
     start()
     vectors.query("dog")
     return vectors
 
+
 def warm_query_gensim(start, vectors):
     start()
     vectors.get_vector("dog")
     return vectors
+
 
 def cold_multi_query_magnitude(start):
     vectors = create_magnitude()
@@ -253,6 +269,7 @@ def cold_multi_query_magnitude(start):
                    "ostrich", "elephant", "whale", "dolphin", "fish",
                    "jellyfish", "fox", "rabbit", "badger", "bear",
                    "chicken", "kangaroo", "deer", "duck", "shark"])
+
 
 def cold_multi_query_gensim(start):
     vectors = create_gensim()
@@ -283,6 +300,7 @@ def cold_multi_query_gensim(start):
     vectors.get_vector("duck")
     vectors.get_vector("shark")
 
+
 def warm_multi_query_magnitude(start, vectors):
     start()
     vectors.query(["dog", "cat", "parrot", "monkey", "buffalo",
@@ -290,6 +308,7 @@ def warm_multi_query_magnitude(start, vectors):
                    "ostrich", "elephant", "whale", "dolphin", "fish",
                    "jellyfish", "fox", "rabbit", "badger", "bear",
                    "chicken", "kangaroo", "deer", "duck", "shark"])
+
 
 def warm_multi_query_gensim(start, vectors):
     start()
@@ -319,19 +338,22 @@ def warm_multi_query_gensim(start, vectors):
     vectors.get_vector("duck")
     vectors.get_vector("shark")
 
+
 def first_most_similar_magnitude(start):
     vectors = create_magnitude()
     start()
     vectors.most_similar("cat")
     return vectors
 
-def first_most_similar_approx_magnitude(start, close = True):
+
+def first_most_similar_approx_magnitude(start, close=True):
     vectors = create_magnitude()
     start()
-    vectors.most_similar_approx("cat", effort = 1.0)
+    vectors.most_similar_approx("cat", effort=1.0)
     if close:
-      vectors.close()
+        vectors.close()
     return vectors
+
 
 def first_most_similar_gensim(start):
     vectors = create_gensim()
@@ -339,30 +361,41 @@ def first_most_similar_gensim(start):
     vectors.most_similar("cat")
     return vectors
 
+
 def subsequent_most_similar_magnitude(start, vectors):
     start()
     vectors.most_similar("dog")
 
+
 def subsequent_most_similar_approx_magnitude(start, vectors, effort):
-    random_key = vectors.index(random.randint(0, len(vectors)-1), return_vector = False)
+    random_key = vectors.index(
+        random.randint(
+            0,
+            len(vectors) - 1),
+        return_vector=False)
     start()
-    vectors.most_similar_approx(random_key, effort = effort)
+    vectors.most_similar_approx(random_key, effort=effort)
+
 
 def subsequent_most_similar_gensim(start, vectors):
     start()
     vectors.most_similar("dog")
 
+
 def warm_most_similar_magnitude(start, vectors):
     start()
     vectors.most_similar("cat")
 
+
 def warm_most_similar_approx_magnitude(start, vectors):
     start()
-    vectors.most_similar_approx("cat", effort = 1.0)
+    vectors.most_similar_approx("cat", effort=1.0)
+
 
 def warm_most_similar_gensim(start, vectors):
     start()
     vectors.most_similar("cat")
+
 
 ################################
 # Run Benchmarks
@@ -371,7 +404,7 @@ if __name__ == "__main__":
     _clear_memory_buffers()
     _clear_mmap()
 
-    vectors_magnitude = create_magnitude(case_insensitive=False, eager = False)
+    vectors_magnitude = create_magnitude(case_insensitive=False, eager=False)
     vectors_gensim = create_gensim()
     run_integrity_checks(vectors_magnitude, vectors_gensim)
     vectors_magnitude.close()
@@ -500,7 +533,7 @@ if __name__ == "__main__":
     del vectors_gensim
 
     run_benchmark("First most similar approx search (worst case)",
-                  func_1 = first_most_similar_approx_magnitude,
+                  func_1=first_most_similar_approx_magnitude,
                   repeat=1)
 
     vectors_magnitude = create_magnitude(eager=True, blocking=True)
@@ -508,40 +541,45 @@ if __name__ == "__main__":
     time.sleep(10)
     vectors_magnitude.close()
     del vectors_magnitude
-    run_benchmark("First most similar approx (effort = 1.0) search (average case) (magnitude)",
-                  func_1=first_most_similar_approx_magnitude,
-                  repeat=1,
-                  clear_mmap=False,
-                  clear_memory_buffers=False
-                  )
+    run_benchmark(
+        "First most similar approx (effort = 1.0) search (average case) (magnitude)",
+        func_1=first_most_similar_approx_magnitude,
+        repeat=1,
+        clear_mmap=False,
+        clear_memory_buffers=False)
 
     vectors_magnitude = create_magnitude(eager=True, blocking=True)
     vectors_magnitude.get_approx_index()
     time.sleep(10)
-    run_benchmark("Subsequent most similar approx (effort = 1.0) search (magnitude)",
-                  func_1=subsequent_most_similar_approx_magnitude,
-                  args_1=(vectors_magnitude, 1.0),
-                  repeat=1000,
-                  clear_mmap=False,
-                  clear_memory_buffers=False
-                  )
+    run_benchmark(
+        "Subsequent most similar approx (effort = 1.0) search (magnitude)",
+        func_1=subsequent_most_similar_approx_magnitude,
+        args_1=(
+            vectors_magnitude,
+            1.0),
+        repeat=1000,
+        clear_mmap=False,
+        clear_memory_buffers=False)
     vectors_magnitude.close()
     del vectors_magnitude
 
     vectors_magnitude = create_magnitude(eager=True, blocking=True)
     vectors_magnitude.get_approx_index()
     time.sleep(10)
-    run_benchmark("Subsequent most similar approx (effort = 0.1) search (magnitude)",
-                  func_1=subsequent_most_similar_approx_magnitude,
-                  args_1=(vectors_magnitude, 0.1),
-                  repeat=1000,
-                  clear_mmap=False,
-                  clear_memory_buffers=False
-                  )
+    run_benchmark(
+        "Subsequent most similar approx (effort = 0.1) search (magnitude)",
+        func_1=subsequent_most_similar_approx_magnitude,
+        args_1=(
+            vectors_magnitude,
+            0.1),
+        repeat=1000,
+        clear_mmap=False,
+        clear_memory_buffers=False)
     vectors_magnitude.close()
     del vectors_magnitude
 
-    vectors_magnitude = first_most_similar_approx_magnitude(lambda: None, close = False)
+    vectors_magnitude = first_most_similar_approx_magnitude(
+        lambda: None, close=False)
     time.sleep(10)
     run_benchmark("Warm most similar approx (effort = 1.0) search (magnitude)",
                   func_1=warm_most_similar_approx_magnitude,
@@ -553,7 +591,8 @@ if __name__ == "__main__":
     vectors_magnitude.close()
     del vectors_magnitude
 
-    vectors_magnitude = create_magnitude(case_insensitive=False, lazy_loading = 100)
+    vectors_magnitude = create_magnitude(
+        case_insensitive=False, lazy_loading=100)
     vectors_gensim = create_gensim()
     run_memory_benchmark("Initial RAM Utilization",
                          vectors_magnitude, vectors_gensim)

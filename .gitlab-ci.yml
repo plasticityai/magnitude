@@ -25,6 +25,15 @@ before_script:
   # Install gettext for envsubst
   - apt-get install gettext -y
 
+Lint:
+  stage: Test
+  script:
+    - pip3 install flake8
+    - pip3 install pep8-naming
+    - flake8 --version
+    - flake8 
+
+
 Test Python 2:
   stage: Test
   script:
