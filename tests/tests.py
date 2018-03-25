@@ -458,6 +458,11 @@ class MagnitudeTest(unittest.TestCase):
         self.vectors_oov_1.close()
         self.vectors_oov_2.close()
 
+    def test_oov_subword_long_key(self):
+        self.vectors_sw.query('ab' * 1026)
+        # Previous line should not fail
+        self.assertTrue(True)
+
     def test_placeholders(self):
         self.vectors_placeholders = Magnitude(
             MagnitudeTest.MAGNITUDE_PATH,

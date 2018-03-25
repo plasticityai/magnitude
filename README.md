@@ -365,6 +365,9 @@ Optionally, you can bulk convert many files by passing an input folder and outpu
 Other documentation is not available at this time. See the source file directly (it is well commented) if you need more information about a method's arguments or want to see all supported features.
 
 ## Other Languages
+Currently, we only provide English word vector models on this page pre-converted to the `.magnitude` format. You can, however, still use Magnitude with word vectors of other languages. Facebook has trained their [fastText vectors for many different languages](https://github.com/facebookresearch/fastText/blob/master/pretrained-vectors.md). You can down the `.vec` file for any language you want and then convert it to `.magnitude` with the [converter](#file-format-and-converter).
+
+## Other Programming Languages
 Currently, reading Magnitude files is only supported in Python, since it has become the de-facto language for machine learning. This is sufficient for most use cases. Extending the file format to other languages shouldn't be difficult as SQLite has a native C implementation and has bindings in most languages. The file format itself and the protocol for reading and searching is also fairly straightforward upon reading the source code of this repository.
 
 ## Other Domains

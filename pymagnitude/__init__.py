@@ -79,6 +79,7 @@ class Magnitude(object):
     OOV_RNG_LOCK = threading.Lock()
     SQLITE_MAX_VARIABLE_NUMBER = max(max((_sqlite_try_max_variable_number(n)
                                           for n in [99, 999, 9999, 99999])), 1)
+    MAX_KEY_LENGTH_FOR_OOV_SIM = 1000
 
     def __new__(cls, *args, **kwargs):
         """ Returns a concatenated magnitude object, if Magnitude parameters """
@@ -429,7 +430,7 @@ class Magnitude(object):
             return ''.join("\\" + c if c in Magnitude.FTS_SPECIAL
                            else c for c in s).replace('"', '""')
 
-        if self.subword:
+        if self.subword and len(key) < Magnitude.MAX_KEY_LENGTH_FOR_OOV_SIM:
             current_subword_start = self.subword_end
             BOW_length = len(Magnitude.BOW)  # noqa: N806
             EOW_length = len(Magnitude.EOW)  # noqa: N806
