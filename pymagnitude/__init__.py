@@ -140,14 +140,13 @@ class Magnitude(object):
         self.closed = False
         self.uid = str(uuid.uuid4()).replace("-", "")
 
+        self.fd = None
         if path is None:
             self.memory_db = True
             self.path = ":memory:"
-            self.fd = None
         else:
             self.memory_db = False
             self.path = os.path.expanduser(path)
-            self.fd = os.open(self.path, os.O_RDONLY)
         self._all_conns = []
         self.lazy_loading = lazy_loading
         self.use_numpy = use_numpy
@@ -191,6 +190,10 @@ class Magnitude(object):
                     hide this message.""")  # noqa
                 sys.stdout.flush()
             self.path = convert_vector_file(self.path)
+
+        # Open a read-only file descriptor against the file
+        if not self.memory_db:
+            self.fd = os.open(self.path, os.O_RDONLY)
 
         # Get metadata about the vectors
         self.length = self._db().execute(
