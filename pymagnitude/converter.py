@@ -389,7 +389,7 @@ def convert(input_file_path, output_file_path=None,
         """
         with open(approx_index_file_path, 'rb') as ifh, \
                 lz4.frame.LZ4FrameCompressor() as compressor:
-            for i, chunk in enumerate(iter(partial(ifh.read, chunk_size), '')):
+            for i, chunk in enumerate(iter(partial(ifh.read, chunk_size), b'')):
                 if i == 0:
                     chunk = compressor.begin() + compressor.compress(chunk)
                 else:

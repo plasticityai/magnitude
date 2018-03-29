@@ -7,7 +7,7 @@ setup(
         exclude=[
             'tests',
             'tests.*']),
-    version='0.1.16',
+    version='0.1.17',
     description='A fast, efficient universal vector embedding utility package.',
     long_description="""
 About
