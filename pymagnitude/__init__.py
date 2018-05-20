@@ -600,18 +600,18 @@ class Magnitude(object):
 
     def _vector_for_key(self, key):
         """Queries the database for a single key."""
-        results = self._db().execute(
+        result = self._db().execute(
             """
                 SELECT *
                 FROM `magnitude`
                 WHERE key = ?
                 ORDER BY key = ? COLLATE BINARY DESC
                 LIMIT 1;""",
-            (key, key)).fetchall()
-        if len(results) == 0 or self._key_t(results[0][0]) != self._key_t(key):
+            (key, key)).fetchone()
+        if result is None or self._key_t(result[0]) != self._key_t(key):
             return None
         else:
-            return self._db_result_to_vec(results[0][1:])
+            return self._db_result_to_vec(result[1:])
 
     def _vectors_for_keys(self, keys):
         """Queries the database for multiple keys."""
@@ -664,21 +664,21 @@ class Magnitude(object):
         columns = "key"
         if return_vector:
             columns = "*"
-        results = self._db().execute(
+        result = self._db().execute(
             """
                 SELECT """ + columns + """
                 FROM `magnitude`
                 WHERE rowid = ?
                 LIMIT 1;
             """,
-            (int(index + 1),)).fetchall()
-        if len(results) == 0:
+            (int(index + 1),)).fetchone()
+        if result is None:
             raise IndexError("The index %d is out-of-range" % index)
         else:
             if return_vector:
-                return self._db_full_result_to_vec(results[0])
+                return self._db_full_result_to_vec(result)
             else:
-                return results[0][0]
+                return result[0]
 
     def _keys_for_indices(self, indices, return_vector=True):
         """Queries the database for the keys of multiple indices."""
