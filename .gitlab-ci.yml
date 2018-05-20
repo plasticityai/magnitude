@@ -37,15 +37,12 @@ Lint:
 Test Python 2:
   stage: Test
   script:
-    - which pip || true
-    - which pip2 || true
-    - which pip3 || true
     - wget --quiet http://magnitude.plasticity.ai/word2vec/GoogleNews-vectors-negative300.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec+subword/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.subword.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec+approx/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.approx.magnitude
-    - pip2 install -U pip wheel setuptools
+    - pip install -U pip wheel setuptools
     - python2 setup.py install
-    - pip2 install gensim
+    - pip install gensim
     - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
     - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
     - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
