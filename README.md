@@ -3,6 +3,30 @@
 ## <div align="center">Magnitude: a fast, simple vector embedding utility library<br /><br />[![pipeline status](https://gitlab.com/Plasticity/magnitude/badges/master/pipeline.svg)](https://gitlab.com/Plasticity/magnitude/commits/master)&nbsp;&nbsp;&nbsp;[![PyPI version](https://badge.fury.io/py/pymagnitude.svg)](https://pypi.python.org/pypi/pymagnitude/)&nbsp;&nbsp;&nbsp;[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://gitlab.com/Plasticity/magnitude/blob/master/LICENSE.txt)&nbsp;&nbsp;&nbsp;&nbsp;[![Python version](https://img.shields.io/pypi/pyversions/pymagnitude.svg)](https://pypi.python.org/pypi/pymagnitude/)&nbsp;&nbsp;&nbsp;&nbsp;[![DOI](https://zenodo.org/badge/122715432.svg)](https://zenodo.org/badge/latestdoi/122715432)</div>
 A feature-packed Python package and vector storage file format for utilizing vector embeddings in machine learning models in a fast, efficient, and simple manner developed by [Plasticity](https://www.plasticity.ai/). It is primarily intended to be a simpler / faster alternative to [Gensim](https://radimrehurek.com/gensim/), but can be used as a generic key-vector store for domains outside NLP.
 
+## Table of Contents
+- [Installation](#installation)
+- [Motivation](#motivation)
+- [Benchmarks and Features](#benchmarks-and-features)
+- [Pre-converted Magnitude Formats of Popular Embeddings Models](#pre-converted-magnitude-formats-of-popular-embeddings-models)
+- [Using the Library](#using-the-library)
+    * [Constructing a Magnitude Object](#constructing-a-magnitude-object)
+    * [Querying](#querying)
+    * [Basic Out-of-Vocabulary Keys](#basic-out-of-vocabulary-keys)
+    * [Advanced Out-of-Vocabulary Keys](#advanced-out-of-vocabulary-keys)
+        + [Handling Misspellings and Typos](#handling-misspellings-and-typos)
+    * [Concatenation of Multiple Models](#concatenation-of-multiple-models)
+    * [Additional Featurization (Parts of Speech, etc.)](#additional-featurization--parts-of-speech--etc-)
+- [Concurrency and Parallelism](#concurrency-and-parallelism)
+- [File Format and Converter](#file-format-and-converter)
+- [Other Documentation](#other-documentation)
+- [Other Languages](#other-languages)
+- [Other Programming Languages](#other-programming-languages)
+- [Other Domains](#other-domains)
+- [Contributing](#contributing)
+- [Other Notable Projects](#other-notable-projects)
+- [Citing this Repository](#citing-this-repository)
+- [LICENSE and Attribution](#license-and-attribution)
+
 ## Installation
 You can install this package with `pip`:
 ```python
@@ -77,7 +101,7 @@ There are instructions [below](#file-format-and-converter) for converting any `.
 
 ## Using the Library
 
-#### Constructing a Magnitude Object
+### Constructing a Magnitude Object
 
 You can create a Magnitude object like so:
 ```python
@@ -99,7 +123,7 @@ If needed, and included for convenience, you can also open a `.bin`, `.txt`, `.v
 * <sup>Optionally, you can set the `pad_left` argument to `True` if you want the padding to appear at the beginning versus the end (which is the default).</sup>
 * <sup>Optionally, you can pass in the `placeholders` argument, which will increase the dimensions of each vector by a `placeholders` amount, zero-padding those extra dimensions. This is useful, if you plan to add other values and information to the vectors and want the space for that pre-allocated in the vectors for efficiency.</sup>
 
-#### Querying
+### Querying
 
 You can query the total number of vectors in the file like so:
 ```python
@@ -275,7 +299,7 @@ vectors = Magnitude("/path/to/GoogleNews-vectors-negative300.magnitude")
 vectors.similarity("uberx", "uber") # 0.7383483267618451
 ```
 
-#### Misspellings
+#### Handling Misspellings and Typos
 This also makes Magnitude robust to a lot of spelling errors:
 ```python
 vectors = Magnitude("/path/to/GoogleNews-vectors-negative300.magnitude")
@@ -289,7 +313,7 @@ vectors.similarity("hiiiiiiiiii", "hi") # 0.7069775034853861
 
 Character n-grams are used to create this effect for out-of-vocabulary keys. The inspiration for this feature was taken from Facebook AI Research's [Enriching Word Vectors with Subword Information](https://arxiv.org/pdf/1607.04606.pdf), but instead of utilizing character n-grams at train time, character n-grams are used at inference so the effect can be somewhat replicated (but not perfectly replicated) in older models that were not trained with character n-grams like word2vec and GloVE.
 
-### Concatenation
+### Concatenation of Multiple Models
 Optionally, you can combine vectors from multiple models to feed stronger information into a machine learning model like so:
 ```python
 from pymagnitude import *
@@ -336,6 +360,21 @@ vectors.query([
     ("cat", "NN", "dobj"), 
     (".",  ".", "punct")
   ]) # array of size 5 x (300 + 4 + 4) or 5 x 308
+
+# Or get a unique vector for every 'buffalo' in:
+# "Buffalo buffalo Buffalo buffalo buffalo buffalo Buffalo buffalo"
+# (https://en.wikipedia.org/wiki/Buffalo_buffalo_Buffalo_buffalo_buffalo_buffalo_Buffalo_buffalo)
+vectors.query([
+    ("Buffalo", "JJ", "amod"), 
+    ("buffalo", "NNS", "nsubj"), 
+    ("Buffalo", "JJ", "amod"), 
+    ("buffalo", "NNS", "nsubj"), 
+    ("buffalo",  "VBP", "rcmod"),
+    ("buffalo",  "VB", "ROOT"),
+    ("Buffalo",  "JJ", "amod"),
+    ("buffalo",  "NNS", "dobj")
+  ]) # array of size 8 x (300 + 4 + 4) or 8 x 308
+
 ```
 
 A machine learning model, given this output, now has access to parts of speech information and syntax dependency information instead of just word vector information. In this case, this additional information can give neural networks stronger signal for semantic information and reduce the need for training data.
