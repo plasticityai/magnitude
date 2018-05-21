@@ -3,9 +3,6 @@ image: python:latest
 services:
   - docker:dind
 
-variables:
-  MAGNITUDE_FILE: http://magnitude.plasticity.ai/word2vec/GoogleNews-vectors-negative300.magnitude
-
 stages:
   - Test
   - Deploy to PyPI
@@ -14,6 +11,7 @@ before_script:
   # Setup package manager
   - apt-get update 2>&1 >/dev/null
   - apt-get install curl wget git -y
+  - apt-get install libblas-dev liblapack-dev libatlas-base-dev gfortran -y
   - apt-get install python-setuptools -y
   - apt-get install python3-setuptools -y
   - apt-get install python-dev -y
