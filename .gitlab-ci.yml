@@ -41,9 +41,9 @@ Test Python 2:
     - wget --quiet http://magnitude.plasticity.ai/word2vec+subword/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.subword.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec+approx/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.approx.magnitude
     - apt-get install python-pip -y
-    - pip2 install -U setuptools
+    - pip2 install -U pip setuptools
     - python2 setup.py install
-    - pip2 install gensim
+    - pip2 install gensim || true
     - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
     - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
     - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
