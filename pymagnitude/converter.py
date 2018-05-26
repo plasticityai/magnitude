@@ -125,7 +125,7 @@ def convert(input_file_path, output_file_path=None,
     if not output_file_path.endswith('.magnitude'):
         exit("The output file path file path must be .magnitude")
 
-    # Detect GloVE format and convert to word2vec if detected
+    # Detect GloVe format and convert to word2vec if detected
     detected_glove = False
     if input_is_text:
         with io.open(input_file_path, mode="r", encoding="utf-8",
@@ -146,7 +146,7 @@ def convert(input_file_path, output_file_path=None,
             if len(line1) == len(line2):  # No header line present
                 detected_glove = True
     if detected_glove:
-        eprint("Detected GloVE format! Converting to word2vec format first..."
+        eprint("Detected GloVe format! Converting to word2vec format first..."
                "(this may take some time)")
         temp_file_path = os.path.join(
             tempfile.gettempdir(), os.path.basename(input_file_path) + '.txt')
@@ -154,7 +154,7 @@ def convert(input_file_path, output_file_path=None,
             import gensim
         except ImportError:
             raise ImportError("You need gensim >= 3.3.0 installed with pip \
-                (`pip install gensim`) to convert GloVE files.")
+                (`pip install gensim`) to convert GloVe files.")
         gensim.scripts.glove2word2vec.glove2word2vec(
             input_file_path,
             temp_file_path
