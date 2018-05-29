@@ -10,7 +10,7 @@ import sys
 import tempfile
 import unittest
 
-from pymagnitude import Magnitude, FeaturizerMagnitude
+from pymagnitude import Magnitude, FeaturizerMagnitude, MagnitudeUtils
 from numpy import isclose, asarray
 
 try:
@@ -992,6 +992,24 @@ class MagnitudeTest(unittest.TestCase):
                                 -0.750681075834))
         self.assertTrue(isclose(self.vectors_feat.query(5)[-1],
                                 1.46936807866e-38))
+
+    def test_to_categorical(self):
+        y = [1, 5, 1, 1, 2, 4, 1, 3, 1, 3, 5, 4]
+        self.assertTrue(isclose(
+            MagnitudeUtils.to_categorical(y),
+            [[0., 1., 0., 0., 0., 0.],
+             [0., 0., 0., 0., 0., 1.],
+             [0., 1., 0., 0., 0., 0.],
+             [0., 1., 0., 0., 0., 0.],
+             [0., 0., 1., 0., 0., 0.],
+             [0., 0., 0., 0., 1., 0.],
+             [0., 1., 0., 0., 0., 0.],
+             [0., 0., 0., 1., 0., 0.],
+             [0., 1., 0., 0., 0., 0.],
+             [0., 0., 0., 1., 0., 0.],
+             [0., 0., 0., 0., 0., 1.],
+             [0., 0., 0., 0., 1., 0.]]
+        ).all())
 
 
 if __name__ == '__main__':

@@ -20,6 +20,7 @@ A feature-packed Python package and vector storage file format for utilizing vec
         + [Keras](#keras)
         + [PyTorch](#pytorch)
         + [TFLearn](#tflearn)
+    * [Utils](#utils)
 - [Concurrency and Parallelism](#concurrency-and-parallelism)
 - [File Format and Converter](#file-format-and-converter)
 - [Other Documentation](#other-documentation)
@@ -383,6 +384,29 @@ vectors.query([
 ```
 
 A machine learning model, given this output, now has access to parts of speech information and syntax dependency information instead of just word vector information. In this case, this additional information can give neural networks stronger signal for semantic information and reduce the need for training data.
+
+### Utils
+
+You can use the `MagnitudeUtils` class for convenient access to functions that may be useful when creating machine learning models.
+
+You can convert categorical data with class labels to one-hot NumPy arrays with `to_categorical`, like so:
+```python
+  y = [1, 5, 1, 1, 2, 4, 1, 3, 1, 3, 5, 4]
+  MagnitudeUtils.to_categorical(y)
+  # Returns: 
+  # array([[0., 1., 0., 0., 0., 0.] 
+  #       [0., 0., 0., 0., 0., 1.] 
+  #       [0., 1., 0., 0., 0., 0.] 
+  #       [0., 1., 0., 0., 0., 0.] 
+  #       [0., 0., 1., 0., 0., 0.] 
+  #       [0., 0., 0., 0., 1., 0.] 
+  #       [0., 1., 0., 0., 0., 0.] 
+  #       [0., 0., 0., 1., 0., 0.] 
+  #       [0., 1., 0., 0., 0., 0.] 
+  #       [0., 0., 0., 1., 0., 0.] 
+  #       [0., 0., 0., 0., 0., 1.] 
+  #       [0., 0., 0., 0., 1., 0.]])
+```
 
 ## Concurrency and Parallelism
 The library is thread safe (it uses a different connection to the underlying store per thread), is read-only, and it never writes to the file. Because of the light-memory usage, you can also run it in multiple processes (or use `multiprocessing`) with different address spaces without having to duplicate the data in-memory like with other libraries and without having to create a multi-process shared variable since data is read off-disk and each process keeps its own LRU memory cache. For heavier functions, like `most_similar` a shared memory mapped file is created to share memory between processes.
