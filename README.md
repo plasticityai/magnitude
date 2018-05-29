@@ -16,7 +16,7 @@ A feature-packed Python package and vector storage file format for utilizing vec
         + [Handling Misspellings and Typos](#handling-misspellings-and-typos)
     * [Concatenation of Multiple Models](#concatenation-of-multiple-models)
     * [Additional Featurization (Parts of Speech, etc.)](#additional-featurization-parts-of-speech-etc)
-    * [Using Magnitude with a ML library](#using-magnitude-with-a-library)
+    * [Using Magnitude with a ML library](#using-magnitude-with-a-ml-library)
         + [Keras](#keras)
         + [PyTorch](#pytorch)
         + [TFLearn](#tflearn)
@@ -385,27 +385,67 @@ vectors.query([
 
 A machine learning model, given this output, now has access to parts of speech information and syntax dependency information instead of just word vector information. In this case, this additional information can give neural networks stronger signal for semantic information and reduce the need for training data.
 
+### Using Magnitude with a ML library
+Magnitude makes it very easy to quickly build and iterate on models that need to use vector representations by taking care of a lot of pre-processing code to convert a dataset of text (or keys) into vectors. Moreover, it can make these models more robust to [out-of-vocabulary words](#advanced-out-of-vocabulary-keys) and [misspellings](#handling-misspellings-and-typos).
+
+There is example code available using Magnitude to build an intent classification model for the [ATIS (Airline Travel Information Systems) dataset](https://catalog.ldc.upenn.edu/docs/LDC93S4B/corpus.html) ([Train](http://magnitude.plasticity.ai/data/atis/atis-intent-train.txt)/[Test](http://magnitude.plasticity.ai/data/atis/atis-intent-test.txt)), used for chatbots or conversational interfaces, in a few popular machine learning libraries below.
+
+#### Keras
+You can access a guide for using Magnitude with Keras (which supports TensorFlow, Theano, CNTK) at this [Google Colaboratory Python notebook](https://drive.google.com/file/d/1lOcAhIffLW8XC6QsKzt5T_ZqPP4Y9eS4/view?usp=sharing).
+
+#### PyTorch
+*The PyTorch guide is coming soon.*
+
+#### TFLearn
+*The TFLearn guide is coming soon.*
+
 ### Utils
 
 You can use the `MagnitudeUtils` class for convenient access to functions that may be useful when creating machine learning models.
 
-You can convert categorical data with class labels to one-hot NumPy arrays with `to_categorical`, like so:
+You can create a batch generator for `X` and `y` data with `batchify`, like so:
 ```python
-  y = [1, 5, 1, 1, 2, 4, 1, 3, 1, 3, 5, 4]
-  MagnitudeUtils.to_categorical(y)
+  X = [.3, .2, .7, .8, .1]
+  y = [0, 0, 1, 1, 0]
+  batch_gen = MagnitudeUtils.batchify(X, y, 2)
+  for X_batch, y_batch in batch_gen:
+    print(X_batch, y_batch)
+  # Returns:
+  # 1st loop: X_batch = [.3, .2], y_batch = [0, 0]
+  # 2nd loop: X_batch = [.7, .8], y_batch = [1, 1]
+  # 3rd loop: X_batch = [.1], y_batch = [0]
+  # next loop: repeats infinitely...
+```
+
+You can encode class labels to integers and back with `class_encoding`, like so:
+```python
+  add_class, class_to_int, int_to_class = MagnitudeUtils.class_encoding()
+  add_class("cat") # Returns: 0
+  add_class("dog") # Returns: 1
+  add_class("cat") # Returns: 0
+  class_to_int("dog") # Returns: 1
+  class_to_int("cat") # Returns: 0
+  int_to_class(1) # Returns: "dog"
+  int_to_class(0) # Returns: "cat"
+```
+
+You can convert categorical data with class integers to one-hot NumPy arrays with `to_categorical`, like so:
+```python
+  y = [1, 5, 2]
+  MagnitudeUtils.to_categorical(y, num_classes = 6) # num_classes is optional
   # Returns: 
   # array([[0., 1., 0., 0., 0., 0.] 
   #       [0., 0., 0., 0., 0., 1.] 
-  #       [0., 1., 0., 0., 0., 0.] 
-  #       [0., 1., 0., 0., 0., 0.] 
-  #       [0., 0., 1., 0., 0., 0.] 
-  #       [0., 0., 0., 0., 1., 0.] 
-  #       [0., 1., 0., 0., 0., 0.] 
-  #       [0., 0., 0., 1., 0., 0.] 
-  #       [0., 1., 0., 0., 0., 0.] 
-  #       [0., 0., 0., 1., 0., 0.] 
-  #       [0., 0., 0., 0., 0., 1.] 
-  #       [0., 0., 0., 0., 1., 0.]])
+  #       [0., 0., 1., 0., 0., 0.]])
+```
+
+You can convert from one-hot NumPy arrays back to a 1D NumPy array of class integers with `from_categorical`, like so:
+```python
+  y_c = [[0., 1., 0., 0., 0., 0.],
+         [0., 0., 0., 0., 0., 1.]]
+  MagnitudeUtils.from_categorical(y_c)
+  # Returns: 
+  # array([1., 5.])
 ```
 
 ## Concurrency and Parallelism

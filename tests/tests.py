@@ -993,6 +993,43 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(isclose(self.vectors_feat.query(5)[-1],
                                 1.46936807866e-38))
 
+    def test_batchify(self):
+        X = [0, 1, 2, 3, 4, 5]  # noqa: N806
+        y = [0, 0, 1, 1, 0, 1]
+        batch_gen = MagnitudeUtils.batchify(X, y, 2)
+        X_batch, y_batch = batch_gen.next()
+        self.assertEqual(X_batch, [0, 1])
+        self.assertEqual(y_batch, [0, 0])
+        X_batch, y_batch = batch_gen.next()
+        self.assertEqual(X_batch, [2, 3])
+        self.assertEqual(y_batch, [1, 1])
+        X_batch, y_batch = batch_gen.next()
+        self.assertEqual(X_batch, [4, 5])
+        self.assertEqual(y_batch, [0, 1])
+        X_batch, y_batch = batch_gen.next()
+        self.assertEqual(X_batch, [0, 1])
+        self.assertEqual(y_batch, [0, 0])
+        X = [0, 1, 2]  # noqa: N806
+        y = [0, 0, 1]
+        X_batch, y_batch = batch_gen.next()
+        self.assertEqual(X_batch, [0, 1])
+        self.assertEqual(y_batch, [0, 0])
+        X_batch, y_batch = batch_gen.next()
+        self.assertEqual(X_batch, [2])
+        self.assertEqual(y_batch, [1])
+
+    def test_class_encoding(self):
+        add_class, class_to_int, int_to_class = MagnitudeUtils.class_encoding()
+        self.assertEqual(add_class('cat'), 0)
+        self.assertEqual(add_class('dog'), 1)
+        self.assertEqual(add_class('dog'), 1)
+        self.assertEqual(add_class('dog'), 1)
+        self.assertEqual(add_class('cat'), 0)
+        self.assertEqual(class_to_int('dog'), 1)
+        self.assertEqual(class_to_int('cat'), 0)
+        self.assertEqual(int_to_class(1), 'dog')
+        self.assertEqual(int_to_class(0), 'cat')
+
     def test_to_categorical(self):
         y = [1, 5, 1, 1, 2, 4, 1, 3, 1, 3, 5, 4]
         self.assertTrue(isclose(
@@ -1009,6 +1046,14 @@ class MagnitudeTest(unittest.TestCase):
              [0., 0., 0., 1., 0., 0.],
              [0., 0., 0., 0., 0., 1.],
              [0., 0., 0., 0., 1., 0.]]
+        ).all())
+
+    def test_from_categorical(self):
+        y_c = [[0., 1., 0., 0., 0., 0.],
+               [0., 0., 0., 0., 0., 1.]]
+        self.assertTrue(isclose(
+            MagnitudeUtils.from_categorical(y_c),
+            [1., 5.]
         ).all())
 
 

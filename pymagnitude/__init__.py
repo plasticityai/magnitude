@@ -22,7 +22,7 @@ import uuid
 
 from annoy import AnnoyIndex
 from fasteners import InterProcessLock
-from itertools import islice, chain, tee
+from itertools import cycle, islice, chain, tee
 from numbers import Number
 from time import sleep
 
@@ -1538,15 +1538,50 @@ class MagnitudeUtils(object):
     """A MagnitudeUtils class that contains static helper utilities."""
 
     @staticmethod
+    def batchify(X, y, batch_size):  # noqa: N803
+        """ Creates an iterator that chunks `X` and `y` into batches
+        that each contain `batch_size` elements and loops forever"""
+        X_batch_generator = cycle([X[i: i + batch_size]  # noqa: N806
+                                   for i in xrange(0, len(X), batch_size)])
+        y_batch_generator = cycle([y[i: i + batch_size]
+                                   for i in xrange(0, len(y), batch_size)])
+        return izip(X_batch_generator, y_batch_generator)
+
+    @staticmethod
+    def class_encoding():
+        """Creates a set of functions to add a new class, convert a
+        class into an integer, and the integer back to a class."""
+        class_to_int_map = {}
+        int_to_class_map = None
+
+        def add_class(c):
+            global int_to_class_map
+            int_to_class_map = None
+            return class_to_int_map.setdefault(
+                c, len(class_to_int_map))
+
+        def class_to_int(c):
+            return class_to_int_map[c]
+
+        def int_to_class(i):
+            global int_to_class_map
+            if int_to_class_map is None:
+                int_to_class_map = {v: k
+                                    for k, v in (
+                                        (
+                                            hasattr(class_to_int_map, 'iteritems') and  # noqa
+                                            class_to_int_map.iteritems
+                                        ) or
+
+                                        class_to_int_map.items
+                                    )()}
+            return int_to_class_map[i]
+
+        return add_class, class_to_int, int_to_class
+
+    @staticmethod
     def to_categorical(y, num_classes=None):
         """Converts a class vector (integers) to binary class matrix.
-        E.g. for use with categorical_crossentropy.
-        # Arguments
-            y: class vector to be converted into a matrix
-                (integers from 0 to num_classes).
-            num_classes: total number of classes.
-        # Returns
-            A binary matrix representation of the input.
         """
         y = np.array(y, dtype='int')
         input_shape = y.shape
@@ -1561,3 +1596,8 @@ class MagnitudeUtils(object):
         output_shape = input_shape + (num_classes,)
         categorical = np.reshape(categorical, output_shape)
         return categorical
+
+    @staticmethod
+    def from_categorical(categorical):
+        """Converts a binary class matrix to a class vector (integers)"""
+        return np.argmax(categorical, axis=1)
