@@ -391,7 +391,7 @@ Magnitude makes it very easy to quickly build and iterate on models that need to
 There is example code available using Magnitude to build an intent classification model for the [ATIS (Airline Travel Information Systems) dataset](https://catalog.ldc.upenn.edu/docs/LDC93S4B/corpus.html) ([Train](http://magnitude.plasticity.ai/data/atis/atis-intent-train.txt)/[Test](http://magnitude.plasticity.ai/data/atis/atis-intent-test.txt)), used for chatbots or conversational interfaces, in a few popular machine learning libraries below.
 
 #### Keras
-You can access a guide for using Magnitude with Keras (which supports TensorFlow, Theano, CNTK) at this [Google Colaboratory Python notebook](https://drive.google.com/file/d/1lOcAhIffLW8XC6QsKzt5T_ZqPP4Y9eS4/view?usp=sharing).
+You can access a guide for using Magnitude with Keras (which supports TensorFlow, Theano, CNTK) at this [Google Colaboratory Python notebook](https://colab.research.google.com/drive/1lOcAhIffLW8XC6QsKzt5T_ZqPP4Y9eS4).
 
 #### PyTorch
 *The PyTorch guide is coming soon.*
