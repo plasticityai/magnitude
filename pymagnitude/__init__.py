@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import difflib
 import gc
 import os
 import re
@@ -80,6 +81,42 @@ class Magnitude(object):
     SQLITE_MAX_VARIABLE_NUMBER = max(max((_sqlite_try_max_variable_number(n)
                                           for n in [99, 999, 9999, 99999])), 1)
     MAX_KEY_LENGTH_FOR_OOV_SIM = 1000
+    ENGLISH_PREFIXES = ['counter', 'electro', 'circum', 'contra', 'contro',
+                        'crypto', 'deuter', 'franco', 'hetero', 'megalo',
+                        'preter', 'pseudo', 'after', 'under', 'amphi',
+                        'anglo', 'astro', 'extra', 'hydro', 'hyper', 'infra',
+                        'inter', 'intra', 'micro', 'multi', 'ortho', 'paleo',
+                        'photo', 'proto', 'quasi', 'retro', 'socio', 'super',
+                        'supra', 'trans', 'ultra', 'anti', 'back', 'down',
+                        'fore', 'hind', 'midi', 'mini', 'over', 'post',
+                        'self', 'step', 'with', 'afro', 'ambi', 'ante',
+                        'anti', 'arch', 'auto', 'cryo', 'demi', 'demo',
+                        'euro', 'gyro', 'hemi', 'homo', 'hypo', 'ideo',
+                        'idio', 'indo', 'macr', 'maxi', 'mega', 'meta',
+                        'mono', 'mult', 'omni', 'para', 'peri', 'pleo',
+                        'poly', 'post', 'pros', 'pyro', 'semi', 'tele',
+                        'vice', 'dis', 'dis', 'mid', 'mis', 'off', 'out',
+                        'pre', 'pro', 'twi', 'ana', 'apo', 'bio', 'cis',
+                        'con', 'com', 'col', 'cor', 'dia', 'dis', 'dif',
+                        'duo', 'eco', 'epi', 'geo', 'im ', 'iso', 'mal',
+                        'mon', 'neo', 'non', 'pan', 'ped', 'per', 'pod',
+                        'pre', 'pro', 'pro', 'sub', 'sup', 'sur', 'syn',
+                        'syl', 'sym', 'tri', 'uni', 'be', 'by', 'co', 'de',
+                        'en', 'em', 'ex', 'on', 're', 'un', 'un', 'up', 'an',
+                        'an', 'ap', 'bi', 'co', 'de', 'di', 'di', 'du', 'en',
+                        'el', 'em', 'ep', 'ex', 'in', 'in', 'il', 'ir', 'sy',
+                        'a', 'a', 'a']
+    ENGLISH_PREFIXES = sorted(
+        chain.from_iterable([(p + '-', p) for p in ENGLISH_PREFIXES]),
+        key=lambda x: len(x), reverse=True)
+    ENGLISH_SUFFIXES = ['ification', 'ologist', 'ology', 'ology', 'able',
+                        'ible', 'hood', 'ness', 'less', 'ment', 'tion',
+                        'logy', 'like', 'ise', 'ize', 'ful', 'ess', 'ism',
+                        'ist', 'ish', 'ity', 'ant', 'oid', 'ory', 'ing', 'fy',
+                        'ly', 'al']
+    ENGLISH_SUFFIXES = sorted(
+        chain.from_iterable([('-' + s, s) for s in ENGLISH_SUFFIXES]),
+        key=lambda x: len(x), reverse=True)
 
     def __new__(cls, *args, **kwargs):
         """ Returns a concatenated magnitude object, if Magnitude parameters """
@@ -116,6 +153,7 @@ class Magnitude(object):
         batch_size: Controls the maximum vector size used in memory directly
         eager: Start loading non-critical resources in the background in
                anticipation they will be used.
+        language: A ISO 639-1 Language Code (default: English 'en')
         dtype: The dtype to use when use_numpy is True.
         _number_of_values: When the path is set to None and Magnitude is being
                           used to solely featurize keys directly into vectors,
@@ -134,8 +172,8 @@ class Magnitude(object):
                  pad_to_length=None, truncate_left=False,
                  pad_left=False, placeholders=0, ngram_oov=True,
                  supress_warnings=False, batch_size=3000000,
-                 eager=True, dtype=np.float32, _namespace=None,
-                 _number_of_values=1000000):
+                 eager=True, language='en', dtype=np.float32,
+                 _namespace=None, _number_of_values=1000000):
         """Initializes a new Magnitude object."""
         self.closed = False
         self.uid = str(uuid.uuid4()).replace("-", "")
@@ -159,6 +197,7 @@ class Magnitude(object):
         self.supress_warnings = supress_warnings
         self.batch_size = batch_size
         self.eager = eager
+        self.language = language and language.lower()
         self.dtype = dtype
         self._namespace = _namespace
         self._number_of_values = _number_of_values
@@ -413,16 +452,57 @@ class Magnitude(object):
             return key.lower()
         return key
 
+    def _string_dist(self, a, b):
+        length = max(len(a), len(b))
+        return length - difflib.SequenceMatcher(None, a, b).ratio() * length
+
+    def _key_shrunk_2(self, key):
+        """Shrinks more than two characters to two characters
+        """
+        return re.sub(r"([^<])\1{2,}", r"\1\1", key)
+
+    def _key_shrunk_1(self, key):
+        """Shrinks more than one character to a single character
+        """
+        return re.sub(r"([^<])\1+", r"\1", key)
+
     def _oov_key_t(self, key):
         """Transforms a key for out-of-vocabulary lookup.
         """
         is_str = isinstance(key, str) or isinstance(key, unicode)
         if is_str:
             key = Magnitude.BOW + self._key_t(key) + Magnitude.EOW
-            # Replace 2+ consecutive characters with just two
-            # (ex. hiiiiiiii -> hii)
-            key = re.sub(r"([^<])\1{2,}", r"\1\1", key)
+            return is_str, self._key_shrunk_2(key)
         return is_str, key
+
+    def _oov_english_stem_english_ixes(self, key):
+        """Strips away common English prefixes and suffixes."""
+        key_lower = key.lower()
+        start_idx = 0
+        end_idx = 0
+        for p in Magnitude.ENGLISH_PREFIXES:
+            if key_lower[:len(p)] == p:
+                start_idx = len(p)
+                break
+        for s in Magnitude.ENGLISH_SUFFIXES:
+            if key_lower[-len(s):] == s:
+                end_idx = len(s)
+                break
+        start_idx = start_idx if max(start_idx, end_idx) == start_idx else 0
+        end_idx = end_idx if max(start_idx, end_idx) == end_idx else 0
+        stripped_key = key[start_idx:len(key) - end_idx]
+        if len(stripped_key) < 4:
+            return key
+        elif stripped_key != key:
+            return self._oov_english_stem_english_ixes(stripped_key)
+        else:
+            return stripped_key
+
+    def _oov_stem(self, key):
+        """Strips away common prefixes and suffixes."""
+        if self.language == 'en':
+            return self._oov_english_stem_english_ixes(key)
+        return key
 
     def _db_query_similar_keys_vector(self, key, orig_key, topn=3):
         """Finds similar keys in the database and gets the mean vector."""
@@ -433,15 +513,25 @@ class Magnitude(object):
             return ''.join("\\" + c if c in Magnitude.FTS_SPECIAL
                            else c for c in s).replace('"', '""')
 
+        exact_search_query = """
+            SELECT *
+            FROM `magnitude`
+            WHERE key = ?
+            ORDER BY key = ? COLLATE NOCASE DESC
+            LIMIT ?;
+        """
+
         if self.subword and len(key) < Magnitude.MAX_KEY_LENGTH_FOR_OOV_SIM:
             current_subword_start = self.subword_end
             BOW_length = len(Magnitude.BOW)  # noqa: N806
             EOW_length = len(Magnitude.EOW)  # noqa: N806
             BOWEOW_length = BOW_length + EOW_length  # noqa: N806
             true_key_len = len(key) - BOWEOW_length
-            key_shrunk = re.sub(r"([^<])\1+", r"\1", key)
+            key_shrunk_stemmed = self._oov_stem(self._key_shrunk_1(orig_key))
+            key_shrunk = self._key_shrunk_1(orig_key)
+            key_stemmed = self._oov_stem(orig_key)
             beginning_and_end_clause = ""
-            exact_match = []
+            exact_matches = []
             if true_key_len <= 6:
                 beginning_and_end_clause = """
                     magnitude.key LIKE '{0}%'
@@ -452,30 +542,50 @@ class Magnitude(object):
                     _sql_escape_single(key[BOW_length:BOW_length + 1]),
                     _sql_escape_single(key[-EOW_length - 1:-EOW_length]),
                     str(true_key_len))
-                if true_key_len <= 5 and key_shrunk != key:
-                    exact_match = list(char_ngrams(
-                        key_shrunk, true_key_len, true_key_len))
-            search_query = """
-                SELECT magnitude.*
-                FROM magnitude_subword, magnitude
-                WHERE char_ngrams MATCH ?
-                AND magnitude.rowid = magnitude_subword.rowid
-                ORDER BY
-                    (
-                        (LENGTH(offsets(magnitude_subword)) -
-                         LENGTH(REPLACE(offsets(magnitude_subword), ' ', '')))
-                    + 1) DESC,
-                    """ + beginning_and_end_clause + """
-                    LENGTH(magnitude.key) ASC
-                LIMIT ?;
-            """
-            if len(exact_match) > 0:
-                params = (' OR '.join('"{0}"'.format(_sql_escape_fts(e))
-                                      for e in exact_match), topn)
-                results = self._db().execute(search_query, params).fetchall()
+            if key != orig_key:
+                exact_matches.append((key_shrunk, self._key_shrunk_2(orig_key)))
+            if key_stemmed != orig_key:
+                exact_matches.append((key_stemmed,))
+            if key_shrunk_stemmed != orig_key:
+                exact_matches.append((key_shrunk_stemmed,))
+            if len(exact_matches) > 0:
+                for exact_match in exact_matches:
+                    results = []
+                    split_results = []
+                    limits = np.array_split(list(range(topn)), len(exact_match))
+                    for i, e in enumerate(exact_match):
+                        limit = len(limits[i])
+                        split_results.extend(self._db().execute(
+                            exact_search_query, (e, e, limit)).fetchall())
+                        results.extend(self._db().execute(
+                            exact_search_query, (e, e, topn)).fetchall())
+                    if len(split_results) >= topn:
+                        results = split_results
+                    if len(results) > 0:
+                        break
             else:
                 results = []
             if len(results) == 0:
+                search_query = """
+                    SELECT magnitude.*
+                    FROM magnitude_subword, magnitude
+                    WHERE char_ngrams MATCH ?
+                    AND magnitude.rowid = magnitude_subword.rowid
+                    ORDER BY
+                        (
+                            (
+                                LENGTH(offsets(magnitude_subword)) -
+                                LENGTH(
+                                    REPLACE(offsets(magnitude_subword), ' ', '')
+                                )
+                            )
+                            +
+                            1
+                        ) DESC,
+                        """ + beginning_and_end_clause + """
+                        LENGTH(magnitude.key) ASC
+                    LIMIT ?;
+                """  # noqa
                 while (len(results) < topn and
                         current_subword_start >= self.subword_start):
                     ngrams = list(char_ngrams(
@@ -484,17 +594,23 @@ class Magnitude(object):
                                           for n in ngrams), topn)
                     results = self._db().execute(search_query,
                                                  params).fetchall()
+                    small_typo = len(results) > 0 and self._string_dist(
+                        results[0][0].lower(), orig_key.lower()) <= 4
+                    if key_shrunk_stemmed != orig_key and key_shrunk_stemmed != key_shrunk and not small_typo:  # noqa
+                        ngrams = list(
+                            char_ngrams(
+                                self._oov_key_t(key_shrunk_stemmed)[1],
+                                current_subword_start,
+                                self.subword_end))
+                        params = (' OR '.join('"{0}"'.format(_sql_escape_fts(n))
+                                              for n in ngrams), topn)
+                        results = self._db().execute(search_query,
+                                                     params).fetchall()
                     current_subword_start -= 1
         else:
-            results = self._db().execute(
-                """
-                    SELECT *
-                    FROM `magnitude`
-                    WHERE key = ?
-                    ORDER BY key = ? COLLATE BINARY DESC
-                    LIMIT ?;
-                """,
-                (orig_key, orig_key, topn)).fetchall()
+            # As a backup do a search with 'NOCASE'
+            results = self._db().execute(exact_search_query,
+                                         (orig_key, orig_key, topn)).fetchall()
         final_results = []
         for result in results:
             result_key, vec = self._db_full_result_to_vec(result)
@@ -506,6 +622,7 @@ class Magnitude(object):
             return self._padding_vector()
 
     def _seed(self, val):
+        """Returns a unique seed for val and the (optional) namespace."""
         if self._namespace:
             return xxhash.xxh32(self._namespace + Magnitude.RARE_CHAR +
                                 val.encode('utf-8')).intdigest()
@@ -820,8 +937,9 @@ class Magnitude(object):
             return self.query(key)
 
     def _query_is_cached(self, key):
+        """Checks if the query been cached by Magnitude."""
         return ((self._vector_for_key_cached._cache.get((key,)) is not None) or (  # noqa
-            self._out_of_vocab_vector_cached._cache.get((key,)) is not None))  # noqa
+            self._out_of_vocab_vector_cached._cache.get((key,)) is not None))
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def distance(self, key, q):

@@ -126,6 +126,7 @@ If needed, and included for convenience, you can also open a `.bin`, `.txt`, `.v
 * <sup>Optionally, you can set the `truncate_left` argument to `True` if you want the beginning of the the list of keys in each example to be truncated instead of the end in case it is longer than `pad_to_length` when specified.</sup>
 * <sup>Optionally, you can set the `pad_left` argument to `True` if you want the padding to appear at the beginning versus the end (which is the default).</sup>
 * <sup>Optionally, you can pass in the `placeholders` argument, which will increase the dimensions of each vector by a `placeholders` amount, zero-padding those extra dimensions. This is useful, if you plan to add other values and information to the vectors and want the space for that pre-allocated in the vectors for efficiency.</sup>
+* <sup>Optionally, you can pass in the `language` argument with an [ISO 639-1 Language Code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes), which, if you are using Magnitude for word vectors, will ensure the library respects stemming and other language-specific features for that language. The default is `en` for English. You can also pass in `None` if you are not using Magnitude for word vectors. </sup>
 
 ### Querying
 
