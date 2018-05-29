@@ -342,7 +342,7 @@ class MagnitudeTest(unittest.TestCase):
             eager=False)
 
         self.assertTrue(isclose(self.vectors_oov_1.query("discriminatoryy")[0],
-                                -0.0573252095591))
+                                -0.059116619334669426))
         self.assertTrue(isclose(self.vectors_oov_1.query("*<")[0],
                                 -0.0759614511397))
         self.assertTrue(isclose(self.vectors_oov_1.query("*<<")[0],
@@ -352,7 +352,7 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(isclose(self.vectors_oov_1.query("misssipi")[0],
                                 0.0577835297955))
         self.assertTrue(isclose(self.vectors_oov_2.query("discriminatoryy")[0],
-                                -0.0573252095591))
+                                -0.059116619334669426))
         self.assertTrue(isclose(self.vectors_oov_2.query("*<")[0],
                                 -0.0759614511397))
         self.assertTrue(isclose(self.vectors_oov_2.query("*<<")[0],
@@ -462,6 +462,62 @@ class MagnitudeTest(unittest.TestCase):
         self.vectors_sw.query('ab' * 1026)
         # Previous line should not fail
         self.assertTrue(True)
+
+    def test_lang_english_oov_stem(self):
+        self.assertEqual(self.vectors._oov_stem('rejumping'), 'jump')
+        self.assertEqual(self.vectors._oov_stem(
+            'pre-reuberification-ing'), 'uber')
+        self.assertTrue(self.vectors_sw.similarity("houuuuuuse", "house") > .67)
+        self.assertTrue(isclose(self.vectors_sw.query(
+            "houuuuuuse")[0], -0.007254118679147659))
+        self.assertTrue(
+            self.vectors_sw.similarity(
+                "skillllllll",
+                "skill") > .58)
+        self.assertTrue(isclose(self.vectors_sw.query(
+            "skillllllll")[0], 0.0039352450099857696))
+        self.assertTrue(
+            self.vectors_sw.similarity(
+                "uberification",
+                "uber") > .7)
+        self.assertTrue(
+            isclose(
+                self.vectors_sw.query("uberification")[0],
+                0.033199077449376516))
+        self.assertTrue(
+            self.vectors_sw.similarity(
+                "uberificatttttioooooonn",
+                "uber") > .7)
+        self.assertTrue(
+            isclose(
+                self.vectors_sw.query("uberificatttttioooooonn")[0],
+                0.0527393434944338))
+        self.assertTrue(self.vectors_sw.similarity("sjump", "jump") > .68)
+        self.assertTrue(
+            isclose(
+                self.vectors_sw.query("sjump")[0],
+                0.04112182276959207))
+        self.assertTrue(self.vectors_sw.similarity("sjumping", "jumping") > .7)
+        self.assertTrue(
+            isclose(
+                self.vectors_sw.query("sjumping")[0],
+                0.048280197411183244))
+        self.assertTrue(
+            self.vectors_sw.similarity(
+                "sjumpinnnnnnnnng",
+                "jump") > .7)
+        self.assertTrue(
+            isclose(
+                self.vectors_sw.query("sjumpinnnnnnnnng")[0],
+                0.011190570778487749))
+
+    def test_lang_none_oov_stem(self):
+        self.vectors_l = Magnitude(MagnitudeTest.MAGNITUDE_PATH, language=None)
+        self.assertEqual(self.vectors_l._oov_stem('rejumping'), 'rejumping')
+        self.assertEqual(
+            self.vectors_l._oov_stem('reuberificationing'),
+            'reuberificationing')
+        self.vectors_l.close()
 
     def test_placeholders(self):
         self.vectors_placeholders = Magnitude(
