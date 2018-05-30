@@ -301,8 +301,10 @@ If using a Magnitude file with advanced out-of-vocabulary support (Medium or Hea
 ```python
 vectors = Magnitude("/path/to/GoogleNews-vectors-negative300.magnitude")
 "uberx" in vectors # False
+"uberification" in vectors # False
 "uber" in vectors # True
 vectors.similarity("uberx", "uber") # 0.7383483267618451
+vectors.similarity("uberification", "uber") # 0.745452837882727
 ```
 
 #### Handling Misspellings and Typos
