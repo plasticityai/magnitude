@@ -997,25 +997,25 @@ class MagnitudeTest(unittest.TestCase):
         X = [0, 1, 2, 3, 4, 5]  # noqa: N806
         y = [0, 0, 1, 1, 0, 1]
         batch_gen = MagnitudeUtils.batchify(X, y, 2)
-        X_batch, y_batch = next(batch_gen) # noqa: N806
+        X_batch, y_batch = next(batch_gen)  # noqa: N806
         self.assertEqual(X_batch, [0, 1])
         self.assertEqual(y_batch, [0, 0])
-        X_batch, y_batch = next(batch_gen) # noqa: N806
+        X_batch, y_batch = next(batch_gen)  # noqa: N806
         self.assertEqual(X_batch, [2, 3])
         self.assertEqual(y_batch, [1, 1])
-        X_batch, y_batch = next(batch_gen) # noqa: N806
+        X_batch, y_batch = next(batch_gen)  # noqa: N806
         self.assertEqual(X_batch, [4, 5])
         self.assertEqual(y_batch, [0, 1])
-        X_batch, y_batch = next(batch_gen) # noqa: N806
+        X_batch, y_batch = next(batch_gen)  # noqa: N806
         self.assertEqual(X_batch, [0, 1])
         self.assertEqual(y_batch, [0, 0])
         X = [0, 1, 2]  # noqa: N806
         y = [0, 0, 1]
         batch_gen = MagnitudeUtils.batchify(X, y, 2)
-        X_batch, y_batch = next(batch_gen) # noqa: N806
+        X_batch, y_batch = next(batch_gen)  # noqa: N806
         self.assertEqual(X_batch, [0, 1])
         self.assertEqual(y_batch, [0, 0])
-        X_batch, y_batch = next(batch_gen) # noqa: N806
+        X_batch, y_batch = next(batch_gen)  # noqa: N806
         self.assertEqual(X_batch, [2])
         self.assertEqual(y_batch, [1])
 
