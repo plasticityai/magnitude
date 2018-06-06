@@ -306,9 +306,9 @@ def convert(input_file_path, output_file_path=None,
             db.execute("COMMIT;")
             db.execute("BEGIN;")
         vector = vector / np.linalg.norm(vector)
-        theta = np.random.choice(
+        epsilon = np.random.choice(
             [-1.0 / (10**precision), 1.0 / (10**precision)], dimensions)
-        vector = theta if np.isnan(vector).any() else vector
+        vector = epsilon if np.isnan(vector).any() else vector
         for d, v in enumerate(vector):
             counters[d][int(v * 100)] += 1
         db.execute(insert_query, (key,) + tuple(int(round(v * (10**precision)))
