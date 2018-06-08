@@ -120,8 +120,6 @@ Deploy to PyPI:
     # Upload to PyPI
     - envsubst < deployment/.pypirc > ~/.pypirc
     - chmod 600 ~/.pypirc
-    - pip install -U setuptools
-    - pip install -U wheel
     - python setup.py sdist upload -r pypitest
     - python setup.py sdist upload -r pypi
 
