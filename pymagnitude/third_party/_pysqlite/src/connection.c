@@ -562,9 +562,13 @@ PyObject* _pysqlite_build_py_params(sqlite3_context *context, int argc, sqlite3_
                 break;
             case SQLITE_BLOB:
                 buflen = sqlite3_value_bytes(cur_value);
+                #if IS_PY3 // PLASTICITY
                 char *buf  = (char *) PyMem_Malloc(buflen); // PLASTICITY
                 cur_py_value = PyBytes_FromStringAndSize(buf, buflen); // PLASTICITY
                 PyMem_Free(buf); // PLASTICITY
+                #else // PLASTICITY
+                cur_py_value = PyBuffer_New(buflen); // PLASTICITY
+                #endif // PLASTICITY
                 if (!cur_py_value) {
                     break;
                 }

@@ -348,9 +348,13 @@ PyObject* _pysqlite_fetch_one_row(pysqlite_Cursor* self)
             } else {
                 /* coltype == SQLITE_BLOB */
                 nbytes = sqlite3_column_bytes(self->statement->st, i);
+                #if IS_PY3 // PLASTICITY
                 char *buf  = (char *) PyMem_Malloc(nbytes); // PLASTICITY
                 buffer = PyBytes_FromStringAndSize(buf, nbytes); // PLASTICITY
                 PyMem_Free(buf); // PLASTICITY
+                #else // PLASTICITY
+                buffer = PyBuffer_New(nbytes); // PLASTICITY
+                #endif // PLASTICITY
                 if (!buffer) {
                     break;
                 }
