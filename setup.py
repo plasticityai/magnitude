@@ -10,13 +10,13 @@ import subprocess
 # limitations may prevent large .magnitude files with many columns
 # from working.
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-THIRD_PARTY = PROJ_PATH +'/pymagnitude/third_party'
-PYSQLITE = THIRD_PARTY+'/_pysqlite'
+THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
+PYSQLITE = THIRD_PARTY + '/_pysqlite'
 subprocess.Popen([
     sys.executable,
-    PYSQLITE+'/setup.py',
+    PYSQLITE + '/setup.py',
     'install',
-    '--install-lib='+THIRD_PARTY+'/internal/',
+    '--install-lib=' + THIRD_PARTY + '/internal/',
 ], cwd=PYSQLITE)
 # End install custom SQLite
 
