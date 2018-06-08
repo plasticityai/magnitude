@@ -231,12 +231,11 @@ class CustomInstallCommand(install):
         # across all platforms
         exitcodes = []
         if platform == "darwin":
-            if os.getuid() == 0:
-                exit("ERROR: Don't install with sudo!")
             exitcodes.append(self.run_build_process()) # Try installing with built in compiler
             if os.system("which brew 1>/dev/null 2>/dev/null"):
                 os.system('echo | /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || true')
             system_with_output('brew install gcc --without-multilib || true')
+            system_with_output('su -c "brew install gcc --without-multilib" $SUDO_USER || true')
             GCC_PATH = system_with_output('ls /usr/local/Cellar/gcc/*/bin/gcc* | head -1').strip()
             print("The found Mac Brew GCC Path is: ", GCC_PATH)
             if len(GCC_PATH) > 0:
@@ -320,7 +319,6 @@ def get_setup_args():
             package_dir = {"pysqlite2": "lib"},
             packages = ["pysqlite2", "pysqlite2.test"],
             scripts=[],
-            data_files = data_files,
 
             ext_modules = [Extension( name="pysqlite2._sqlite",
                                       sources=sources,
