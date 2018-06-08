@@ -13,7 +13,6 @@ import heapq
 import lz4.frame
 import math
 import operator
-import sqlite3
 import tempfile
 import threading
 import xxhash
@@ -49,6 +48,17 @@ try:
     xrange
 except NameError:
     xrange = range
+
+try:
+    sys.path.append(os.path.dirname(__file__)+'/third_party/')
+    from pymagnitude.third_party.internal.pysqlite2 import dbapi2 as sqlite3
+    db = sqlite3.connect(':memory:')
+    db.close()
+    SQLITE_LIB = 'internal'
+except Exception as e:
+    print(e)
+    import sqlite3
+    SQLITE_LIB = 'system'
 
 DEFAULT_LRU_CACHE_SIZE = 1000
 
@@ -175,6 +185,7 @@ class Magnitude(object):
                  eager=True, language='en', dtype=np.float32,
                  _namespace=None, _number_of_values=1000000):
         """Initializes a new Magnitude object."""
+        self.sqlite_lib = SQLITE_LIB
         self.closed = False
         self.uid = str(uuid.uuid4()).replace("-", "")
 

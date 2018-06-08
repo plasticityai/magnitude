@@ -11,6 +11,7 @@
 /.eggs/
 
 # Third Party Build Folders
-third_party/**/build
-third_party/internal/
-!third_party/internal/__init__.py
+/pymagnitude/third_party/**/build
+/pymagnitude/third_party/internal/**/*
+/pymagnitude/third_party/internal/*
+!/pymagnitude/third_party/internal/__init__.py
