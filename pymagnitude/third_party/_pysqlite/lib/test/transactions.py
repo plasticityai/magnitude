@@ -154,7 +154,7 @@ class TransactionTests(unittest.TestCase):
         try:
             cur.fetchall()
             self.fail("InterfaceError should have been raised")
-        except sqlite.InterfaceError, e:
+        except sqlite.InterfaceError as e:
             pass
         except:
             self.fail("InterfaceError should have been raised")

@@ -16,11 +16,11 @@ con.set_authorizer(authorizer_callback)
 
 try:
     con.execute("select * from private_table")
-except sqlite3.DatabaseError, e:
+except sqlite3.DatabaseError as e:
     print "SELECT FROM private_table =>", e.args[0]     # access ... prohibited
 
 try:
     con.execute("insert into public_table(c1, c2) values (1, 2)")
-except sqlite3.DatabaseError, e:
+except sqlite3.DatabaseError as e:
     print "DML command =>", e.args[0]     # access ... prohibited
 

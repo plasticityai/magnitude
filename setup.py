@@ -17,7 +17,7 @@ subprocess.Popen([
     PYSQLITE + '/setup.py',
     'install',
     '--install-lib=' + THIRD_PARTY + '/internal/',
-], cwd=PYSQLITE)
+], cwd=PYSQLITE).wait()
 # End install custom SQLite
 
 setup(

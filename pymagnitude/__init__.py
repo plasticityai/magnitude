@@ -56,7 +56,7 @@ try:
     db.close()
     SQLITE_LIB = 'internal'
 except Exception as e:
-    print(e)
+    raise e
     import sqlite3
     SQLITE_LIB = 'system'
 

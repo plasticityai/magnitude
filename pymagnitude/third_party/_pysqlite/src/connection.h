@@ -65,7 +65,7 @@ typedef struct
     /* thread identification of the thread the connection was created in */
     long thread_ident;
 
-    pysqlite_Cache* statement_cache;
+    //pysqlite_Cache* statement_cache;
 
     /* Lists of weak references to statements and cursors used within this connection */
     PyObject* statements;
