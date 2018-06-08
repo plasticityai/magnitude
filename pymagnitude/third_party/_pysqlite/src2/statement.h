@@ -24,7 +24,6 @@
 #ifndef PYSQLITE_STATEMENT_H
 #define PYSQLITE_STATEMENT_H
 #include "Python.h"
-#include "py3compat.h" // PLASTICITY
 
 #include "connection.h"
 #include "sqlite3.h"

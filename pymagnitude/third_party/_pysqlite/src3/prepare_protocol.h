@@ -1,6 +1,6 @@
-/* row.h - an enhanced tuple for database rows
+/* prepare_protocol.h - the protocol for preparing values for SQLite
  *
- * Copyright (C) 2005-2015 Gerhard Häring <gh@ghaering.de>
+ * Copyright (C) 2005-2010 Gerhard HÃ¤ring <gh@ghaering.de>
  *
  * This file is part of pysqlite.
  *
@@ -21,20 +21,21 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-#ifndef PYSQLITE_ROW_H
-#define PYSQLITE_ROW_H
+#ifndef PYSQLITE_PREPARE_PROTOCOL_H
+#define PYSQLITE_PREPARE_PROTOCOL_H
 #include "Python.h"
-#include "py3compat.h" // PLASTICITY
 
-typedef struct _Row
+typedef struct
 {
     PyObject_HEAD
-    PyObject* data;
-    PyObject* description;
-} pysqlite_Row;
+} pysqlite_PrepareProtocol;
 
-extern PyTypeObject pysqlite_RowType;
+extern PyTypeObject pysqlite_PrepareProtocolType;
 
-int pysqlite_row_setup_types(void);
+int pysqlite_prepare_protocol_init(pysqlite_PrepareProtocol* self, PyObject* args, PyObject* kwargs);
+void pysqlite_prepare_protocol_dealloc(pysqlite_PrepareProtocol* self);
 
+int pysqlite_prepare_protocol_setup_types(void);
+
+#define UNKNOWN (-1)
 #endif

@@ -52,11 +52,10 @@ except NameError:
 try:
     sys.path.append(os.path.dirname(__file__) + '/third_party/')
     from pymagnitude.third_party.internal.pysqlite2 import dbapi2 as sqlite3
-    db = sqlite3.connect(':memory:', isolation_level=None)
-    # db.close()
+    db = sqlite3.connect(':memory:')
+    db.close()
     SQLITE_LIB = 'internal'
 except Exception as e:
-    print(e)
     import sqlite3
     SQLITE_LIB = 'system'
 
@@ -65,7 +64,7 @@ DEFAULT_LRU_CACHE_SIZE = 1000
 
 def _sqlite_try_max_variable_number(num):
     """ Tests whether SQLite can handle num variables """
-    db = sqlite3.connect(':memory:', isolation_level=None)
+    db = sqlite3.connect(':memory:')
     try:
         db.cursor().execute(
             "SELECT 1 IN (" + ",".join(["?"] * num) + ")",
@@ -399,14 +398,12 @@ class Magnitude(object):
             if self.fd:
                 if os.name == 'nt':
                     conn = sqlite3.connect(self.path,
-                                           check_same_thread=False,
-                                           isolation_level=None)
+                                           check_same_thread=False)
                 else:
                     conn = sqlite3.connect('/dev/fd/%d' % self.fd,
-                                           check_same_thread=False,
-                                           isolation_level=None)
+                                           check_same_thread=False)
             else:
-                conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
+                conn = sqlite3.connect(self.path, check_same_thread=False)
                 self._create_empty_db(conn.cursor())
             self._all_conns.append(conn)
         if not conn_exists:

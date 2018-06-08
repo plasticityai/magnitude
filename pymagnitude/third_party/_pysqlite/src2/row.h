@@ -1,6 +1,6 @@
-/* backup.h - definitions for the backup type
+/* row.h - an enhanced tuple for database rows
  *
- * Copyright (C) 2010-2015 Gerhard Häring <gh@ghaering.de>
+ * Copyright (C) 2005-2015 Gerhard Häring <gh@ghaering.de>
  *
  * This file is part of pysqlite.
  *
@@ -21,24 +21,19 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-#ifndef PYSQLITE_BACKUP_H
-#define PYSQLITE_BACKUP_H
+#ifndef PYSQLITE_ROW_H
+#define PYSQLITE_ROW_H
 #include "Python.h"
-#include "py3compat.h" // PLASTICITY
 
-#include "sqlite3.h"
-#include "connection.h"
-
-typedef struct
+typedef struct _Row
 {
     PyObject_HEAD
-    sqlite3_backup* backup;
-    pysqlite_Connection* source_con;
-    pysqlite_Connection* dest_con;
-} pysqlite_Backup;
+    PyObject* data;
+    PyObject* description;
+} pysqlite_Row;
 
-extern PyTypeObject pysqlite_BackupType;
+extern PyTypeObject pysqlite_RowType;
 
-int pysqlite_backup_setup_types(void);
+int pysqlite_row_setup_types(void);
 
 #endif

@@ -1,6 +1,6 @@
 /* connection.h - definitions for the connection type
  *
- * Copyright (C) 2004-2015 Gerhard Häring <gh@ghaering.de>
+ * Copyright (C) 2004-2010 Gerhard HÃ¤ring <gh@ghaering.de>
  *
  * This file is part of pysqlite.
  *
@@ -24,7 +24,6 @@
 #ifndef PYSQLITE_CONNECTION_H
 #define PYSQLITE_CONNECTION_H
 #include "Python.h"
-#include "py3compat.h" // PLASTICITY
 #include "pythread.h"
 #include "structmember.h"
 
@@ -49,12 +48,11 @@ typedef struct
      * first get called with count=0? */
     double timeout_started;
 
-    /* None for autocommit, otherwise a PyString with the isolation level */
+    /* None for autocommit, otherwise a PyUnicode with the isolation level */
     PyObject* isolation_level;
 
-    /* NULL for autocommit, otherwise a string with the BEGIN statement; will be
-     * freed in connection destructor */
-    char* begin_statement;
+    /* NULL for autocommit, otherwise a string with the BEGIN statement */
+    const char* begin_statement;
 
     /* 1 if a check should be performed for each API call if the connection is
      * used from the same thread it was created in */
@@ -63,7 +61,7 @@ typedef struct
     int initialized;
 
     /* thread identification of the thread the connection was created in */
-    long thread_ident;
+    unsigned long thread_ident;
 
     pysqlite_Cache* statement_cache;
 
@@ -80,8 +78,7 @@ typedef struct
 
     /* Determines how bytestrings from SQLite are converted to Python objects:
      * - PyUnicode_Type:        Python Unicode objects are constructed from UTF-8 bytestrings
-     * - OptimizedUnicode:      Like before, but for ASCII data, only PyStrings are created.
-     * - PyString_Type:         PyStrings are created as-is.
+     * - PyBytes_Type:          The bytestrings are returned as-is.
      * - Any custom callable:   Any object returned from the callable called with the bytestring
      *                          as single parameter.
      */

@@ -33,7 +33,7 @@
 
 /** the adapters registry **/
 
-PyObject *psyco_adapters;
+static PyObject *psyco_adapters = NULL;
 
 /* pysqlite_microprotocols_init - initialize the adapters dictionary */
 
@@ -82,7 +82,7 @@ pysqlite_microprotocols_adapt(PyObject *obj, PyObject *proto, PyObject *alt)
        way to get a quotable object to be its instance */
 
     /* look for an adapter in the registry */
-    key = Py_BuildValue("(OO)", Py_TYPE(obj), proto);
+    key = Py_BuildValue("(OO)", (PyObject*)obj->ob_type, proto);
     if (!key) {
         return NULL;
     }
@@ -95,7 +95,9 @@ pysqlite_microprotocols_adapt(PyObject *obj, PyObject *proto, PyObject *alt)
 
     /* try to have the protocol adapt this object*/
     if (PyObject_HasAttrString(proto, "__adapt__")) {
-        PyObject *adapted = PyObject_CallMethod(proto, "__adapt__", "O", obj);
+        _Py_IDENTIFIER(__adapt__);
+        PyObject *adapted = _PyObject_CallMethodId(proto, &PyId___adapt__, "O", obj);
+
         if (adapted) {
             if (adapted != Py_None) {
                 return adapted;
@@ -110,7 +112,9 @@ pysqlite_microprotocols_adapt(PyObject *obj, PyObject *proto, PyObject *alt)
 
     /* and finally try to have the object adapt itself */
     if (PyObject_HasAttrString(obj, "__conform__")) {
-        PyObject *adapted = PyObject_CallMethod(obj, "__conform__","O", proto);
+        _Py_IDENTIFIER(__conform__);
+        PyObject *adapted = _PyObject_CallMethodId(obj, &PyId___conform__,"O", proto);
+
         if (adapted) {
             if (adapted != Py_None) {
                 return adapted;

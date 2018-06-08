@@ -100,7 +100,7 @@ static void pysqlite_cursor_dealloc(pysqlite_Cursor* self)
         PyObject_ClearWeakRefs((PyObject*)self);
     }
 
-    Py_TYPE(self)->tp_free((PyObject*)self);
+    self->ob_type->tp_free((PyObject*)self);
 }
 
 PyObject* _pysqlite_get_converter(PyObject* key)
@@ -348,13 +348,7 @@ PyObject* _pysqlite_fetch_one_row(pysqlite_Cursor* self)
             } else {
                 /* coltype == SQLITE_BLOB */
                 nbytes = sqlite3_column_bytes(self->statement->st, i);
-                #if IS_PY3 // PLASTICITY
-                char *buf  = (char *) PyMem_Malloc(nbytes); // PLASTICITY
-                buffer = PyBytes_FromStringAndSize(buf, nbytes); // PLASTICITY
-                PyMem_Free(buf); // PLASTICITY
-                #else // PLASTICITY
-                buffer = PyBuffer_New(nbytes); // PLASTICITY
-                #endif // PLASTICITY
+                buffer = PyBuffer_New(nbytes);
                 if (!buffer) {
                     break;
                 }

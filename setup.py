@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from setuptools import find_packages
 from distutils.core import setup
 
@@ -12,12 +14,32 @@ import subprocess
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
 PYSQLITE = THIRD_PARTY + '/_pysqlite'
-subprocess.Popen([
+rc = subprocess.Popen([
     sys.executable,
     PYSQLITE + '/setup.py',
     'install',
     '--install-lib=' + THIRD_PARTY + '/internal/',
 ], cwd=PYSQLITE).wait()
+if rc:
+    print("")
+    print("============================================================")
+    print("=========================WARNING============================")
+    print("============================================================")
+    print("It seems like building a custom version of SQLite on your")
+    print("machine has failed. This is fine, Magnitude will likely work")
+    print("just fine with the sytem version of SQLite for most use cases.")
+    print("However, if you are trying to load extremely high dimensional")
+    print("models > 999 dimensions, you may run in to SQLite limitations")
+    print("that can only be resolved by using the custom version of SQLite.")
+    print("To troubleshoot make sure you have appropriate build tools on")
+    print("your machine for building C programs like GCC and the standard")
+    print("library. Also make sure you have the python-dev development")
+    print("libraries and headers for building Python C extensions.")
+    print("If you need more help with this, please reach out to ")
+    print("opensource@plasticity.ai.")
+    print("============================================================")
+    print("============================================================")
+    print("")
 # End install custom SQLite
 
 setup(

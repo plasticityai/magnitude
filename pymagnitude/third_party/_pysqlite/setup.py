@@ -84,14 +84,23 @@ import cross_bdist_wininst
 
 sqlite = "sqlite"
 
+# BEGIN PLASTICITY
+import sys
+if sys.version_info >= (3, 0):
+    s_folder = 'src3'
+else:
+    s_folder = 'src2'
+
+# END PLASTICITY
+
 PYSQLITE_EXPERIMENTAL = False
 
-sources = ["src/module.c", "src/connection.c", "src/cursor.c", "src/cache.c",
-           "src/microprotocols.c", "src/prepare_protocol.c", "src/statement.c",
-           "src/util.c", "src/row.c"]
+sources = [s_folder+"/module.c", s_folder+"/connection.c", s_folder+"/cursor.c", s_folder+"/cache.c",
+           s_folder+"/microprotocols.c", s_folder+"/prepare_protocol.c", s_folder+"/statement.c",
+           s_folder+"/util.c", s_folder+"/row.c"] # PLASTICITY
 
 if PYSQLITE_EXPERIMENTAL:
-    sources.append("src/backup.c")
+    sources.append(s_folder+"/backup.c") # PLASTICITY
 
 include_dirs = []
 library_dirs = []
@@ -213,15 +222,22 @@ class CustomInstallCommand(install):
         if platform == "darwin":
             if os.getuid() == 0:
                 exit("ERROR: Don't install with sudo!")
+            self.run_command('build_static') # Try installing with built in compiler
             if os.system("which brew 1>/dev/null 2>/dev/null"):
                 os.system('echo | /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || true')
             system_with_output('brew install gcc --without-multilib || true')
-            GCC_PATH = system_with_output('ls /usr/local/Cellar/gcc/*/bin/gcc* | head -1')
+            GCC_PATH = system_with_output('ls /usr/local/Cellar/gcc/*/bin/gcc* | head -1').strip()
             print("The found Mac Brew GCC Path is: ", GCC_PATH)
-            os.environ["CC"] = GCC_PATH
+            if len(GCC_PATH) > 0:
+                os.environ["CC"] = GCC_PATH
         elif platform == "linux" or platform == "linux2" or "linux" in platform:
             os.system('apt-get update || true')
             os.system('apk update || true')
+            os.system('apk upgrade || true')
+            os.system('yum update || true')
+            os.system('apt-get install build-essential -y || true')
+            os.system('apt-get install gcc -y || true')
+            os.system('apt-get install make -y || true')
             os.system('apt-get install python-dev -y || true')
             os.system('apt-get install python3-dev -y || true')
             os.system('apt-get install python3.5-dev -y || true')
@@ -247,7 +263,7 @@ def get_setup_args():
     version_re = re.compile('#define PYSQLITE_VERSION "(.*)"')
     # f = open(os.path.join("src", "module.h")) # PLASTICITY COMMENT OUT
     import codecs # PLASTICITY
-    f = codecs.open(os.path.join("src", "module.h"), "r",encoding='utf-8', errors='ignore')
+    f = codecs.open(os.path.join(s_folder, "module.h"), "r",encoding='utf-8', errors='ignore') # PLASTICITY
     for line in f:
         match = version_re.match(line)
         if match:

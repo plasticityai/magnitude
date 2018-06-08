@@ -1,6 +1,6 @@
 /* cursor.h - definitions for the cursor type
  *
- * Copyright (C) 2004-2015 Gerhard Häring <gh@ghaering.de>
+ * Copyright (C) 2004-2010 Gerhard HÃ¤ring <gh@ghaering.de>
  *
  * This file is part of pysqlite.
  *
@@ -24,7 +24,6 @@
 #ifndef PYSQLITE_CURSOR_H
 #define PYSQLITE_CURSOR_H
 #include "Python.h"
-#include "py3compat.h" // PLASTICITY
 
 #include "statement.h"
 #include "connection.h"
@@ -39,6 +38,7 @@ typedef struct
     int arraysize;
     PyObject* lastrowid;
     long rowcount;
+    PyObject* row_factory;
     pysqlite_Statement* statement;
     int closed;
     int reset;

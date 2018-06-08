@@ -1,6 +1,6 @@
-/* util.h - various utility functions
+/* backup.h - definitions for the backup type
  *
- * Copyright (C) 2005-2015 Gerhard Häring <gh@ghaering.de>
+ * Copyright (C) 2010-2015 Gerhard Häring <gh@ghaering.de>
  *
  * This file is part of pysqlite.
  *
@@ -21,23 +21,23 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-#ifndef PYSQLITE_UTIL_H
-#define PYSQLITE_UTIL_H
+#ifndef PYSQLITE_BACKUP_H
+#define PYSQLITE_BACKUP_H
 #include "Python.h"
-#include "py3compat.h" // PLASTICITY
-#include "pythread.h"
+
 #include "sqlite3.h"
 #include "connection.h"
 
-int pysqlite_step(sqlite3_stmt* statement, pysqlite_Connection* connection);
+typedef struct
+{
+    PyObject_HEAD
+    sqlite3_backup* backup;
+    pysqlite_Connection* source_con;
+    pysqlite_Connection* dest_con;
+} pysqlite_Backup;
 
-/**
- * Checks the SQLite error code and sets the appropriate DB-API exception.
- * Returns the error code (0 means no error occurred).
- */
-int _pysqlite_seterror(sqlite3* db, sqlite3_stmt* st);
+extern PyTypeObject pysqlite_BackupType;
 
-PyObject * _pysqlite_long_from_int64(sqlite_int64 value);
-sqlite_int64 _pysqlite_long_as_int64(PyObject * value);
+int pysqlite_backup_setup_types(void);
 
 #endif

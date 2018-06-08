@@ -27,7 +27,6 @@
 #define PSYCOPG_MICROPROTOCOLS_H 1
 
 #include <Python.h>
-#include "py3compat.h" // PLASTICITY
 
 /** adapters registry **/
 

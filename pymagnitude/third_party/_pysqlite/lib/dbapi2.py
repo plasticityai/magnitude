@@ -84,8 +84,8 @@ def register_adapters_and_converters():
 
     register_adapter(datetime.date, adapt_date)
     register_adapter(datetime.datetime, adapt_datetime)
-    register_converter("date".encode("utf8"), convert_date)
-    register_converter("timestamp".encode("utf8"), convert_timestamp)
+    register_converter("date", convert_date)
+    register_converter("timestamp", convert_timestamp)
 
 register_adapters_and_converters()
 
