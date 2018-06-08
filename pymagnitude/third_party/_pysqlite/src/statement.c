@@ -80,6 +80,8 @@ int pysqlite_statement_create(pysqlite_Statement* self, pysqlite_Connection* con
 
     sql_cstr = PyString_AsString(sql_str);
     if (strlen(sql_cstr) != (size_t)PyString_GET_SIZE(sql_str)) {
+        printf("UNEQUAL SIZE %d, %d\n", strlen(sql_cstr), (size_t)PyString_GET_SIZE(sql_str));
+        printf("CSTR '%s'\n", sql_cstr);
         PyErr_SetString(PyExc_ValueError, "the query contains a null character");
         return PYSQLITE_SQL_WRONG_TYPE;
     }

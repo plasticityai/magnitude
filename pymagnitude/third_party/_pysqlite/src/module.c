@@ -51,7 +51,8 @@ static PyObject* module_connect(PyObject* self, PyObject* args, PyObject*
     /* Python seems to have no way of extracting a single keyword-arg at
      * C-level, so this code is redundant with the one in connection_init in
      * connection.c and must always be copied from there ... */
-
+    // return self;
+    printf("HERE: %d\n", 0);
     static char *kwlist[] = {"database", "timeout", "detect_types", "isolation_level", "check_same_thread", "factory", "cached_statements", "flags", NULL, NULL};
     PyObject* database;
     int detect_types = 0;
@@ -74,7 +75,10 @@ static PyObject* module_connect(PyObject* self, PyObject* args, PyObject*
         factory = (PyObject*)&pysqlite_ConnectionType;
     }
 
+    printf("HERE: %d\n", 1);
     result = PyObject_Call(factory, args, kwargs);
+    // return self;
+    printf("HERE: %d\n", 2);
 
     return result;
 }

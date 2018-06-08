@@ -84,24 +84,24 @@ class RowFactoryTests(unittest.TestCase):
         self.assertEqual(col2, 2, "by name: wrong result for column 'B'")
 
         self.assertEqual(row[0], 1, "by index: wrong result for column 0")
-        self.assertEqual(row[0L], 1, "by index: wrong result for column 0")
+        self.assertEqual(row[0], 1, "by index: wrong result for column 0")
         self.assertEqual(row[1], 2, "by index: wrong result for column 1")
-        self.assertEqual(row[1L], 2, "by index: wrong result for column 1")
+        self.assertEqual(row[1], 2, "by index: wrong result for column 1")
         self.assertEqual(row[-1], 2, "by index: wrong result for column -1")
-        self.assertEqual(row[-1L], 2, "by index: wrong result for column -1")
+        self.assertEqual(row[-1], 2, "by index: wrong result for column -1")
         self.assertEqual(row[-2], 1, "by index: wrong result for column -2")
-        self.assertEqual(row[-2L], 1, "by index: wrong result for column -2")
+        self.assertEqual(row[-2], 1, "by index: wrong result for column -2")
 
         with self.assertRaises(IndexError):
             row['c']
         with self.assertRaises(IndexError):
             row[2]
         with self.assertRaises(IndexError):
-            row[2L]
+            row[2]
         with self.assertRaises(IndexError):
             row[-3]
         with self.assertRaises(IndexError):
-            row[-3L]
+            row[-3]
         with self.assertRaises(IndexError):
             row[2**1000]
 

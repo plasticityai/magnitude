@@ -120,9 +120,19 @@
 #define PyString_FromStringAndSize PyUnicode_FromStringAndSize 
 #define PyString_FromFormat PyUnicode_FromFormat 
 #define PyString_FromFormatV PyUnicode_FromFormatV 
-#define PyString_AsString(s) (PyUnicode_AsEncodedString(s, "utf-8", "Error ~"))
-#define PyString_AS_STRING(s) (PyUnicode_AsEncodedString(s, "utf-8", "Error ~"))
 #define PyString_AsStringAndSize PyBytes_AsStringAndSize 
+inline char* _PyString_AsString(PyObject *string) {
+  char *result = 0;
+  int buflen;
+  PyString_AsStringAndSize(string, result, &buflen);
+  return result;
+  PyObject * temp_bytes = PyUnicode_AsEncodedString(string, "UTF-8", "ignore"); // Owned reference
+  return PyBytes_AS_STRING(temp_bytes);
+}
+#define PyString_AsString(s) (_PyString_AsString(s))
+#define PyString_AS_STRING(s) (_PyString_AsString(s))
+// #define PyString_AsString(s) (PyUnicode_AsEncodedString(s, "utf-8", "Error ~"))
+// #define PyString_AS_STRING(s) (PyUnicode_AsEncodedString(s, "utf-8", "Error ~"))
 #define PyString_Format PyUnicode_Format 
 #define PyString_InternInPlace PyUnicode_InternInPlace 
 #define PyString_InternFromString PyUnicode_InternFromString 
