@@ -55,8 +55,8 @@ try:
     db = sqlite3.connect(':memory:')
     db.close()
     SQLITE_LIB = 'internal'
-except Exception as e:
-    raise e
+except OSError as e:
+    print(e)
     import sqlite3
     SQLITE_LIB = 'system'
 
