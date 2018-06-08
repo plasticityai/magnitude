@@ -235,8 +235,8 @@ class CustomInstallCommand(install):
             if os.system("which brew 1>/dev/null 2>/dev/null"):
                 os.system('echo | /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || true')
             system_with_output('brew install gcc --without-multilib || true')
-            system_with_output('su -c "brew install gcc --without-multilib" $SUDO_USER || true')
-            GCC_PATH = system_with_output('ls /usr/local/Cellar/gcc/*/bin/gcc* | head -1').strip()
+            system_with_output('sudo -u $SUDO_USER "brew install gcc --without-multilib" || true')
+            GCC_PATH = system_with_output('ls /usr/local/Cellar/gcc/*/bin/gcc* | head -1').strip().decode('utf8')
             print("The found Mac Brew GCC Path is: ", GCC_PATH)
             if len(GCC_PATH) > 0:
                 os.environ["CC"] = GCC_PATH
