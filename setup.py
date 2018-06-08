@@ -4,7 +4,7 @@ import os
 import sys
 import subprocess
 from setuptools import find_packages
-from distutils.core import setup
+from setuptools import setup
 
 from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
 from distutils.command.install import install # PLASTICITY
