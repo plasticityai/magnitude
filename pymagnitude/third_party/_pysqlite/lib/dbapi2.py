@@ -25,7 +25,7 @@ import collections
 import datetime
 import time
 
-from pysqlite2._sqlite import *
+from pymagnitude.third_party.internal.pysqlite2._sqlite import *
 
 paramstyle = "qmark"
 

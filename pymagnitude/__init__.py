@@ -50,7 +50,6 @@ except NameError:
     xrange = range
 
 try:
-    sys.path.append(os.path.dirname(__file__) + '/third_party/')
     from pymagnitude.third_party.internal.pysqlite2 import dbapi2 as sqlite3
     db = sqlite3.connect(':memory:')
     db.close()
