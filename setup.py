@@ -1,47 +1,61 @@
 from __future__ import print_function
 
-from setuptools import find_packages
-from distutils.core import setup
-
 import os
 import sys
 import subprocess
+from setuptools import find_packages
+from distutils.core import setup
 
-# Begin install custom SQLite
-# Can be safely ignored even if it fails, however, system SQLite
-# limitations may prevent large .magnitude files with many columns
-# from working.
-print("Installing custom SQLite 3....")
-PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
-PYSQLITE = THIRD_PARTY + '/_pysqlite'
-rc = subprocess.Popen([
-    sys.executable,
-    PYSQLITE + '/setup.py',
-    'install',
-    '--install-lib=' + THIRD_PARTY + '/internal/',
-], cwd=PYSQLITE).wait()
-if rc:
-    print("")
-    print("============================================================")
-    print("=========================WARNING============================")
-    print("============================================================")
-    print("It seems like building a custom version of SQLite on your")
-    print("machine has failed. This is fine, Magnitude will likely work")
-    print("just fine with the sytem version of SQLite for most use cases.")
-    print("However, if you are trying to load extremely high dimensional")
-    print("models > 999 dimensions, you may run in to SQLite limitations")
-    print("that can only be resolved by using the custom version of SQLite.")
-    print("To troubleshoot make sure you have appropriate build tools on")
-    print("your machine for building C programs like GCC and the standard")
-    print("library. Also make sure you have the python-dev development")
-    print("libraries and headers for building Python C extensions.")
-    print("If you need more help with this, please reach out to ")
-    print("opensource@plasticity.ai.")
-    print("============================================================")
-    print("============================================================")
-    print("")
-# End install custom SQLite
+from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
+from distutils.command.install import install # PLASTICITY
+
+
+def install_custom_sqlite3():
+    # Begin install custom SQLite
+    # Can be safely ignored even if it fails, however, system SQLite
+    # limitations may prevent large .magnitude files with many columns
+    # from working.
+    print("Installing custom SQLite 3....")
+    PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+    THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
+    PYSQLITE = THIRD_PARTY + '/_pysqlite'
+    rc = subprocess.Popen([
+        sys.executable,
+        PYSQLITE + '/setup.py',
+        'install',
+        '--install-lib=' + THIRD_PARTY + '/internal/',
+    ], cwd=PYSQLITE).wait()
+    if rc:
+        print("")
+        print("============================================================")
+        print("=========================WARNING============================")
+        print("============================================================")
+        print("It seems like building a custom version of SQLite on your")
+        print("machine has failed. This is fine, Magnitude will likely work")
+        print("just fine with the sytem version of SQLite for most use cases.")
+        print("However, if you are trying to load extremely high dimensional")
+        print("models > 999 dimensions, you may run in to SQLite limitations")
+        print("that can only be resolved by using the custom version of SQLite.")
+        print("To troubleshoot make sure you have appropriate build tools on")
+        print("your machine for building C programs like GCC and the standard")
+        print("library. Also make sure you have the python-dev development")
+        print("libraries and headers for building Python C extensions.")
+        print("If you need more help with this, please reach out to ")
+        print("opensource@plasticity.ai.")
+        print("============================================================")
+        print("============================================================")
+        print("")
+    # End install custom SQLite
+
+class CustomBdistWheelCommand(bdist_wheel_):
+    def run(self):
+        install_custom_sqlite3()
+        bdist_wheel_.run(self)
+
+class CustomInstallCommand(install):
+    def run(self):
+        install_custom_sqlite3()
+        install.run(self)
 
 setup(
     name='pymagnitude',
@@ -112,4 +126,8 @@ You can see the full documentation and README at the `GitLab repository <https:/
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7'],
+    cmdclass={
+        'install': CustomInstallCommand,
+        'bdist_wheel': CustomBdistWheelCommand
+    },
 )
