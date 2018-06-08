@@ -242,10 +242,16 @@ class CustomInstallCommand(install):
             os.system('apt-get install python3-dev -y || true')
             os.system('apt-get install python3.5-dev -y || true')
             os.system("yum groupinstall -y 'development tools' || true")
+            os.system('yum install gcc -y || true')
+            os.system('yum install gcc-c++ -y || true')
+            os.system('yum install make -y || true')
             os.system('yum install python-dev -y || true')
             os.system('yum install python3-dev -y || true')
             os.system('yum install python-devel -y || true')
             os.system('yum install python3-devel -y || true')
+            os.system('apk add --update build-base || true')
+            os.system('apk add --update gcc || true')
+            os.system('apk add --update make || true')
             os.system('apk add --update python-dev || true')
         elif platform == "win32":
             pass
