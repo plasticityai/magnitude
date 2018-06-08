@@ -16,4 +16,7 @@
 /pymagnitude/third_party/internal/*
 !/pymagnitude/third_party/internal/__init__.py
 
+# Weird files
 
+.DS_Store
+**/.DS_Store

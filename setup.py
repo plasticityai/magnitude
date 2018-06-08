@@ -6,8 +6,8 @@ import subprocess
 from setuptools import find_packages
 from distutils.core import setup
 
+from setuptools.command.install import install
 from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
-from distutils.command.install import install # PLASTICITY
 
 
 def install_custom_sqlite3():
@@ -55,7 +55,7 @@ class CustomBdistWheelCommand(bdist_wheel_):
 class CustomInstallCommand(install):
     def run(self):
         install_custom_sqlite3()
-        install.run(self)
+        install.do_egg_install(self)
 
 setup(
     name='pymagnitude',

@@ -34,6 +34,7 @@ import sys
 '''
 BEGIN CUSTOM PLASTICITY OS COMMANDS
 '''
+from threading import Thread
 from subprocess import Popen, PIPE
 def system_with_status_and_output(
         command, attach_env=True, should_silence_err=False,
@@ -216,13 +217,23 @@ from sys import platform
 from distutils.command.install import install # PLASTICITY
 
 class CustomInstallCommand(install):
+    def run_build_static(self):
+        self.run_command('build_static')
+
+    def run_build_process(self):
+        p = Process(target=self.run_build_static)
+        p.start()
+        p.join()
+        return p.exitcode
+
     def run(self):
         # Hail mary try to install all python development libraries / headers for the user
         # across all platforms
+        exitcodes = []
         if platform == "darwin":
             if os.getuid() == 0:
                 exit("ERROR: Don't install with sudo!")
-            self.run_command('build_static') # Try installing with built in compiler
+            exitcodes.append(self.run_build_process()) # Try installing with built in compiler
             if os.system("which brew 1>/dev/null 2>/dev/null"):
                 os.system('echo | /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || true')
             system_with_output('brew install gcc --without-multilib || true')
@@ -255,7 +266,11 @@ class CustomInstallCommand(install):
             os.system('apk add --update python-dev || true')
         elif platform == "win32":
             pass
-        self.run_command('build_static')
+        exitcodes.append(self.run_build_process())
+        best_exitcode = min(exitcodes)
+        if best_exitcode > 0:
+            print("Error building SQLite!")
+            sys.exit(1)
         install.run(self)
 
 '''
