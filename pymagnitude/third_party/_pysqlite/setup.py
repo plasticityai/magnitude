@@ -34,7 +34,7 @@ import sys
 '''
 BEGIN CUSTOM PLASTICITY OS COMMANDS
 '''
-from threading import Thread
+from multiprocessing import Process
 from subprocess import Popen, PIPE
 def system_with_status_and_output(
         command, attach_env=True, should_silence_err=False,
