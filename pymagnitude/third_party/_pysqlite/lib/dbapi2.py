@@ -51,7 +51,11 @@ def TimestampFromTicks(ticks):
 version_info = tuple([int(x) for x in version.split(".")])
 sqlite_version_info = tuple([int(x) for x in sqlite_version.split(".")])
 
-Binary = memoryview
+try:
+    Binary = buffer
+except:
+    Binary = memoryview
+
 collections.Sequence.register(Row)
 
 def register_adapters_and_converters():
