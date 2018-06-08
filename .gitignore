@@ -8,3 +8,9 @@
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
 /*.egg
+/.eggs/
+
+# Third Party Build Folders
+third_party/**/build
+third_party/internal/
+!third_party/internal/__init__.py
