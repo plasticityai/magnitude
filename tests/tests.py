@@ -71,9 +71,6 @@ class MagnitudeTest(unittest.TestCase):
         self.vectors_feat.close()
         gc.collect()
 
-    def test_sqlite_lib(self):
-        self.assertEqual(self.vectors.sqlite_lib, 'internal')
-
     def test_length(self):
         self.assertEqual(len(self.vectors), 3000000)
 
