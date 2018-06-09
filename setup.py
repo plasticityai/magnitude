@@ -10,15 +10,17 @@ from setuptools.command.install import install
 from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
 
 
+PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
+PYSQLITE = THIRD_PARTY + '/_pysqlite'
+
+
 def install_custom_sqlite3():
     # Begin install custom SQLite
     # Can be safely ignored even if it fails, however, system SQLite
     # limitations may prevent large .magnitude files with many columns
     # from working.
     print("Installing custom SQLite 3....")
-    PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-    THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
-    PYSQLITE = THIRD_PARTY + '/_pysqlite'
     rc = subprocess.Popen([
         sys.executable,
         PYSQLITE + '/setup.py',
@@ -47,15 +49,28 @@ def install_custom_sqlite3():
         print("")
     # End install custom SQLite
 
+
 class CustomBdistWheelCommand(bdist_wheel_):
     def run(self):
         install_custom_sqlite3()
         bdist_wheel_.run(self)
 
+
 class CustomInstallCommand(install):
     def run(self):
         install_custom_sqlite3()
         install.do_egg_install(self)
+        # Copy the pysqlite2 folder into site-packages under
+        # pymagnitude/third_party/internal/ for good measure
+        import site
+        from glob import glob
+        from distutils.dir_util import copy_tree
+        cp_from = THIRD_PARTY + '/internal/'
+        cp_to = glob(site.getsitepackages()[
+                     0] + '/pymagnitude*/')[0] + '/pymagnitude/third_party/internal/'
+        print("Copying from: ", cp_from, " --> to: ", cp_to)
+        copy_tree(cp_from, cp_to)
+
 
 setup(
     name='pymagnitude',
