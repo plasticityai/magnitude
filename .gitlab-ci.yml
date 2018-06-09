@@ -47,16 +47,19 @@ Test Python 2:
     - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
     - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude
     - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude
     - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s
     - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s
     - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s
     - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s
     - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s
     - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s -a
     - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s -a
     - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s -a
     - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s -a
     - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s -a
     - ls
     - python2 -m tests.tests -i GoogleNews-vectors-negative300.magnitude -s GoogleNews-vectors-negative300.subword.magnitude -a GoogleNews-vectors-negative300.approx.magnitude -- -v
 
@@ -74,16 +77,19 @@ Test Python 3:
     - python3 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
     - python3 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude
     - python3 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude
+    - python3 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude
     - python3 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s
     - python3 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s
     - python3 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s
     - python3 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s
     - python3 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s
+    - python3 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s
     - python3 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s -a
     - python3 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s -a
     - python3 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s -a
     - python3 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s -a
     - python3 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s -a
+    - python3 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s -a
     - ls
     - python3 -m tests.tests -i GoogleNews-vectors-negative300.magnitude -s GoogleNews-vectors-negative300.subword.magnitude -a GoogleNews-vectors-negative300.approx.magnitude -- -v
 
