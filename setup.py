@@ -3,10 +3,12 @@ from __future__ import print_function
 import os
 import sys
 import subprocess
+import traceback
+
 from setuptools import find_packages
 from distutils.core import setup
-
 from setuptools.command.install import install
+import wheel # pip install wheel -U
 from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
 
 
@@ -50,18 +52,10 @@ def install_custom_sqlite3():
     # End install custom SQLite
 
 
-class CustomBdistWheelCommand(bdist_wheel_):
-    def run(self):
-        install_custom_sqlite3()
-        bdist_wheel_.run(self)
-
-
-class CustomInstallCommand(install):
-    def run(self):
-        install_custom_sqlite3()
-        install.do_egg_install(self)
-        # Copy the pysqlite2 folder into site-packages under
-        # pymagnitude/third_party/internal/ for good measure
+def copy_custom_sqlite3():
+    # Copy the pysqlite2 folder into site-packages under
+    # pymagnitude/third_party/internal/ for good measure
+    try:
         import site
         from glob import glob
         from distutils.dir_util import copy_tree
@@ -70,6 +64,23 @@ class CustomInstallCommand(install):
                      0] + '/pymagnitude*/')[0] + '/pymagnitude/third_party/internal/'
         print("Copying from: ", cp_from, " --> to: ", cp_to)
         copy_tree(cp_from, cp_to)
+    except Exception as e:
+        print("Error copying internal pysqlite folder:")
+        traceback.print_exc(e)
+
+
+class CustomBdistWheelCommand(bdist_wheel_):
+    def run(self):
+        install_custom_sqlite3()
+        bdist_wheel_.run(self)
+        copy_custom_sqlite3()
+
+
+class CustomInstallCommand(install):
+    def run(self):
+        install_custom_sqlite3()
+        install.do_egg_install(self)
+        copy_custom_sqlite3()
 
 
 setup(
@@ -78,7 +89,7 @@ setup(
         exclude=[
             'tests',
             'tests.*']),
-    version='0.1.24',
+    version='0.1.25',
     description='A fast, efficient universal vector embedding utility package.',
     long_description="""
 About
