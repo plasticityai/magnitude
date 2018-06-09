@@ -24,6 +24,7 @@
 #ifndef PYSQLITE_CONNECTION_H
 #define PYSQLITE_CONNECTION_H
 #include "Python.h"
+#define _PyTime_ROUND_TIMEOUT 3 // PLASTICITY
 #include "pythread.h"
 #include "structmember.h"
 
