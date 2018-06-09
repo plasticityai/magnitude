@@ -1,0 +1,5 @@
+include LICENSE.txt
+include pymagnitude/third_party/*
+include pymagnitude/third_party/**/*
+recursive-include pymagnitude/third_party/ *
+recursive-include pymagnitude/third_party/ *.txt *.py *.c *.yml *.cfg *.h *.ini Makefile
