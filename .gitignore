@@ -8,3 +8,15 @@
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
 /*.egg
+/.eggs/
+
+# Third Party Build Folders
+/pymagnitude/third_party/**/build
+/pymagnitude/third_party/internal/**/*
+/pymagnitude/third_party/internal/*
+!/pymagnitude/third_party/internal/__init__.py
+
+# Weird files
+
+.DS_Store
+**/.DS_Store
