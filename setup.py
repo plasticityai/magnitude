@@ -10,6 +10,7 @@ from setuptools import find_packages
 from distutils.core import setup
 from setuptools.command.install import install
 from setuptools.command.egg_info import egg_info
+from distutils.command.sdist import sdist
 from multiprocessing import Process
 
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
@@ -20,7 +21,6 @@ PYSQLITE = THIRD_PARTY + '/_pysqlite'
 __version__ = None
 with open(os.path.join(PROJ_PATH, 'version.py')) as f:
     exec(f.read())
-
 
 def parse_requirements(filename):
     """ load requirements from a pip requirements file """
@@ -100,6 +100,20 @@ def install_req_wheels():
         ], cwd=PROJ_PATH).wait()
     print("Done installing requirements wheels")
 
+def install_requirements():
+    print("Installing requirements...")
+    rc = subprocess.Popen([
+        sys.executable,
+        '-m',
+        'pip',
+        'install',
+        '-r',
+        'requirements.txt'
+    ], cwd=PROJ_PATH).wait()
+    if rc:
+        print("Failed to install some requirements!")    
+    print("Done installing requirements")
+
 
 def copy_custom_sqlite3():
     """Copy the pysqlite2 folder into site-packages under
@@ -135,7 +149,12 @@ def copy_custom_sqlite3():
         traceback.print_exc(e)
 
 
-class CustomEggInfoCommand(egg_info):
+class CustomEggInfoCommand(egg_info, sdist):
+    def sdist_initialize_finalize_and_run(self):
+        sdist.initialize_options(self)
+        sdist.finalize_options(self)
+        sdist.run(self)
+
     def run(self):
         install_custom_sqlite3()
         print("Running egg_info...")
@@ -143,6 +162,12 @@ class CustomEggInfoCommand(egg_info):
         p.start()
         p.join()
         print("Done running egg_info...")
+        print("Running sdist...")
+        try:
+            self.sdist_initialize_finalize_and_run()
+        except Exception as e:
+            traceback.print_exc(e)
+        print("Done running sdist...")
         copy_custom_sqlite3()
 
 
@@ -165,16 +190,17 @@ class CustomInstallCommand(install):
     def run(self):
         install_custom_sqlite3()
         install_req_wheels()
-        print("Running egg_install...")
-        p = Process(target=install.do_egg_install, args=(self,))
-        p.start()
-        p.join()
-        print("Done running egg_install")
         print("Running install...")
         p = Process(target=install.run, args=(self,))
         p.start()
         p.join()
         print("Done running install")
+        print("Running egg_install...")
+        p = Process(target=install.do_egg_install, args=(self,))
+        p.start()
+        p.join()
+        install_requirements()
+        print("Done running egg_install")
         copy_custom_sqlite3()
 
 
@@ -225,7 +251,6 @@ if __name__ == '__main__':
         data_files=[
             ('req_wheels', glob('pymagnitude/req_wheels/*.whl')),
         ],
-        setup_requires=['numpy >= 1.14.0'],
         install_requires=parse_requirements('requirements.txt'),
         classifiers=[
             "Development Status :: 5 - Production/Stable",
