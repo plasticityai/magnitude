@@ -16,6 +16,11 @@
 /pymagnitude/third_party/internal/*
 !/pymagnitude/third_party/internal/__init__.py
 
+# Wheel Folder
+/pymagnitude/req_wheels/**/*
+/pymagnitude/req_wheels/*
+!/pymagnitude/req_wheels/.gitkeep
+
 # Weird files
 
 .DS_Store
