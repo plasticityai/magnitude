@@ -155,7 +155,7 @@ try:
             build_req_wheels()
             print("Running wheel...")
             bdist_wheel_.run(self)
-            print("Done running wheel...")
+            print("Done running wheel")
             copy_custom_sqlite3()
 except ImportError as e:
     CustomBdistWheelCommand = None
@@ -165,11 +165,16 @@ class CustomInstallCommand(install):
     def run(self):
         install_custom_sqlite3()
         install_req_wheels()
+        print("Running egg_install...")
+        p = Process(target=install.do_egg_install, args=(self,))
+        p.start()
+        p.join()
+        print("Done running egg_install")
         print("Running install...")
         p = Process(target=install.run, args=(self,))
         p.start()
         p.join()
-        print("Done running install...")
+        print("Done running install")
         copy_custom_sqlite3()
 
 
