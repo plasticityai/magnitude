@@ -1,3 +1,4 @@
+include version.py
 include LICENSE.txt
 include requirements.txt
 include pymagnitude/third_party/*
