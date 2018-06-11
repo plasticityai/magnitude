@@ -117,7 +117,7 @@ if __name__ == '__main__':
             exclude=[
                 'tests',
                 'tests.*']),
-        version='0.1.28',
+        version='0.1.32',
         description='A fast, efficient universal vector embedding utility package.',
         long_description="""
     About
