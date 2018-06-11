@@ -271,7 +271,7 @@ if __name__ == '__main__':
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7'],
         cmdclass={
-            'egg_info': CustomEggInfoCommand,
+            # 'egg_info': CustomEggInfoCommand,
             'bdist_wheel': CustomBdistWheelCommand,
             'install': CustomInstallCommand,
         },
