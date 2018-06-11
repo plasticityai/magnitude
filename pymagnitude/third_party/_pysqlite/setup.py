@@ -317,7 +317,7 @@ def get_setup_args():
 
             # Description of the modules and packages in the distribution
             package_dir = {"pysqlite2": "lib"},
-            packages = ["pysqlite2"],
+            packages = ["pysqlite2", "pysqlite2.test"],
             scripts=[],
 
             ext_modules = [Extension( name="pysqlite2._sqlite",

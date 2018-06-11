@@ -1,6 +1,0 @@
-pip>=9.0.1
-numpy>=1.14.0
-xxhash>=1.0.1
-fasteners>=0.14.1
-annoy>=1.11.4
-lz4>=1.0.0
