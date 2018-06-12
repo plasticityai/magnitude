@@ -15,8 +15,12 @@ matrix:
 
 script:
   - $PIP install pip -U
-  - $PIP install --user certifi
-  - $PIP install certifi
+  - pip install --user certifi || true
+  - pip install certifi || true
+  - pip2 install --user certifi || true
+  - pip2 install certifi || true
+  - pip3 install --user certifi || true
+  - pip3 install certifi || true
   - $PIP install cibuildwheel==0.8.0
   - cibuildwheel --output-dir wheelhouse
   - ls wheelhouse
