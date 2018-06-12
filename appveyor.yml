@@ -1,0 +1,9 @@
+build_script:
+  - pip install cibuildwheel==0.8.0
+  - cibuildwheel --output-dir wheelhouse
+artifacts:
+  - path: "wheelhouse\\*.whl"
+    name: Wheels
+branches:
+  only:
+    - appveyor-never-build-branch-automatically-dont-use-this-name
