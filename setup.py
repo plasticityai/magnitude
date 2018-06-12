@@ -189,6 +189,11 @@ class CustomInstallCommand(install):
         install_requirements()
         print("Done running egg_install")
         copy_custom_sqlite3()
+        
+    def finalize_options(self):
+        install.finalize_options(self)
+        if self.distribution.has_ext_modules():
+            self.install_lib = self.install_platlib
 
 cmdclass['install'] = CustomInstallCommand
 
