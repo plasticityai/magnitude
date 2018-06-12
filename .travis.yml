@@ -14,6 +14,8 @@ matrix:
       env: PIP=pip2
 
 script:
+  - python -c "import ssl; print ssl.OPENSSL_VERSION"
+  - python3 -c "import ssl; print ssl.OPENSSL_VERSION"
   - $PIP install pip -U
   - pip install --user certifi || true
   - pip install certifi || true
@@ -21,6 +23,14 @@ script:
   - pip2 install certifi || true
   - pip3 install --user certifi || true
   - pip3 install certifi || true
+  - /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+  - brew install openssl
+  - brew install python@2
+  - brew install python3
+  - brew unlink openssl --force --overwrite python && brew link openssl --force --overwrite python || true
+  - brew unlink openssl --force --overwrite python3 && brew link openssl --force --overwrite python3 || true
+  - python -c "import ssl; print ssl.OPENSSL_VERSION"
+  - python3 -c "import ssl; print ssl.OPENSSL_VERSION"
   - $PIP install cibuildwheel==0.8.0
   - cibuildwheel --output-dir wheelhouse
   - ls wheelhouse
