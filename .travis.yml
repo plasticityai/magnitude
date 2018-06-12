@@ -1,8 +1,5 @@
 language: python
 
-python:
-  - "3.6"
-
 matrix:
   include:
     - sudo: required
@@ -14,34 +11,7 @@ matrix:
       env: PIP=pip2
 
 script:
-  - which python
-  - python --version
-  - which python2
-  - python2 --version
-  - which python3
-  - python3 --version
-  - which pip
-  - pip --version
-  - which pip2
-  - pip2 --version
-  - which pip3
-  - pip3 --version
-  - python -c "import ssl; print ssl.OPENSSL_VERSION"
-  - $PIP install pip -U
-  - pip install --user certifi || true
-  - pip install certifi || true
-  - pip2 install --user certifi || true
-  - pip2 install certifi || true
-  - pip3 install --user certifi || true
-  - pip3 install certifi || true
-  - /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-  - brew install openssl || brew upgrade openssl
-  - brew install python3 || brew upgrade python3
-  - brew unlink openssl --force --overwrite python && brew link openssl --force --overwrite python || true
-  - brew unlink openssl --force --overwrite python3 && brew link openssl --force --overwrite python3 || true
-  - which python
-  - python --version
-  - python -c "import ssl; print ssl.OPENSSL_VERSION"
-  - $PIP install cibuildwheel==0.8.0
+  - $PIP install pip setuptools -U
+  - $PIP install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
   - cibuildwheel --output-dir wheelhouse
   - ls wheelhouse
