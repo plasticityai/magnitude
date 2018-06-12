@@ -5,23 +5,38 @@ import sys
 import subprocess
 import traceback
 
+from glob import glob
 from setuptools import find_packages
 from distutils.core import setup
 from setuptools.command.install import install
-import wheel  # pip install wheel -U
-from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
+from setuptools.command.egg_info import egg_info
 from multiprocessing import Process
 
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
+BUILD_THIRD_PARTY = PROJ_PATH + '/build/lib/pymagnitude/third_party'
 PYSQLITE = THIRD_PARTY + '/_pysqlite'
 
+__version__ = None
+with open(os.path.join(PROJ_PATH, 'version.py')) as f:
+    exec(f.read())
+
+def parse_requirements(filename):
+    """ load requirements from a pip requirements file """
+    lineiter = (line.strip() for line in open(filename))
+    return [line for line in lineiter if line and not line.startswith("#")]
+
+def custom_sqlite3_build():
+    """ Checks if custom SQLite has been built already """
+    so_files = glob(THIRD_PARTY + '/internal/pysqlite2/*.so')
+    pyd_files = glob(THIRD_PARTY + '/internal/pysqlite2/*.pyd')
+    return len(so_files+pyd_files) > 0
 
 def install_custom_sqlite3():
-    # Begin install custom SQLite
-    # Can be safely ignored even if it fails, however, system SQLite
-    # limitations may prevent large .magnitude files with many columns
-    # from working.
+    """ Begin install custom SQLite
+    Can be safely ignored even if it fails, however, system SQLite
+    imitations may prevent large .magnitude files with many columns
+    from working."""
     print("Installing custom SQLite 3....")
     rc = subprocess.Popen([
         sys.executable,
@@ -60,16 +75,58 @@ def install_custom_sqlite3():
         print("============================================================")
         print("")
 
-    # End install custom SQLite
+
+def build_req_wheels():
+    print("Building requirements wheels...")
+    rc = subprocess.Popen([
+        sys.executable,
+        '-m',
+        'pip',
+        'wheel',
+        '-r',
+        'requirements.txt',
+        '--wheel-dir=pymagnitude/req_wheels'
+    ], cwd=PROJ_PATH).wait()
+    if rc:
+        print("Failed to build requirements wheels!")
+        pass
+
+
+def install_req_wheels():
+    print("Installing requirements wheels...")
+    for whl in glob('pymagnitude/req_wheels/*.whl'):
+        rc = subprocess.Popen([
+            sys.executable,
+            '-m',
+            'pip',
+            'install',
+            whl,
+        ], cwd=PROJ_PATH).wait()
+    print("Done installing requirements wheels")
+
+def install_requirements():
+    print("Installing requirements...")
+    rc = subprocess.Popen([
+        sys.executable,
+        '-m',
+        'pip',
+        'install',
+        '-r',
+        'requirements.txt'
+    ], cwd=PROJ_PATH).wait()
+    if rc:
+        print("Failed to install some requirements!")    
+    print("Done installing requirements")
 
 
 def copy_custom_sqlite3():
-    # Copy the pysqlite2 folder into site-packages under
-    # pymagnitude/third_party/internal/ for good measure
+    """Copy the pysqlite2 folder into site-packages under
+    pymagnitude/third_party/internal/ and
+    ./build/lib/pymagnitude/third_party/internal/
+    for good measure"""
+    from distutils.dir_util import copy_tree
     try:
         import site
-        from glob import glob
-        from distutils.dir_util import copy_tree
         cp_from = THIRD_PARTY + '/internal/'
         for sitepack in site.getsitepackages():
             globbed = glob(sitepack + '/pymagnitude*/')
@@ -84,31 +141,55 @@ def copy_custom_sqlite3():
             print("Copying from: ", cp_from, " --> to: ", cp_to)
             copy_tree(cp_from, cp_to)
     except Exception as e:
-        print("Error copying internal pysqlite folder:")
+        print("Error copying internal pysqlite folder to site packages:")
+        traceback.print_exc(e)
+    try:
+        cp_from = THIRD_PARTY + '/internal/'
+        cp_to = BUILD_THIRD_PARTY + '/internal/'
+        print("Copying from: ", cp_from, " --> to: ", cp_to)
+        copy_tree(cp_from, cp_to)
+    except Exception as e:
+        print("Error copying internal pysqlite folder to build folder:")
         traceback.print_exc(e)
 
+cmdclass = {}
 
-class CustomBdistWheelCommand(bdist_wheel_):
-    def run(self):
-        install_custom_sqlite3()
-        print("Running wheel...")
-        p = Process(target=bdist_wheel_.run, args=(self,))
-        p.start()
-        p.join()
-        print("Done running wheel...")
-        copy_custom_sqlite3()
+try:
+    from wheel.bdist_wheel import bdist_wheel as bdist_wheel_
+
+    class CustomBdistWheelCommand(bdist_wheel_):
+        def run(self):
+            install_custom_sqlite3()
+            build_req_wheels()
+            print("Running wheel...")
+            bdist_wheel_.run(self)
+            print("Done running wheel")
+            copy_custom_sqlite3()
+
+    cmdclass['bdist_wheel'] = CustomBdistWheelCommand
+
+except ImportError as e:
+    pass
 
 
 class CustomInstallCommand(install):
     def run(self):
         install_custom_sqlite3()
+        install_req_wheels()
         print("Running install...")
+        p = Process(target=install.run, args=(self,))
+        p.start()
+        p.join()
+        print("Done running install")
+        print("Running egg_install...")
         p = Process(target=install.do_egg_install, args=(self,))
         p.start()
         p.join()
-        print("Done running install...")
+        install_requirements()
+        print("Done running egg_install")
         copy_custom_sqlite3()
 
+cmdclass['install'] = CustomInstallCommand
 
 if __name__ == '__main__':
     setup(
@@ -117,7 +198,7 @@ if __name__ == '__main__':
             exclude=[
                 'tests',
                 'tests.*']),
-        version='0.1.32',
+        version=__version__,
         description='A fast, efficient universal vector embedding utility package.',
         long_description="""
     About
@@ -154,14 +235,11 @@ if __name__ == '__main__':
                     'nearest',
                     'neighbors'],
         license='MIT',
-        setup_requires=['numpy >= 1.14.0'],
-        install_requires=[
-            'pip >= 9.0.1',
-            'numpy >= 1.14.0',
-            'xxhash >= 1.0.1',
-            'fasteners >= 0.14.1',
-            'annoy >= 1.11.4',
-            'lz4 >= 1.0.0'],
+        data_files=[
+            ('req_wheels', glob('pymagnitude/req_wheels/*.whl')),
+        ],
+        include_package_data=True,
+        install_requires=parse_requirements('requirements.txt'),
         classifiers=[
             "Development Status :: 5 - Production/Stable",
             'Intended Audience :: Developers',
@@ -180,8 +258,5 @@ if __name__ == '__main__':
             'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7'],
-        cmdclass={
-            'install': CustomInstallCommand,
-            'bdist_wheel': CustomBdistWheelCommand
-        },
+        cmdclass=cmdclass,
     )
