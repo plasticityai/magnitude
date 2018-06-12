@@ -1,5 +1,5 @@
 environment:
-  CIBW_SKIP: cp27-* cp33-*
+  CIBW_SKIP: cp27-* cp33-* cp34-* cp35-*
 build_script:
   - pip install cibuildwheel==0.8.0
   - cibuildwheel --output-dir wheelhouse
