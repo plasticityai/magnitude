@@ -13,7 +13,7 @@ matrix:
 script:
   - $PIP install pip setuptools -U
   - $PIP install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
-  - cibuildwheel --output-dir wheelhouse
+  - travis_wait 60 cibuildwheel --output-dir wheelhouse
   - ls wheelhouse
   - $PIP install awscli --upgrade
   - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/
