@@ -10,6 +10,7 @@ from setuptools import find_packages
 from distutils.core import setup
 from setuptools.command.install import install
 from setuptools.command.egg_info import egg_info
+from setuptools import setup, Distribution
 from multiprocessing import Process
 
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
@@ -191,6 +192,10 @@ class CustomInstallCommand(install):
 
 cmdclass['install'] = CustomInstallCommand
 
+class BinaryDistribution(Distribution):
+    def has_ext_modules(foo):
+        return True
+
 if __name__ == '__main__':
     setup(
         name='pymagnitude',
@@ -259,4 +264,5 @@ if __name__ == '__main__':
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7'],
         cmdclass=cmdclass,
+        distclass=BinaryDistribution,
     )

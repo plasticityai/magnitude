@@ -1,5 +1,8 @@
 language: python
 
+python:
+  - "3.6"
+  
 matrix:
   include:
     - sudo: required
@@ -11,6 +14,7 @@ matrix:
       env: PIP=pip2
 
 script:
+  - $PIP install pip -U
   - $PIP install cibuildwheel==0.8.0
   - cibuildwheel --output-dir wheelhouse
   - ls wheelhouse
