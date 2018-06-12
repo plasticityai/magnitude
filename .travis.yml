@@ -15,5 +15,5 @@ script:
   - $PIP install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
   - cibuildwheel --output-dir wheelhouse
   - ls wheelhouse
-  - $PIP install awscli --upgrade --user
+  - $PIP install awscli --upgrade
   - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/
