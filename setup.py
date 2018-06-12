@@ -22,16 +22,19 @@ __version__ = None
 with open(os.path.join(PROJ_PATH, 'version.py')) as f:
     exec(f.read())
 
+
 def parse_requirements(filename):
     """ load requirements from a pip requirements file """
     lineiter = (line.strip() for line in open(filename))
     return [line for line in lineiter if line and not line.startswith("#")]
 
+
 def custom_sqlite3_build():
     """ Checks if custom SQLite has been built already """
     so_files = glob(THIRD_PARTY + '/internal/pysqlite2/*.so')
     pyd_files = glob(THIRD_PARTY + '/internal/pysqlite2/*.pyd')
-    return len(so_files+pyd_files) > 0
+    return len(so_files + pyd_files) > 0
+
 
 def install_custom_sqlite3():
     """ Begin install custom SQLite
@@ -105,6 +108,7 @@ def install_req_wheels():
         ], cwd=PROJ_PATH).wait()
     print("Done installing requirements wheels")
 
+
 def install_requirements():
     print("Installing requirements...")
     rc = subprocess.Popen([
@@ -116,7 +120,7 @@ def install_requirements():
         'requirements.txt'
     ], cwd=PROJ_PATH).wait()
     if rc:
-        print("Failed to install some requirements!")    
+        print("Failed to install some requirements!")
     print("Done installing requirements")
 
 
@@ -152,6 +156,7 @@ def copy_custom_sqlite3():
     except Exception as e:
         print("Error copying internal pysqlite folder to build folder:")
         traceback.print_exc(e)
+
 
 cmdclass = {}
 
@@ -189,17 +194,20 @@ class CustomInstallCommand(install):
         install_requirements()
         print("Done running egg_install")
         copy_custom_sqlite3()
-        
+
     def finalize_options(self):
         install.finalize_options(self)
         if self.distribution.has_ext_modules():
             self.install_lib = self.install_platlib
 
+
 cmdclass['install'] = CustomInstallCommand
+
 
 class BinaryDistribution(Distribution):
     def has_ext_modules(foo):
         return True
+
 
 if __name__ == '__main__':
     setup(

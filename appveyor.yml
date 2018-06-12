@@ -4,6 +4,8 @@ build_script:
   - pip install cibuildwheel==0.8.0
   - cibuildwheel --output-dir wheelhouse
   - dir wheelhouse
+  - pip install awscli --upgrade --user
+  - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/
 artifacts:
   - path: "wheelhouse\\*.whl"
     name: Wheels
