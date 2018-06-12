@@ -98,6 +98,8 @@ Test Python 3:
 Deploy to PyPI:
   stage: Deploy to PyPI
   script:
+    # Trigger Travis CI
+    - curl -s -X POST -H "Content-Type: application/json" -H "Accept: application/json" -H "Travis-API-Version: 3" -H "Authorization: token lCiEMlgUw8Kj7yHT17jjSA" -d '{"request": {"branch":"master"}}' https://api.travis-ci.org/repo/plasticityai%2Fmagnitude/requests
     # Add GitLab SSH private deploy key
     - eval $(ssh-agent -s)
     - tmpfile=$(mktemp ~/pk.XXXXXX)
