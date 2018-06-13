@@ -79,7 +79,10 @@ def download_and_install_wheel():
         extract_dir = os.path.join(
             tempfile.gettempdir(), whl.replace(
                 '.whl', ''))
-        zip_ref = zipfile.ZipFile(dl_path, 'r')
+        try:
+            zip_ref = zipfile.ZipFile(dl_path, 'r')
+        except BaseException:
+            continue
         zip_ref.extractall(extract_dir)
         zip_ref.close()
         for ewhl in glob(extract_dir + "/*/req_wheels/*.whl"):
@@ -290,8 +293,9 @@ class BinaryDistribution(Distribution):
 
 
 if __name__ == '__main__':
-    if download_and_install_wheel():
-        sys.exit(0)
+    if any([a in sys.argv for a in ['egg_info', 'install']]):
+        if download_and_install_wheel():
+            sys.exit(0)
     setup(
         name=PACKAGE_NAME,
         packages=find_packages(
