@@ -29,6 +29,7 @@ except BaseException:
 
 PACKAGE_NAME = 'pymagnitude'
 RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
+INSTALLED_FROM_WHEEL = False
 
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
@@ -66,6 +67,8 @@ def install_wheel(whl):
 
 
 def download_and_install_wheel():
+    if INSTALLED_FROM_WHEEL:
+        return True
     print("Downloading and installing wheel (if it exists)...")
     tmpwhl_dir = tempfile.gettempdir()
     for whl in get_supported_wheels():
@@ -245,7 +248,8 @@ try:
 
     class CustomBdistWheelCommand(bdist_wheel_):
         def run(self):
-            download_and_install_wheel()
+            if download_and_install_wheel():
+                return
             install_custom_sqlite3()
             build_req_wheels()
             print("Running wheel...")
@@ -261,7 +265,8 @@ except ImportError as e:
 
 class CustomInstallCommand(install):
     def run(self):
-        download_and_install_wheel()
+        if download_and_install_wheel():
+            return
         install_custom_sqlite3()
         install_req_wheels()
         print("Running install...")
@@ -293,8 +298,8 @@ class BinaryDistribution(Distribution):
 
 if __name__ == '__main__':
     if any([a in sys.argv for a in ['egg_info', 'install']]):
-        download_and_install_wheel()
-
+        if download_and_install_wheel():
+            INSTALLED_FROM_WHEEL = True
     setup(
         name=PACKAGE_NAME,
         packages=find_packages(
