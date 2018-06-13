@@ -245,9 +245,9 @@ try:
 
     class CustomBdistWheelCommand(bdist_wheel_):
         def run(self):
-            download_and_install_wheel()
-            install_custom_sqlite3()
-            build_req_wheels()
+            if not(download_and_install_wheel()):
+                install_custom_sqlite3()
+                build_req_wheels()
             print("Running wheel...")
             bdist_wheel_.run(self)
             print("Done running wheel")
@@ -261,9 +261,9 @@ except ImportError as e:
 
 class CustomInstallCommand(install):
     def run(self):
-        download_and_install_wheel()
-        install_custom_sqlite3()
-        install_req_wheels()
+        if not(download_and_install_wheel()):
+            install_custom_sqlite3()
+            install_req_wheels()
         print("Running install...")
         p = Process(target=install.run, args=(self,))
         p.start()
