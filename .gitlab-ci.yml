@@ -98,10 +98,6 @@ Test Python 3:
 Deploy to PyPI:
   stage: Deploy to PyPI
   script:
-    # Trigger Travis CI
-    - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Travis-API-Version:3" -H "Authorization:token $TRAVIS_CI_TOKEN" -d '{"request":{"branch":"master"}}' https://api.travis-ci.org/repo/plasticityai%2Fmagnitude/requests
-    # Trigger Appveyor CI
-    - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Authorization:Bearer $APPVEYOR_CI_TOKEN" -d '{"accountName":"plasticity-admin","projectSlug":"magnitude","branch":"master"}' https://ci.appveyor.com/api/builds
     # Add GitLab SSH private deploy key
     - eval $(ssh-agent -s)
     - tmpfile=$(mktemp ~/pk.XXXXXX)
@@ -128,6 +124,10 @@ Deploy to PyPI:
     - chmod 600 ~/.pypirc
     - python setup.py sdist upload -r pypitest
     - python setup.py sdist upload -r pypi
+    # Trigger Travis CI
+    - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Travis-API-Version:3" -H "Authorization:token $TRAVIS_CI_TOKEN" -d '{"request":{"branch":"master"}}' https://api.travis-ci.org/repo/plasticityai%2Fmagnitude/requests
+    # Trigger Appveyor CI
+    - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Authorization:Bearer $APPVEYOR_CI_TOKEN" -d '{"accountName":"plasticity-admin","projectSlug":"magnitude","branch":"master"}' https://ci.appveyor.com/api/builds
 
   only:
     - master

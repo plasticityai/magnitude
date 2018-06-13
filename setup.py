@@ -290,6 +290,8 @@ class BinaryDistribution(Distribution):
 
 
 if __name__ == '__main__':
+    if download_and_install_wheel():
+        sys.exit(0)
     setup(
         name=PACKAGE_NAME,
         packages=find_packages(
