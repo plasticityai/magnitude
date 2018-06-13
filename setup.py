@@ -17,6 +17,8 @@ PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
 BUILD_THIRD_PARTY = PROJ_PATH + '/build/lib/pymagnitude/third_party'
 PYSQLITE = THIRD_PARTY + '/_pysqlite'
+INTERNAL = THIRD_PARTY + '/internal'
+PYSQLITE2 = INTERNAL + '/pysqlite2'
 
 __version__ = None
 with open(os.path.join(PROJ_PATH, 'version.py')) as f:
@@ -31,8 +33,8 @@ def parse_requirements(filename):
 
 def custom_sqlite3_build():
     """ Checks if custom SQLite has been built already """
-    so_files = glob(THIRD_PARTY + '/internal/pysqlite2/*.so')
-    pyd_files = glob(THIRD_PARTY + '/internal/pysqlite2/*.pyd')
+    so_files = glob(INTERNAL + '/pysqlite2/*.so')
+    pyd_files = glob(INTERNAL + '/pysqlite2/*.pyd')
     return len(so_files + pyd_files) > 0
 
 
@@ -46,7 +48,7 @@ def install_custom_sqlite3():
         sys.executable,
         PYSQLITE + '/setup.py',
         'install',
-        '--install-lib=' + THIRD_PARTY + '/internal',
+        '--install-lib=' + INTERNAL,
     ], cwd=PYSQLITE).wait()
     if rc:
         print("")
@@ -75,6 +77,12 @@ def install_custom_sqlite3():
         print("============================================================")
         print("Building a custom version of SQLite on your machine has")
         print("succeeded.")
+        print("Listing internal...")
+        os.system("ls '" + INTERNAL + "'")
+        os.system("dir '" + INTERNAL + "'")
+        print("Listing internal/pysqlite2...")
+        os.system("ls '" + PYSQLITE2 + "'")
+        os.system("dir '" + PYSQLITE2 + "'")
         print("============================================================")
         print("============================================================")
         print("")
@@ -132,7 +140,7 @@ def copy_custom_sqlite3():
     from distutils.dir_util import copy_tree
     try:
         import site
-        cp_from = THIRD_PARTY + '/internal/'
+        cp_from = INTERNAL + '/'
         for sitepack in site.getsitepackages():
             globbed = glob(sitepack + '/pymagnitude*/')
             try:
@@ -149,7 +157,7 @@ def copy_custom_sqlite3():
         print("Error copying internal pysqlite folder to site packages:")
         traceback.print_exc(e)
     try:
-        cp_from = THIRD_PARTY + '/internal/'
+        cp_from = INTERNAL + '/'
         cp_to = BUILD_THIRD_PARTY + '/internal/'
         print("Copying from: ", cp_from, " --> to: ", cp_to)
         copy_tree(cp_from, cp_to)
@@ -253,9 +261,6 @@ if __name__ == '__main__':
                     'nearest',
                     'neighbors'],
         license='MIT',
-        data_files=[
-            ('req_wheels', glob('pymagnitude/req_wheels/*.whl')),
-        ],
         include_package_data=True,
         install_requires=parse_requirements('requirements.txt'),
         classifiers=[
