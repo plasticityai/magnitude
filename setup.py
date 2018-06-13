@@ -36,12 +36,12 @@ PYSQLITE = THIRD_PARTY + '/_pysqlite'
 INTERNAL = THIRD_PARTY + '/internal'
 PYSQLITE2 = INTERNAL + '/pysqlite2'
 
-RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
-INSTALLED_FROM_WHEEL = os.path.join(tempfile.gettempdir(), PACKAGE_NAME+'-'+__version__+'.whlinstall')
-
 __version__ = None
 with open(os.path.join(PROJ_PATH, 'version.py')) as f:
     exec(f.read())
+
+RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
+INSTALLED_FROM_WHEEL = os.path.join(tempfile.gettempdir(), PACKAGE_NAME+'-'+__version__+'.whlinstall')
 
 
 def get_supported_wheels():
