@@ -41,7 +41,12 @@ with open(os.path.join(PROJ_PATH, 'version.py')) as f:
     exec(f.read())
 
 RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
-INSTALLED_FROM_WHEEL = os.path.join(tempfile.gettempdir(), PACKAGE_NAME+'-'+__version__+'.whlinstall')
+INSTALLED_FROM_WHEEL = os.path.join(
+    tempfile.gettempdir(),
+    PACKAGE_NAME +
+    '-' +
+    __version__ +
+    '.whlinstall')
 
 
 def get_supported_wheels():
@@ -83,6 +88,9 @@ def download_and_install_wheel():
         extract_dir = os.path.join(
             tempfile.gettempdir(), whl.replace(
                 '.whl', ''))
+        extract_dir = os.path.join(
+            tempfile.gettempdir(), whl.replace(
+                '.whl', ''))
         try:
             zip_ref = zipfile.ZipFile(dl_path, 'r')
         except BaseException:
@@ -94,6 +102,7 @@ def download_and_install_wheel():
             exitcodes.append(install_wheel(ewhl))
         print("Installing wheel: ", dl_path)
         exitcodes.append(install_wheel(dl_path))
+        zip_ref.extractall(PROJ_PATH)
         if len(exitcodes) > 0 and max(exitcodes) == 0 and min(exitcodes) == 0:
             print("Done downloading and installing wheel")
             return True
@@ -249,10 +258,9 @@ try:
 
     class CustomBdistWheelCommand(bdist_wheel_):
         def run(self):
-            if download_and_install_wheel():
-                return
-            install_custom_sqlite3()
-            build_req_wheels()
+            if not(download_and_install_wheel()):
+                install_custom_sqlite3()
+                build_req_wheels()
             print("Running wheel...")
             bdist_wheel_.run(self)
             print("Done running wheel")
@@ -266,10 +274,9 @@ except ImportError as e:
 
 class CustomInstallCommand(install):
     def run(self):
-        if download_and_install_wheel():
-            return
-        install_custom_sqlite3()
-        install_req_wheels()
+        if not(download_and_install_wheel()):
+            install_custom_sqlite3()
+            install_req_wheels()
         print("Running install...")
         p = Process(target=install.run, args=(self,))
         p.start()
@@ -357,12 +364,6 @@ if __name__ == '__main__':
             'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3',
             'Programming Language :: Python :: 3.0',
-            'Programming Language :: Python :: 3.1',
-            'Programming Language :: Python :: 3.2',
-            'Programming Language :: Python :: 3.3',
-            'Programming Language :: Python :: 3.4',
-            'Programming Language :: Python :: 3.5',
-            'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7'],
         cmdclass=cmdclass,
         distclass=BinaryDistribution,
