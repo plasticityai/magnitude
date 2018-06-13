@@ -28,8 +28,6 @@ except BaseException:
     from urllib import urlretrieve
 
 PACKAGE_NAME = 'pymagnitude'
-RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
-INSTALLED_FROM_WHEEL = False
 
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
@@ -37,6 +35,9 @@ BUILD_THIRD_PARTY = PROJ_PATH + '/build/lib/pymagnitude/third_party'
 PYSQLITE = THIRD_PARTY + '/_pysqlite'
 INTERNAL = THIRD_PARTY + '/internal'
 PYSQLITE2 = INTERNAL + '/pysqlite2'
+
+RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
+INSTALLED_FROM_WHEEL = os.path.join(tempfile.gettempdir(), PACKAGE_NAME+'-'+__version__+'.whlinstall')
 
 __version__ = None
 with open(os.path.join(PROJ_PATH, 'version.py')) as f:
@@ -67,7 +68,7 @@ def install_wheel(whl):
 
 
 def download_and_install_wheel():
-    if INSTALLED_FROM_WHEEL:
+    if os.path.exists(INSTALLED_FROM_WHEEL):
         return True
     print("Downloading and installing wheel (if it exists)...")
     tmpwhl_dir = tempfile.gettempdir()
@@ -91,8 +92,8 @@ def download_and_install_wheel():
         for ewhl in glob(extract_dir + "/*/req_wheels/*.whl"):
             print("Installing requirement wheel: ", ewhl)
             exitcodes.append(install_wheel(ewhl))
-        print("Installing wheel: ", whl)
-        exitcodes.append(install_wheel(whl))
+        print("Installing wheel: ", dl_path)
+        exitcodes.append(install_wheel(dl_path))
         if len(exitcodes) > 0 and max(exitcodes) == 0 and min(exitcodes) == 0:
             print("Done downloading and installing wheel")
             return True
@@ -299,7 +300,7 @@ class BinaryDistribution(Distribution):
 if __name__ == '__main__':
     if any([a in sys.argv for a in ['egg_info', 'install']]):
         if download_and_install_wheel():
-            INSTALLED_FROM_WHEEL = True
+            open(INSTALLED_FROM_WHEEL, 'w+').close()
     setup(
         name=PACKAGE_NAME,
         packages=find_packages(
