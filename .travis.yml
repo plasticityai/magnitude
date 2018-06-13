@@ -16,4 +16,6 @@ script:
   - travis_wait 60 cibuildwheel --output-dir wheelhouse
   - ls wheelhouse
   - $PIP install awscli --upgrade
+  - /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || true
+  - brew install awscli || true
   - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/
