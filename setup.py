@@ -29,6 +29,7 @@ except BaseException:
 
 PACKAGE_NAME = 'pymagnitude'
 RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
+INSTALLED_FROM_WHEEL = False
 
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
@@ -66,6 +67,8 @@ def install_wheel(whl):
 
 
 def download_and_install_wheel():
+    if INSTALLED_FROM_WHEEL:
+        return True
     print("Downloading and installing wheel (if it exists)...")
     tmpwhl_dir = tempfile.gettempdir()
     for whl in get_supported_wheels():
@@ -90,9 +93,10 @@ def download_and_install_wheel():
             exitcodes.append(install_wheel(ewhl))
         print("Installing wheel: ", whl)
         exitcodes.append(install_wheel(whl))
-        print("Done downloading and installing wheel (if it existed)")
         if len(exitcodes) > 0 and max(exitcodes) == 0 and min(exitcodes) == 0:
+            print("Done downloading and installing wheel")
             return True
+    print("Done trying to download and install wheel (it didn't exist)")
     return False
 
 
@@ -295,7 +299,7 @@ class BinaryDistribution(Distribution):
 if __name__ == '__main__':
     if any([a in sys.argv for a in ['egg_info', 'install']]):
         if download_and_install_wheel():
-            sys.exit(0)
+            INSTALLED_FROM_WHEEL = True
     setup(
         name=PACKAGE_NAME,
         packages=find_packages(
