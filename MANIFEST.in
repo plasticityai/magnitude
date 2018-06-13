@@ -1,4 +1,6 @@
 include version.py
+include glibc.py
+include pep425tags.py
 include LICENSE.txt
 include requirements.txt
 include pymagnitude/third_party/*

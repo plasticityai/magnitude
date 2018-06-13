@@ -4,6 +4,8 @@ import os
 import sys
 import subprocess
 import traceback
+import tempfile
+import zipfile
 
 from glob import glob
 from setuptools import find_packages
@@ -12,6 +14,21 @@ from setuptools.command.install import install
 from setuptools.command.egg_info import egg_info
 from setuptools import setup, Distribution
 from multiprocessing import Process
+
+try:
+    import pip._internal.pep425tags as pep425tags
+    pep425tags.get_supported()
+    raise Exception()
+except Exception as e:
+    import pep425tags
+
+try:
+    from urllib.request import urlretrieve
+except BaseException:
+    from urllib import urlretrieve
+
+PACKAGE_NAME = 'pymagnitude'
+RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
 
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
@@ -23,6 +40,57 @@ PYSQLITE2 = INTERNAL + '/pysqlite2'
 __version__ = None
 with open(os.path.join(PROJ_PATH, 'version.py')) as f:
     exec(f.read())
+
+
+def get_supported_wheels():
+    def tuple_invalid(t):
+        return (
+            t[1] == 'none' or
+            'fat32' in t[2] or
+            'fat64' in t[2] or
+            '_universal' in t[2]
+        )
+    return ['-'.join((PACKAGE_NAME, __version__) + t) + '.whl'
+            for t in pep425tags.get_supported() if not(tuple_invalid(t))]
+
+
+def install_wheel(whl):
+    rc = subprocess.Popen([
+        sys.executable,
+        '-m',
+        'pip',
+        'install',
+        whl,
+    ]).wait()
+    return rc
+
+
+def download_and_install_wheel():
+    print("Downloading and installing wheel (if it exists)...")
+    tmpwhl_dir = tempfile.gettempdir()
+    for whl in get_supported_wheels():
+        exitcodes = []
+        whl_url = RM_WHEELHOUSE + whl
+        dl_path = os.path.join(tmpwhl_dir, whl)
+        try:
+            urlretrieve(whl_url, dl_path)
+        except BaseException:
+            continue
+        extract_dir = os.path.join(
+            tempfile.gettempdir(), whl.replace(
+                '.whl', ''))
+        zip_ref = zipfile.ZipFile(dl_path, 'r')
+        zip_ref.extractall(extract_dir)
+        zip_ref.close()
+        for ewhl in glob(extract_dir + "/*/req_wheels/*.whl"):
+            print("Installing requirement wheel: ", ewhl)
+            exitcodes.append(install_wheel(ewhl))
+        print("Installing wheel: ", whl)
+        exitcodes.append(install_wheel(whl))
+        print("Done downloading and installing wheel (if it existed)")
+        if len(exitcodes) > 0 and max(exitcodes) == 0 and min(exitcodes) == 0:
+            return True
+    return False
 
 
 def parse_requirements(filename):
@@ -173,6 +241,8 @@ try:
 
     class CustomBdistWheelCommand(bdist_wheel_):
         def run(self):
+            if download_and_install_wheel():
+                return
             install_custom_sqlite3()
             build_req_wheels()
             print("Running wheel...")
@@ -188,6 +258,8 @@ except ImportError as e:
 
 class CustomInstallCommand(install):
     def run(self):
+        if download_and_install_wheel():
+            return
         install_custom_sqlite3()
         install_req_wheels()
         print("Running install...")
@@ -219,7 +291,7 @@ class BinaryDistribution(Distribution):
 
 if __name__ == '__main__':
     setup(
-        name='pymagnitude',
+        name=PACKAGE_NAME,
         packages=find_packages(
             exclude=[
                 'tests',
