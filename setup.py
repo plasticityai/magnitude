@@ -96,13 +96,13 @@ def download_and_install_wheel():
         except BaseException:
             continue
         zip_ref.extractall(extract_dir)
-        zip_ref.close()
         for ewhl in glob(extract_dir + "/*/req_wheels/*.whl"):
             print("Installing requirement wheel: ", ewhl)
             exitcodes.append(install_wheel(ewhl))
         print("Installing wheel: ", dl_path)
         exitcodes.append(install_wheel(dl_path))
         zip_ref.extractall(PROJ_PATH)
+        zip_ref.close()
         if len(exitcodes) > 0 and max(exitcodes) == 0 and min(exitcodes) == 0:
             print("Done downloading and installing wheel")
             return True
