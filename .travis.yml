@@ -1,5 +1,9 @@
 language: python
 
+env:
+  global:
+    CIBW_BUILD_VERBOSITY: 3
+
 matrix:
   include:
     - sudo: required

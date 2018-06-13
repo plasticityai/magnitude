@@ -1,5 +1,8 @@
 environment:
-  CIBW_SKIP: cp27-* cp33-* cp34-* *-win32
+  global:
+    CIBW_SKIP: cp27-* cp33-* cp34-* *-win32
+    CIBW_BUILD_VERBOSITY: 3
+
 build_script:
   - pip install cibuildwheel==0.8.0
   - cibuildwheel --output-dir wheelhouse
