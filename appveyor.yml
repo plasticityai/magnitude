@@ -4,7 +4,7 @@ environment:
     CIBW_BUILD_VERBOSITY: 3
 
 build_script:
-  - pip install pip setuptools -U
+  - c:\python27\python.exe -m pip install pip setuptools -U
   - pip install cibuildwheel==0.8.0
   - cibuildwheel --output-dir wheelhouse
   - dir wheelhouse
