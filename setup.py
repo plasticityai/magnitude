@@ -76,8 +76,12 @@ def install_wheel(whl):
     return rc
 
 
+def installed_wheel():
+    return os.path.exists(INSTALLED_FROM_WHEEL)
+
+
 def download_and_install_wheel():
-    if os.path.exists(INSTALLED_FROM_WHEEL):
+    if installed_wheel():
         return True
     print("Downloading and installing wheel (if it exists)...")
     tmpwhl_dir = tempfile.gettempdir()
@@ -265,12 +269,10 @@ try:
             if not(download_and_install_wheel()):
                 install_custom_sqlite3()
                 build_req_wheels()
-                print("Running wheel...")
-                bdist_wheel_.run(self)
-                print("Done running wheel")
-                copy_custom_sqlite3()
-            else:
-                print("Skipping wheel")
+            print("Running wheel...")
+            bdist_wheel_.run(self)
+            print("Done running wheel")
+            copy_custom_sqlite3()
 
     cmdclass['bdist_wheel'] = CustomBdistWheelCommand
 
@@ -317,6 +319,12 @@ if __name__ == '__main__':
     if any([a in sys.argv for a in ['egg_info', 'install']]):
         if download_and_install_wheel():
             open(INSTALLED_FROM_WHEEL, 'w+').close()
+
+    if not(installed_wheel()):
+        reqs = parse_requirements('requirements.txt')
+    else:
+        reqs = []
+
     setup(
         name=PACKAGE_NAME,
         packages=find_packages(
@@ -361,7 +369,7 @@ if __name__ == '__main__':
                     'neighbors'],
         license='MIT',
         include_package_data=True,
-        install_requires=parse_requirements('requirements.txt'),
+        install_requires=reqs,
         classifiers=[
             "Development Status :: 5 - Production/Stable",
             'Intended Audience :: Developers',
