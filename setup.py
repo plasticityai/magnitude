@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import hashlib
 import os
 import sys
 import subprocess
@@ -46,7 +47,10 @@ INSTALLED_FROM_WHEEL = os.path.join(
     PACKAGE_NAME +
     '-' +
     __version__ +
-    '.whlinstall')
+    '-' +
+    hashlib.md5(PROJ_PATH).hexdigest() +
+    '.whlinstall'
+)
 
 
 def get_supported_wheels():
@@ -282,12 +286,15 @@ class CustomInstallCommand(install):
         p.start()
         p.join()
         print("Done running install")
-        print("Running egg_install...")
-        p = Process(target=install.do_egg_install, args=(self,))
-        p.start()
-        p.join()
-        install_requirements()
-        print("Done running egg_install")
+        if not(download_and_install_wheel()):
+            print("Running egg_install...")
+            p = Process(target=install.do_egg_install, args=(self,))
+            p.start()
+            p.join()
+            install_requirements()
+            print("Done running egg_install")
+        else:
+            print("Skipping egg_install")
         copy_custom_sqlite3()
 
     def finalize_options(self):
