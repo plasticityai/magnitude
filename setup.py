@@ -48,7 +48,7 @@ INSTALLED_FROM_WHEEL = os.path.join(
     '-' +
     __version__ +
     '-' +
-    hashlib.md5(PROJ_PATH).hexdigest() +
+    hashlib.md5(PROJ_PATH.encode('utf-8')).hexdigest() +
     '.whlinstall'
 )
 
