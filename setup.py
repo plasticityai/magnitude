@@ -30,6 +30,7 @@ except BaseException:
 
 PACKAGE_NAME = 'pymagnitude'
 
+# Setup path constants
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
 BUILD_THIRD_PARTY = PROJ_PATH + '/build/lib/pymagnitude/third_party'
@@ -37,10 +38,12 @@ PYSQLITE = THIRD_PARTY + '/_pysqlite'
 INTERNAL = THIRD_PARTY + '/internal'
 PYSQLITE2 = INTERNAL + '/pysqlite2'
 
+# Get the package version
 __version__ = None
 with open(os.path.join(PROJ_PATH, 'version.py')) as f:
     exec(f.read())
 
+# Setup remote wheel configurations
 RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
 INSTALLED_FROM_WHEEL = os.path.join(
     tempfile.gettempdir(),
@@ -54,6 +57,7 @@ INSTALLED_FROM_WHEEL = os.path.join(
 
 
 def get_supported_wheels():
+    """Get supported wheel strings"""
     def tuple_invalid(t):
         return (
             t[1] == 'none' or
@@ -66,6 +70,7 @@ def get_supported_wheels():
 
 
 def install_wheel(whl):
+    """Installs a wheel file"""
     rc = subprocess.Popen([
         sys.executable,
         '-m',
@@ -77,10 +82,12 @@ def install_wheel(whl):
 
 
 def installed_wheel():
+    """Checks if a pre-compiled remote wheel was installed"""
     return os.path.exists(INSTALLED_FROM_WHEEL)
 
 
 def download_and_install_wheel():
+    """Downloads and installs pre-compiled remote wheels"""
     if installed_wheel():
         return True
     print("Downloading and installing wheel (if it exists)...")
@@ -182,6 +189,7 @@ def install_custom_sqlite3():
 
 
 def build_req_wheels():
+    """Builds requirement wheels"""
     print("Building requirements wheels...")
     rc = subprocess.Popen([
         sys.executable,
@@ -198,6 +206,7 @@ def build_req_wheels():
 
 
 def install_req_wheels():
+    """Installs requirement wheels"""
     print("Installing requirements wheels...")
     for whl in glob('pymagnitude/req_wheels/*.whl'):
         rc = subprocess.Popen([
@@ -211,6 +220,7 @@ def install_req_wheels():
 
 
 def install_requirements():
+    """Installs requirements.txt"""
     print("Installing requirements...")
     rc = subprocess.Popen([
         sys.executable,
@@ -316,10 +326,13 @@ class BinaryDistribution(Distribution):
 
 
 if __name__ == '__main__':
+
+    # Attempt to install from a remote pre-compiled wheel
     if any([a in sys.argv for a in ['egg_info', 'install']]):
         if download_and_install_wheel():
             open(INSTALLED_FROM_WHEEL, 'w+').close()
 
+    # Only create requirements if not installing from a wheel
     if not(installed_wheel()):
         reqs = parse_requirements('requirements.txt')
     else:
