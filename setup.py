@@ -265,10 +265,12 @@ try:
             if not(download_and_install_wheel()):
                 install_custom_sqlite3()
                 build_req_wheels()
-            print("Running wheel...")
-            bdist_wheel_.run(self)
-            print("Done running wheel")
-            copy_custom_sqlite3()
+                print("Running wheel...")
+                bdist_wheel_.run(self)
+                print("Done running wheel")
+                copy_custom_sqlite3()
+            else:
+                print("Skipping wheel")
 
     cmdclass['bdist_wheel'] = CustomBdistWheelCommand
 
