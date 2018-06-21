@@ -81,6 +81,11 @@ def install_wheel(whl):
     return rc
 
 
+def skip_wheel():
+    """ Checks if a wheel install should be skipped """
+    return "SKIP_MAGNITUDE_WHEEL" in os.environ
+
+
 def installed_wheel():
     """Checks if a pre-compiled remote wheel was installed"""
     return os.path.exists(INSTALLED_FROM_WHEEL)
@@ -88,6 +93,8 @@ def installed_wheel():
 
 def download_and_install_wheel():
     """Downloads and installs pre-compiled remote wheels"""
+    if skip_wheel():
+        return False
     if installed_wheel():
         return True
     print("Downloading and installing wheel (if it exists)...")
