@@ -311,7 +311,7 @@ def convert(input_file_path, output_file_path=None,
         if current_progress > progress:
             progress = current_progress
             eprint("%d%% completed" % progress)
-        if i % 100000:
+        if i % 100000 == 0:
             db.execute("COMMIT;")
             db.execute("BEGIN;")
         vector = vector / np.linalg.norm(vector)
