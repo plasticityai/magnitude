@@ -251,7 +251,12 @@ def copy_custom_sqlite3():
     try:
         import site
         cp_from = INTERNAL + '/'
-        for sitepack in site.getsitepackages():
+        if hasattr(site, 'getsitepackages'):
+            site_packages = site.getsitepackages()
+        else:
+            from distutils.sysconfig import get_python_lib
+            site_packages = [get_python_lib()]
+        for sitepack in site_packages:
             globbed = glob(sitepack + '/pymagnitude*/')
             try:
                 cp_to = globbed[0] + '/pymagnitude/third_party/internal/'
