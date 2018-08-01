@@ -109,7 +109,7 @@ def convert(input_file_path, output_file_path=None,
     # If no output_file_path specified, create it in a tempdir
     if output_file_path is None:
         output_file_path = os.path.join(
-            tempfile.gettempdir(),
+            tempfile.mkdtemp(),
             fast_md5_file(input_file_path) +
             '.magnitude')
         if os.path.isfile(output_file_path):
@@ -158,7 +158,7 @@ def convert(input_file_path, output_file_path=None,
         eprint("Detected GloVe format! Converting to word2vec format first..."
                "(this may take some time)")
         temp_file_path = os.path.join(
-            tempfile.gettempdir(), os.path.basename(input_file_path) + '.txt')
+            tempfile.mkdtemp(), os.path.basename(input_file_path) + '.txt')
         try:
             import gensim
         except ImportError:
@@ -387,7 +387,7 @@ def convert(input_file_path, output_file_path=None,
 (this may take some time)")
         approx_index.build(approx_trees)
         approx_index_file_path = os.path.join(
-            tempfile.gettempdir(),
+            tempfile.mkdtemp(),
             fast_md5_file(input_file_path) + '.ann')
         eprint("Dumping approximate nearest neighbors index... \
 (this may take some time)")
