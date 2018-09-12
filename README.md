@@ -233,7 +233,7 @@ You can query for the most similar (nearest neighbors) keys like so:
 vectors.most_similar("cat", topn = 100) # Most similar by key
 vectors.most_similar(vectors.query("cat"), topn = 100) # Most similar by vector
 ```
-Optionally, you can pass a `max_distance` argument to `most_similar`. Since they are unit norm vectors, values from [0.0-2.0] are valid.
+Optionally, you can pass a `min_similarity` argument to `most_similar`. Values from [-1.0-1.0] are valid.
 
 ---------------
 
