@@ -1016,9 +1016,6 @@ class Magnitude(object):
 
         filter_topn = self.max_duplicate_keys * (topn + len(exclude_keys))
 
-        if min_similarity is not None:
-            min_similarity = min_similarity * -1
-
         # Find mean unit vector
         if (DISTANCE or APPROX) and (len(negative) > 0 or len(positive) > 1):
             positive_vecs = np.sum(self._query_numpy(positive), axis=0)
@@ -1064,7 +1061,7 @@ class Magnitude(object):
 
                 for index in partition_results:
                     if (min_similarity is None or
-                            similiarities[index] <= min_similarity):
+                            similiarities[index] >= min_similarity):
                         if len(filtered_indices) < filter_topn:
                             heapq.heappush(filtered_indices, (
                                 similiarities[index],
