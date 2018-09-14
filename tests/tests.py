@@ -34,6 +34,9 @@ class MagnitudeTest(unittest.TestCase):
                                  case_insensitive=True, eager=True)
         self.vectors_cs = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
                                     case_insensitive=False, eager=False)
+        self.vectors_batch = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
+                                       case_insensitive=False, eager=False,
+                                       batch_size=500000)
         self.vectors_sw = Magnitude(MagnitudeTest.MAGNITUDE_SUBWORD_PATH,
                                     case_insensitive=True, eager=False)
         self.vectors_approx = Magnitude(MagnitudeTest.MAGNITUDE_APPROX_PATH,
@@ -63,6 +66,7 @@ class MagnitudeTest(unittest.TestCase):
     def tearDown(self):
         self.vectors.close()
         self.vectors_cs.close()
+        self.vectors_batch.close()
         self.vectors_sw.close()
         self.tmp_vectors.close()
         self.concat_1.close()
@@ -787,6 +791,34 @@ class MagnitudeTest(unittest.TestCase):
     def test_most_similar(self):
         keys = [s[0] for s in self.vectors_cs.most_similar("queen")]
         similarities = [s[1] for s in self.vectors_cs.most_similar("queen")]
+        self.assertTrue(isclose(asarray(similarities),
+                                asarray([0.7399442791938782,
+                                         0.7070531845092773,
+                                         0.6510956287384033,
+                                         0.6383601427078247,
+                                         0.6357027292251587,
+                                         0.6163408160209656,
+                                         0.6060680150985718,
+                                         0.5923796892166138,
+                                         0.5908075571060181,
+                                         0.5637184381484985
+                                         ]), atol=.02).all())
+        self.assertEqual(keys,
+                         [u'queens',
+                          u'princess',
+                          u'king',
+                          u'monarch',
+                          u'very_pampered_McElhatton',
+                          u'Queen',
+                          u'NYC_anglophiles_aflutter',
+                          u'Queen_Consort',
+                          u'princesses',
+                          u'royal',
+                          ])
+
+    def test_most_similar_batched(self):
+        keys = [s[0] for s in self.vectors_batch.most_similar("queen")]
+        similarities = [s[1] for s in self.vectors_batch.most_similar("queen")]
         self.assertTrue(isclose(asarray(similarities),
                                 asarray([0.7399442791938782,
                                          0.7070531845092773,

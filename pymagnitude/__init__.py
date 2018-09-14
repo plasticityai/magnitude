@@ -1045,7 +1045,7 @@ class Magnitude(object):
             for batch_start, _, batch in \
                     self.get_vectors_mmap_batch_generator():
                 if DISTANCE:
-                    similiarities = -1 * np.dot(batch, mean_unit_vector)
+                    similiarities = np.dot(batch, mean_unit_vector)
                 elif COSMUL:
                     positive_similiarities = [
                         ((1 + np.dot(batch, vec)) / 2)
@@ -1055,12 +1055,12 @@ class Magnitude(object):
                         ((1 + np.dot(batch, vec)) / 2)
                         for vec in negative_vecs
                     ]
-                    similiarities = -1 * (
+                    similiarities = (
                         np.prod(positive_similiarities, axis=0) /
                         (np.prod(negative_similiarities, axis=0) + 0.000001))
 
-                partition_results = np.argpartition(similiarities, min(
-                    filter_topn, self.batch_size - 1))[:filter_topn]
+                partition_results = np.argpartition(similiarities, -1 * min(
+                    filter_topn, self.batch_size - 1))[-filter_topn:]
 
                 for index in partition_results:
                     if (min_similarity is None or
@@ -1069,14 +1069,14 @@ class Magnitude(object):
                             heapq.heappush(filtered_indices, (
                                 similiarities[index],
                                 batch_start + index))
-                        else:
+                        elif similiarities[index] > filtered_indices[0][0]:
                             heapq.heappushpop(filtered_indices, (
                                 similiarities[index],
                                 batch_start + index))
 
             # Get the final topn from all batches
-            topn_indices = heapq.nsmallest(filter_topn, filtered_indices,
-                                           key=lambda x: x[0])
+            topn_indices = heapq.nlargest(filter_topn, filtered_indices,
+                                          key=lambda x: x[0])
             topn_indices = iter(topn_indices)
         elif APPROX:
             approx_index = self.get_approx_index()
@@ -1087,7 +1087,7 @@ class Magnitude(object):
                 search_k=search_k,
                 include_distances=True)
             topn_indices = izip(nns[1], nns[0])
-            topn_indices = imap(lambda di: (di[0] ** 2 * .5 - 1, di[1]),
+            topn_indices = imap(lambda di: (1 - di[0] ** 2 * .5, di[1]),
                                 topn_indices)
 
         # Tee topn_indices iterator
@@ -1107,7 +1107,7 @@ class Magnitude(object):
                 continue
             exclude_keys.add(key_t)
             if return_similarities:
-                results.append((key, -1 * similarity[0]))
+                results.append((key, similarity[0]))
             else:
                 results.append(key)
         return results
