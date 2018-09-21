@@ -1028,6 +1028,34 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(isclose(self.vectors_feat.query(5)[-1],
                                 1.46936807866e-38))
 
+    def test_download_file_short(self):
+        os.system("rm -rf ~/.magnitude")
+        self.remote_vectors = Magnitude('test/test')
+        self.assertTrue(len(self.remote_vectors) > 0)
+
+    def test_download_file_long(self):
+        os.system("rm -rf ~/.magnitude")
+        self.remote_vectors = Magnitude('test/test.magnitude')
+        self.assertTrue(len(self.remote_vectors) > 0)
+
+    def test_download_file_full_short(self):
+        os.system("rm -rf ~/.magnitude")
+        self.remote_vectors = Magnitude(
+            'http://magnitude.plasticity.ai/test/test')
+        self.assertTrue(len(self.remote_vectors) > 0)
+
+    def test_download_file_full_long(self):
+        os.system("rm -rf ~/.magnitude")
+        self.remote_vectors = Magnitude(
+            'http://magnitude.plasticity.ai/test/test.magnitude')
+        self.assertTrue(len(self.remote_vectors) > 0)
+
+    @unittest.expectedFailure
+    def test_download_file_nonexistent(self):
+        os.system("rm -rf ~/.magnitude")
+        self.remote_vectors = Magnitude('test/nonexistent.magnitude')
+        self.assertTrue(len(self.remote_vectors) > 0)
+
     def test_batchify(self):
         X = [0, 1, 2, 3, 4, 5]  # noqa: N806
         y = [0, 0, 1, 1, 0, 1]

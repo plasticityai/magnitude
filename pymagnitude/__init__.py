@@ -44,6 +44,12 @@ try:
     unicode
 except NameError:
     unicode = str
+
+try:
+    from urllib.request import urlretrieve
+except BaseException:
+    from urllib import urlretrieve
+
 try:
     xrange
 except NameError:
@@ -240,6 +246,10 @@ class Magnitude(object):
                     hide this message.""")  # noqa
                 sys.stdout.flush()
             self.path = convert_vector_file(self.path)
+
+        # If the path doesn't exist locally, try a remote download
+        if not os.path.isfile(self.path) and not self.memory_db:
+            self.path = MagnitudeUtils.download_model(self.path, _local=True)
 
         # Open a read-only file descriptor against the file
         if not self.memory_db:
@@ -1544,6 +1554,72 @@ class ConcatenatedMagnitude(object):
 
 class MagnitudeUtils(object):
     """A MagnitudeUtils class that contains static helper utilities."""
+
+    @staticmethod
+    def download_model(
+            model,
+            download_dir=os.path.expanduser('~/.magnitude/'),
+            remote_path='http://magnitude.plasticity.ai/',
+            _local=False):
+        """ Downloads a remote Magnitude model locally (if it doesn't already
+        exist) and synchronously returns the local file path once it has
+        been completed """
+
+        # Clean the inputs
+        orig_model = model
+        if model.endswith('.magnitude'):
+            model = model[:-10]
+        if model.startswith('http://magnitude.plasticity.ai/'):
+            model = model.replace('http://magnitude.plasticity.ai/', '')
+            remote_path = 'http://magnitude.plasticity.ai/'
+        if model.startswith('https://magnitude.plasticity.ai/'):
+            model = model.replace('https://magnitude.plasticity.ai/', '')
+            remote_path = 'https://magnitude.plasticity.ai/'
+        if not remote_path.endswith('/'):
+            remote_path = remote_path + '/'
+
+        # Make the download directories
+        try:
+            os.makedirs(download_dir)
+        except OSError:
+            if not os.path.isdir(download_dir):
+                raise RuntimeError("The download folder is not a folder.")
+
+        # Local download
+        local_file_name = model.replace('/', '_') + '.magnitude'
+        local_file_name_tmp = model.replace('/', '_') + '.magnitude.tmp'
+        remote_file_path = remote_path + model + '.magnitude'
+
+        if not os.path.isfile(local_file_name):
+            try:
+                urlretrieve(
+                    remote_file_path,
+                    os.path.join(download_dir, local_file_name_tmp)
+                )
+                conn = sqlite3.connect(
+                    os.path.join(
+                        download_dir,
+                        local_file_name_tmp))
+                conn.cursor().execute("SELECT * FROM magnitude_format")
+                conn.close()
+            except BaseException:
+                if _local:
+                    raise RuntimeError(
+                        "The path to the Magnitude file at '" + orig_model + "' could not be found. Also failed to find a valid remote model at the following URL: " +  # noqa
+                        remote_file_path)
+                else:
+                    raise RuntimeError(
+                        "The download could not be completed. Are you sure a valid model exists at the following URL: " +  # noqa
+                        remote_file_path)
+
+        os.rename(
+            os.path.join(
+                download_dir,
+                local_file_name_tmp),
+            os.path.join(
+                download_dir,
+                local_file_name))
+        return os.path.join(download_dir, local_file_name)
 
     @staticmethod
     def batchify(X, y, batch_size):  # noqa: N803

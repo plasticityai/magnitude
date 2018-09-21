@@ -23,6 +23,7 @@ A feature-packed Python package and vector storage file format for utilizing vec
     * [Utils](#utils)
 - [Concurrency and Parallelism](#concurrency-and-parallelism)
 - [File Format and Converter](#file-format-and-converter)
+- [Remote Loading](#remote-loading)
 - [Other Documentation](#other-documentation)
 - [Other Languages](#other-languages)
 - [Other Programming Languages](#other-programming-languages)
@@ -405,6 +406,18 @@ You can access a guide for using Magnitude with Keras (which supports TensorFlow
 
 You can use the `MagnitudeUtils` class for convenient access to functions that may be useful when creating machine learning models.
 
+You can import MagnitudeUtils like so:
+```python
+  from pymagnitude import MagnitudeUtils
+```
+
+You can download a Magnitude model from a remote source like so:
+```python
+  vecs = Magnitude(MagnitudeUtils.download_model('word2vec+subword/GoogleNews-vectors-negative300'))
+```
+
+By default, `download_model` will download files from `http://magnitude.plasticity.ai` to a `~/.magnitude` folder created automatically. If the file has already been downloaded, it will not be downloaded again. You can change the directory of the local download folder using the optional `download_dir` argument. You can change the domain from which models will be downloaded with the optional `remote_path` argument.
+
 You can create a batch generator for `X` and `y` data with `batchify`, like so:
 ```python
   X = [.3, .2, .7, .8, .1]
@@ -470,6 +483,16 @@ The flags for  `pymagnitude.converter` are specified below:
 * You can pass the `-s` flag to disable adding subword information to the file (which will make the file smaller), but disable advanced out-of-vocabulary key support.
 
 Optionally, you can bulk convert many files by passing an input folder and output folder instead of an input file and output file. All `.txt`, `.bin`, and `.vec` files in the input folder will be converted to `.magnitude` files in the the output folder. The output folder must exist before a bulk conversion operation.
+
+## Remote Loading
+You can instruct Magnitude download and open a model from Magnitude's remote repository instead of a local file path. The file will automatically be downloaded locally on the first run to `~/.magnitude/` and subsequently skip the download if the file already exists locally.
+
+```python
+  vecs = Magnitude('http://magnitude.plasticity.ai/word2vec+subword/GoogleNews-vectors-negative300.magnitude') # full url
+  vecs = Magnitude('word2vec+subword/GoogleNews-vectors-negative300') # shorthand for the url
+```
+
+For more control over the remote download domain and local download directory, see how to use [`MagnitudeUtils.download_model`](#utils).
 
 ## Other Documentation
 Other documentation is not available at this time. See the source file directly (it is well commented) if you need more information about a method's arguments or want to see all supported features.
