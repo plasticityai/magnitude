@@ -1,4 +1,3 @@
-pip>=9.0.1
 numpy>=1.14.0
 xxhash>=1.0.1
 fasteners>=0.14.1
