@@ -100,11 +100,12 @@ def convert(input_file_path, output_file_path=None,
             precision=DEFAULT_PRECISION, subword=False,
             subword_start=DEFAULT_NGRAM_BEG,
             subword_end=DEFAULT_NGRAM_END,
-            approx=False, approx_trees=None):
+            approx=False, approx_trees=None, normalize=False):
 
     files_to_remove = []
     subword = int(subword)
     approx = int(approx)
+    normalize = int(normalize)
 
     # If no output_file_path specified, create it in a tempdir
     if output_file_path is None:
@@ -314,7 +315,8 @@ def convert(input_file_path, output_file_path=None,
         if i % 100000 == 0:
             db.execute("COMMIT;")
             db.execute("BEGIN;")
-        vector = vector / np.linalg.norm(vector)
+        if normalize:
+            vector = vector / np.linalg.norm(vector)
         epsilon = np.random.choice(
             [-1.0 / (10**precision), 1.0 / (10**precision)], dimensions)
         vector = epsilon if np.isnan(vector).any() else vector
@@ -474,6 +476,8 @@ similar queries are faster)")
         help=("number of trees for the approximate nearest neighbors index. \
 If not provided, this will be determined automatically. (higher number uses \
 more space, but makes approximate most similar queries more accurate)"))
+    parser.add_argument(
+        "-n", "--norm-off", action='store_true', help="don't normalize vectors")
     args = parser.parse_args()
 
     input_file_path = os.path.expanduser(args.input)
@@ -484,6 +488,7 @@ more space, but makes approximate most similar queries more accurate)"))
     subword_end = int(args.window.split(",")[1])
     approx = args.approx
     approx_trees = args.trees if hasattr(args, 'trees') else None
+    normalize = not(args.norm_off)
 
     if os.path.isdir(input_file_path) and os.path.isdir(output_file_path):
         for file in os.listdir(input_file_path):
@@ -500,10 +505,10 @@ more space, but makes approximate most similar queries more accurate)"))
                         precision=precision, subword=subword,
                         subword_start=subword_start,
                         subword_end=subword_end,
-                        approx=approx, approx_trees=approx_trees)
+                        approx=approx, approx_trees=approx_trees, normalize=normalize)
     else:
         convert(input_file_path, output_file_path,
                 precision=precision, subword=subword,
                 subword_start=subword_start,
                 subword_end=subword_end,
-                approx=approx, approx_trees=approx_trees)
+                approx=approx, approx_trees=approx_trees, normalize=normalize)
