@@ -1067,7 +1067,7 @@ class Magnitude(object):
                         (np.prod(negative_similiarities, axis=0) + 0.000001))
 
                 partition_results = np.argpartition(similiarities, -1 * min(
-                    filter_topn, self.batch_size - 1))[-filter_topn:]
+                    filter_topn, self.batch_size, self.length))[-filter_topn:]
 
                 for index in partition_results:
                     if (min_similarity is None or
@@ -1590,7 +1590,7 @@ class MagnitudeUtils(object):
         local_file_name_tmp = model.replace('/', '_') + '.magnitude.tmp'
         remote_file_path = remote_path + model + '.magnitude'
 
-        if not os.path.isfile(local_file_name):
+        if not os.path.isfile(os.path.join(download_dir, local_file_name)):
             try:
                 urlretrieve(
                     remote_file_path,
@@ -1602,6 +1602,14 @@ class MagnitudeUtils(object):
                         local_file_name_tmp))
                 conn.cursor().execute("SELECT * FROM magnitude_format")
                 conn.close()
+
+                os.rename(
+                    os.path.join(
+                        download_dir,
+                        local_file_name_tmp),
+                    os.path.join(
+                        download_dir,
+                        local_file_name))
             except BaseException:
                 if _local:
                     raise RuntimeError(
@@ -1612,13 +1620,6 @@ class MagnitudeUtils(object):
                         "The download could not be completed. Are you sure a valid model exists at the following URL: " +  # noqa
                         remote_file_path)
 
-        os.rename(
-            os.path.join(
-                download_dir,
-                local_file_name_tmp),
-            os.path.join(
-                download_dir,
-                local_file_name))
         return os.path.join(download_dir, local_file_name)
 
     @staticmethod
