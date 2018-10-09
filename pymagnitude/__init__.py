@@ -645,8 +645,10 @@ class Magnitude(object):
     def _seed(self, val):
         """Returns a unique seed for val and the (optional) namespace."""
         if self._namespace:
-            return xxhash.xxh32(self._namespace + Magnitude.RARE_CHAR +
-                                val.encode('utf-8')).intdigest()
+            return xxhash.xxh32(
+                self._namespace.encode('utf-8') +
+                Magnitude.RARE_CHAR +
+                val.encode('utf-8')).intdigest()
         else:
             return xxhash.xxh32(val.encode('utf-8')).intdigest()
 

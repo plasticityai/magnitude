@@ -1028,6 +1028,14 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(isclose(self.vectors_feat.query(5)[-1],
                                 1.46936807866e-38))
 
+    def test_feat_namespace(self):
+        self.vectors_feat_2 = FeaturizerMagnitude(
+            100, namespace="PartsOfSpeech")
+        self.assertEqual(
+            self.vectors_feat.query("VBG").shape,
+            self.vectors_feat_2.query("VBG").shape)
+        self.vectors_feat_2.close()
+
     def test_download_file_short(self):
         os.system("rm -rf ~/.magnitude")
         self.remote_vectors = Magnitude('test/test')
