@@ -1058,6 +1058,12 @@ class MagnitudeTest(unittest.TestCase):
             'http://magnitude.plasticity.ai/test/test.magnitude')
         self.assertTrue(len(self.remote_vectors) > 0)
 
+    def test_download_file_full_long_external(self):
+        os.system("rm -rf ~/.magnitude")
+        self.remote_vectors = Magnitude(
+            'http://media.plasticity.ai/magnitude-test/test.magnitude')
+        self.assertTrue(len(self.remote_vectors) > 0)
+
     @unittest.expectedFailure
     def test_download_file_nonexistent(self):
         os.system("rm -rf ~/.magnitude")

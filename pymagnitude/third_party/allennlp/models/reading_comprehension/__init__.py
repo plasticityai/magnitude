@@ -1,0 +1,11 @@
+u"""
+Reading comprehension is loosely defined as follows: given a question and a passage of text that
+contains the answer, answer the question.
+
+These submodules contain models for things that are predominantly focused on reading comprehension.
+"""
+
+
+from __future__ import absolute_import
+from allennlp.models.reading_comprehension.bidaf import BidirectionalAttentionFlow
+from allennlp.models.reading_comprehension.bidaf_ensemble import BidafEnsemble

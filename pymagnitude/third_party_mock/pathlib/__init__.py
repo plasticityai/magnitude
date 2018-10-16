@@ -1,0 +1,2 @@
+def Path(foo):
+    pass

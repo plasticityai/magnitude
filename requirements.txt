@@ -3,3 +3,5 @@ xxhash>=1.0.1
 fasteners>=0.14.1
 annoy>=1.11.4
 lz4>=1.0.0
+h5py>=2.8.0
+torch>=0.4.1

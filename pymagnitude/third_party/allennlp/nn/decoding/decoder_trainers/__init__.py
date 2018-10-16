@@ -1,0 +1,4 @@
+
+from __future__ import absolute_import
+from allennlp.nn.decoding.decoder_trainers.expected_risk_minimization import ExpectedRiskMinimization
+from allennlp.nn.decoding.decoder_trainers.maximum_marginal_likelihood import MaximumMarginalLikelihood
