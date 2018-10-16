@@ -1,0 +1,2 @@
+class Token:
+    pass

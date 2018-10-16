@@ -6,7 +6,6 @@ import os
 import io
 import sys
 import argparse
-import hashlib
 import lz4.frame
 import tempfile
 import numpy as np
@@ -14,17 +13,23 @@ import numpy as np
 from annoy import AnnoyIndex
 from collections import Counter
 from functools import partial
-from itertools import chain, tee
+from itertools import tee, chain
 
 try:
     from itertools import imap
 except ImportError:
     imap = map
 try:
-    xrange
-except NameError:
-    xrange = range
+    from itertools import izip
+except ImportError:
+    izip = zip
 
+# Import AllenNLP
+sys.path.append(os.path.dirname(__file__) + '/third_party/')
+sys.path.append(os.path.dirname(__file__) + '/third_party_mock/')
+from pymagnitude.third_party.allennlp.commands.elmo import ElmoEmbedder
+
+# Import SQLite
 try:
     sys.path.append(os.path.dirname(__file__) + '/third_party/internal/')
     from pymagnitude.third_party.internal.pysqlite2 import dbapi2 as sqlite3
@@ -35,13 +40,16 @@ except BaseException:
     import sqlite3
     SQLITE_LIB = 'system'
 
-DEFAULT_PRECISION = 7
-DEFAULT_NGRAM_BEG = 3
-DEFAULT_NGRAM_END = 6
-SQLITE_TOKEN_SPLITTERS = ''.join([chr(i) for i in range(128)
-                                  if not chr(i).isalnum()])
-BOW = u"\uF000"
-EOW = u"\uF000"
+
+from pymagnitude.converter_shared import DEFAULT_PRECISION
+from pymagnitude.converter_shared import DEFAULT_NGRAM_BEG
+from pymagnitude.converter_shared import DEFAULT_NGRAM_END
+from pymagnitude.converter_shared import SQLITE_TOKEN_SPLITTERS
+from pymagnitude.converter_shared import BOW
+from pymagnitude.converter_shared import EOW
+from pymagnitude.converter_shared import CONVERTER_VERSION
+
+from pymagnitude import Magnitude, FeaturizerMagnitude
 
 
 def try_deleting(path):
@@ -63,44 +71,18 @@ def entropy(counter):
                       float(total_count) for bucket in counter])
     return -probs.dot(np.log2(probs))
 
-# MD5s a file in chunks in a streaming fashion
 
-
-def md5_file(path, block_size=256 * 128):
-    md5 = hashlib.md5()
-    with open(path, 'rb') as f:
-        for chunk in iter(lambda: f.read(block_size), b''):
-            md5.update(chunk)
-    return md5.hexdigest()
-
-
-def fast_md5_file(path, block_size=256 * 128):
-    md5 = hashlib.md5()
-    f_size = os.path.getsize(path)
-    if f_size <= 104857600:
-        return md5_file(path, block_size)
-    clipped_f_size = f_size - (block_size + 1)
-    md5.update(str(f_size).encode('utf-8'))
-    interval = 25
-    seek_interval = int(float(clipped_f_size) / float(interval))
-    with open(path, 'rb') as f:
-        for i in range(interval):
-            f.seek((i * seek_interval) % clipped_f_size)
-            chunk = f.read(block_size)
-            md5.update(chunk)
-    return md5.hexdigest()
-
-
-def char_ngrams(key, beg, end):
-    return chain.from_iterable((imap(lambda ngram: ''.join(ngram), zip(
-        *[key[i:] for i in xrange(j)])) for j in xrange(beg, min(len(key) + 1, end + 1))))  # noqa
+from pymagnitude.converter_shared import fast_md5_file
+from pymagnitude.converter_shared import char_ngrams
+from pymagnitude.converter_shared import ibatch
 
 
 def convert(input_file_path, output_file_path=None,
             precision=DEFAULT_PRECISION, subword=False,
             subword_start=DEFAULT_NGRAM_BEG,
             subword_end=DEFAULT_NGRAM_END,
-            approx=False, approx_trees=None):
+            approx=False, approx_trees=None,
+            vocab_path=None):
 
     files_to_remove = []
     subword = int(subword)
@@ -126,13 +108,35 @@ def convert(input_file_path, output_file_path=None,
                 pass
 
     # Check args
+    meta_1_path = None
+    meta_2_path = None
     input_is_text = input_file_path.endswith('.txt') or \
         input_file_path.endswith('.vec')
     input_is_binary = input_file_path.endswith('.bin')
-    if not input_is_text and not input_is_binary:
-        exit("The input file path must be .txt, .bin, or .vec")
+    input_is_hdf5 = input_file_path.endswith('.hdf5')
+    input_is_hdf5_weights = input_file_path.endswith('_weights.hdf5')
+    if not input_is_text and not input_is_binary and not input_is_hdf5:
+        exit("The input file path must be `.txt`, `.bin`, `.vec`, or `.hdf5`")
     if not output_file_path.endswith('.magnitude'):
-        exit("The output file path file path must be .magnitude")
+        exit("The output file path file path must be `.magnitude`")
+    if vocab_path and not vocab_path.endswith(".magnitude"):
+        exit("The vocab file path file path must be `.magnitude`")
+
+    # Detect ELMo and ELMo options file
+    input_is_elmo = False
+    elmo_options_path = None
+    if input_is_hdf5:
+        elmo_options_path = input_file_path[0:-13] + \
+            '_options.json' if input_is_hdf5_weights else input_file_path[0:-5] + '.json'  # noqa
+        if not os.path.isfile(elmo_options_path):
+            exit(
+                "Expected `" +
+                elmo_options_path +
+                "` to exist. ELMo models require a JSON options file.")
+        input_is_elmo = True
+        subword = 0
+        meta_1_path = input_file_path
+        meta_2_path = elmo_options_path
 
     # Detect GloVe format and convert to word2vec if detected
     detected_glove = False
@@ -185,7 +189,7 @@ def convert(input_file_path, output_file_path=None,
             input_file_path, binary=input_is_binary)
         number_of_keys = len(keyed_vectors.vectors)
         dimensions = len(keyed_vectors.vectors[0])
-    else:
+    elif input_is_text:
         # Read it manually instead of with gensim so we can stream large models
         class KeyedVectors:
             pass
@@ -221,6 +225,40 @@ def convert(input_file_path, output_file_path=None,
         kv_gen_1, kv_gen_2 = tee(kv_gen)
         keyed_vectors.vectors = imap(lambda kv: kv[1], kv_gen_1)
         keyed_vectors.index2word = imap(lambda kv: kv[0], kv_gen_2)
+    elif input_is_elmo:
+        vocab_magnitude = None
+        if vocab_path:
+            vocab_magnitude = Magnitude(vocab_path, eager=False, lazy_loading=1)
+        else:
+            vocab_magnitude = FeaturizerMagnitude(100)
+
+        class KeyedVectors:
+            pass
+        elmo = ElmoEmbedder(elmo_options_path, input_file_path)
+        keyed_vectors = KeyedVectors()
+        number_of_keys = len(vocab_magnitude)
+        dimensions = np.concatenate(elmo.embed_batch(
+            [["test"]])[0], axis=1).flatten().shape[0]
+        kv_gen_1, kv_gen_2 = tee(vocab_magnitude)
+        keyed_vectors.vectors = chain.from_iterable(
+            imap(
+                lambda b: imap(
+                    lambda e: np.concatenate(
+                        e, axis=1).flatten(), elmo.embed_batch(
+                        list(
+                            imap(
+                                lambda k: [k], b)))), ibatch(
+                    imap(
+                        lambda kv: kv[0], kv_gen_1), 1000)))
+        keyed_vectors.index2word = imap(lambda kv: kv[0], kv_gen_2)
+    else:
+        class KeyedVectors:
+            pass
+        keyed_vectors = KeyedVectors()
+        number_of_keys = 0
+        dimensions = 0
+        keyed_vectors.vectors = []
+        keyed_vectors.index2word = []
 
     eprint("Found %d key(s)" % number_of_keys)
     eprint("Each vector has %d dimension(s)" % dimensions)
@@ -230,8 +268,6 @@ def convert(input_file_path, output_file_path=None,
     try_deleting(output_file_path + "-shm")
     try_deleting(output_file_path + "-wal")
     conn = sqlite3.connect(output_file_path)
-    files_to_remove.append(output_file_path + "-shm")
-    files_to_remove.append(output_file_path + "-wal")
     db = conn.cursor()
 
     # Make the database fast
@@ -274,6 +310,15 @@ def convert(input_file_path, output_file_path=None,
             );
         """)
 
+    metas = [('meta_1', meta_1_path), ('meta_2', meta_2_path)]
+    for meta_name, meta_path in metas:
+        if meta_path:
+            db.execute("""
+                CREATE TABLE `magnitude_""" + meta_name + """` (
+                    meta_file BLOB
+                );
+            """)
+
     # Create annoy index
     approx_index = None
     if approx:
@@ -303,7 +348,7 @@ def convert(input_file_path, output_file_path=None,
         );
     """
     counters = [Counter() for i in range(dimensions)]
-    key_vectors_iterable = zip(keyed_vectors.index2word, keyed_vectors.vectors)
+    key_vectors_iterable = izip(keyed_vectors.index2word, keyed_vectors.vectors)
     progress = -1
     db.execute("BEGIN;")
     for i, (key, vector) in enumerate(key_vectors_iterable):
@@ -356,6 +401,8 @@ def convert(input_file_path, output_file_path=None,
         );
     """
 
+    db.execute(insert_format_query, ('version', CONVERTER_VERSION))
+    db.execute(insert_format_query, ('elmo', input_is_elmo))
     db.execute(insert_format_query, ('size', number_of_keys))
     db.execute(insert_format_query, ('dim', dimensions))
     db.execute(insert_format_query, ('precision', precision))
@@ -416,6 +463,39 @@ def convert(input_file_path, output_file_path=None,
                            (approx_trees, sqlite3.Binary(chunk)))
         files_to_remove.append(approx_index_file_path)
 
+    for meta_name, meta_path in metas:
+        if not meta_path:
+            continue
+        eprint("Compressing meta file... \
+(this may take some time)")
+        chunk_size = 104857600
+        full_size = os.path.getsize(meta_path)
+        insert_meta_query = """
+            INSERT INTO magnitude_""" + meta_name + """(meta_file)
+            VALUES (?);
+        """
+        with open(meta_path, 'rb') as ifh, \
+                lz4.frame.LZ4FrameCompressor() as compressor:
+            for i, chunk in enumerate(iter(partial(ifh.read, chunk_size), b'')):
+                if i == 0:
+                    chunk = compressor.begin() + compressor.compress(chunk)
+                else:
+                    chunk = compressor.compress(chunk)
+                eprint(str((ifh.tell() / float(full_size)) * 100.0) + "%")
+                if len(chunk) > 0:
+                    db.execute(insert_meta_query,
+                               (sqlite3.Binary(chunk),))
+            chunk = compressor.flush()
+            if len(chunk) > 0:
+                db.execute(insert_meta_query,
+                           (sqlite3.Binary(chunk),))
+
+    # Clean up
+    if len(files_to_remove) > 0:
+        eprint("Cleaning up temporary files...")
+        for file_to_remove in files_to_remove:
+            try_deleting(file_to_remove)
+
     # VACUUM
     eprint("Vacuuming to save space... (this may take some time)")
     db.execute("VACUUM;")
@@ -429,6 +509,8 @@ def convert(input_file_path, output_file_path=None,
     # Clean up connection
     conn.commit()
     conn.close()
+    files_to_remove.append(output_file_path + "-shm")
+    files_to_remove.append(output_file_path + "-wal")
 
     # Clean up
     if len(files_to_remove) > 0:
@@ -446,8 +528,11 @@ def convert(input_file_path, output_file_path=None,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-i", "--input", help="input file (.txt, bin, or .vec) or folder",
-        type=str, required=True)
+        "-i",
+        "--input",
+        help="input file (.txt, .bin, .vec, or .hdf5) or folder",
+        type=str,
+        required=True)
     parser.add_argument(
         "-o", "--output", help="output file (.magnitude) or folder", type=str,
         required=True)
@@ -474,6 +559,10 @@ similar queries are faster)")
         help=("number of trees for the approximate nearest neighbors index. \
 If not provided, this will be determined automatically. (higher number uses \
 more space, but makes approximate most similar queries more accurate)"))
+    parser.add_argument(
+        "-v", "--vocab", type=str,
+        help=("path to a `.magnitude` file to use as a vocabulary when \
+converting vocabulary-less models like ELMo."))
     args = parser.parse_args()
 
     input_file_path = os.path.expanduser(args.input)
@@ -484,12 +573,14 @@ more space, but makes approximate most similar queries more accurate)"))
     subword_end = int(args.window.split(",")[1])
     approx = args.approx
     approx_trees = args.trees if hasattr(args, 'trees') else None
+    vocab_path = os.path.expanduser(args.vocab) if args.vocab else args.vocab
 
     if os.path.isdir(input_file_path) and os.path.isdir(output_file_path):
         for file in os.listdir(input_file_path):
             if (file.endswith(".txt") or
                 file.endswith(".bin") or
-                    file.endswith(".vec")):
+                file.endswith(".vec") or
+                    file.endswith(".hdf5")):
                 ext = '.magnitude'
                 split_file_name = os.path.basename(file).split(".")
                 output_file = ".".join(split_file_name[0:-1]) + ext
@@ -506,4 +597,5 @@ more space, but makes approximate most similar queries more accurate)"))
                 precision=precision, subword=subword,
                 subword_start=subword_start,
                 subword_end=subword_end,
-                approx=approx, approx_trees=approx_trees)
+                approx=approx, approx_trees=approx_trees,
+                vocab_path=vocab_path)

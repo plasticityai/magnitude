@@ -1,4 +1,4 @@
 [flake8]
-ignore = E261
-exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,setup.py,pymagnitude/third_party,benchmark.py
+ignore = E261, E402
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,setup.py,pymagnitude/third_party,pymagnitude/third_party_mock,benchmark.py
 max-line-length = 80

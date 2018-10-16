@@ -25,11 +25,12 @@ from itertools import cycle, islice, chain, tee
 from numbers import Number
 from time import sleep
 
-from pymagnitude.converter import convert as convert_vector_file
-from pymagnitude.converter import DEFAULT_NGRAM_END
-from pymagnitude.converter import BOW, EOW
-from pymagnitude.converter import fast_md5_file
-from pymagnitude.converter import char_ngrams
+from pymagnitude.converter_shared import DEFAULT_NGRAM_END
+from pymagnitude.converter_shared import BOW, EOW
+from pymagnitude.converter_shared import CONVERTER_VERSION
+from pymagnitude.converter_shared import fast_md5_file
+from pymagnitude.converter_shared import char_ngrams
+from pymagnitude.converter_shared import norm_matrix
 from pymagnitude.third_party.repoze.lru import lru_cache
 
 try:
@@ -55,8 +56,15 @@ try:
 except NameError:
     xrange = range
 
+# Import AllenNLP
+sys.path.append(os.path.dirname(__file__) + '/third_party/')
+sys.path.append(os.path.dirname(__file__) + '/third_party_mock/')
+from pymagnitude.third_party.allennlp.commands.elmo import ElmoEmbedder
+
+# Import SQLite
 try:
     sys.path.append(os.path.dirname(__file__) + '/third_party/')
+    sys.path.append(os.path.dirname(__file__) + '/third_party/internal/')
     from pymagnitude.third_party.internal.pysqlite2 import dbapi2 as sqlite3
     db = sqlite3.connect(':memory:')
     db.close()
@@ -227,11 +235,12 @@ class Magnitude(object):
         # Convert the input file if not .magnitude
         if self.path.endswith('.bin') or \
                 self.path.endswith('.txt') or \
-                self.path.endswith('.vec'):
+                self.path.endswith('.vec') or \
+                self.path.endswith('.hdf5'):
             if not supress_warnings:
                 sys.stdout.write(
                     """WARNING: You are attempting to directly use a `.bin`,
-                    `.txt`, or `.vec` file with Magnitude. The file is being
+                    `.txt`, `.vec`, or `.hdf5` file with Magnitude. The file is being
                     converted to the `.magnitude` format (which is slow) so
                     that it can be used with this library. This will happen on
                     every run / re-boot of your computer. If you want to make
@@ -245,6 +254,7 @@ class Magnitude(object):
                     You can pass `supress_warnings=True` to the constructor to
                     hide this message.""")  # noqa
                 sys.stdout.flush()
+            from pymagnitude.converter_shared import convert as convert_vector_file  # noqa
             self.path = convert_vector_file(self.path)
 
         # If the path doesn't exist locally, try a remote download
@@ -259,6 +269,20 @@ class Magnitude(object):
         self.length = self._db().execute(
             "SELECT COUNT(key) FROM magnitude") \
             .fetchall()[0][0]
+        version_query = self._db().execute(
+            "SELECT value FROM magnitude_format WHERE key='version'") \
+            .fetchall()
+        self.version = version_query[0][0] if len(version_query) > 0 else 1
+        elmo_query = self._db().execute(
+            "SELECT value FROM magnitude_format WHERE key='elmo'") \
+            .fetchall()
+        self.elmo = len(elmo_query) > 0 and elmo_query[0][0]
+        if CONVERTER_VERSION < self.version:
+            raise RuntimeError(
+                """The `.magnitude` file you are using was built with a
+                newer version of Magnitude than your version of Magnitude.
+                Please update the Magnitude library as it is incompatible
+                with this particular `.magnitude` file.""")  # noqa
         self.original_length = self._db().execute(
             "SELECT value FROM magnitude_format WHERE key='size'") \
             .fetchall()[0][0]
@@ -313,6 +337,7 @@ class Magnitude(object):
         self.setup_for_mmap = False
         self._all_vectors = None
         self._approx_index = None
+        self._elmo_embedder = None
         if self.eager:
             mmap_thread = threading.Thread(target=self.get_vectors_mmap)
             self._threads.append(mmap_thread)
@@ -324,6 +349,12 @@ class Magnitude(object):
                 self._threads.append(approx_mmap_thread)
                 approx_mmap_thread.daemon = True
                 approx_mmap_thread.start()
+            if self.elmo:
+                elmo_thread = threading.Thread(
+                    target=self.get_elmo_embedder)
+                self._threads.append(elmo_thread)
+                elmo_thread.daemon = True
+                elmo_thread.start()
 
         # Create cached methods
         if self.lazy_loading <= 0:
@@ -369,11 +400,14 @@ class Magnitude(object):
             self.get_vectors_mmap()  # Wait for mmap to be available
             if self.approx:
                 self.get_approx_index()  # Wait for approx mmap to be available
+            if self.elmo:
+                self.get_elmo_embedder()  # Wait for approx mmap to be available
 
     def _setup_for_mmap(self):
         # Setup variables for get_vectors_mmap()
         self._all_vectors = None
         self._approx_index = None
+        self._elmo_embedder = None
         if not self.memory_db:
             self.db_hash = fast_md5_file(self.path)
         else:
@@ -386,10 +420,20 @@ class Magnitude(object):
                                          self.md5 + '.magmmap')
         self.path_to_approx_mmap = os.path.join(tempfile.gettempdir(),
                                                 self.md5 + '.approx.magmmap')
+        self.path_to_elmo_w_mmap = os.path.join(tempfile.gettempdir(),
+                                                self.md5 + '.elmo.hdf5.magmmap')
+        self.path_to_elmo_o_mmap = os.path.join(tempfile.gettempdir(),
+                                                self.md5 + '.elmo.json.magmmap')
         if self.path_to_mmap not in Magnitude.MMAP_THREAD_LOCK:
             Magnitude.MMAP_THREAD_LOCK[self.path_to_mmap] = threading.Lock()
         if self.path_to_approx_mmap not in Magnitude.MMAP_THREAD_LOCK:
             Magnitude.MMAP_THREAD_LOCK[self.path_to_approx_mmap] = \
+                threading.Lock()
+        if self.path_to_elmo_w_mmap not in Magnitude.MMAP_THREAD_LOCK:
+            Magnitude.MMAP_THREAD_LOCK[self.path_to_elmo_w_mmap] = \
+                threading.Lock()
+        if self.path_to_elmo_o_mmap not in Magnitude.MMAP_THREAD_LOCK:
+            Magnitude.MMAP_THREAD_LOCK[self.path_to_elmo_o_mmap] = \
                 threading.Lock()
         self.MMAP_THREAD_LOCK = Magnitude.MMAP_THREAD_LOCK[self.path_to_mmap]
         self.MMAP_PROCESS_LOCK = InterProcessLock(self.path_to_mmap + '.lock')
@@ -397,6 +441,14 @@ class Magnitude(object):
             Magnitude.MMAP_THREAD_LOCK[self.path_to_approx_mmap]
         self.APPROX_MMAP_PROCESS_LOCK = \
             InterProcessLock(self.path_to_approx_mmap + '.lock')
+        self.ELMO_W_MMAP_THREAD_LOCK = \
+            Magnitude.MMAP_THREAD_LOCK[self.path_to_elmo_w_mmap]
+        self.ELMO_W_MMAP_PROCESS_LOCK = \
+            InterProcessLock(self.path_to_elmo_w_mmap + '.lock')
+        self.ELMO_O_MMAP_THREAD_LOCK = \
+            Magnitude.MMAP_THREAD_LOCK[self.path_to_elmo_o_mmap]
+        self.ELMO_O_MMAP_PROCESS_LOCK = \
+            InterProcessLock(self.path_to_elmo_o_mmap + '.lock')
         self.setup_for_mmap = True
 
     def _db(self, force_new=False):
@@ -610,7 +662,17 @@ class Magnitude(object):
                 while (len(results) < topn and
                         current_subword_start >= self.subword_start):
                     ngrams = list(char_ngrams(
-                        key, current_subword_start, self.subword_end))
+                        key, current_subword_start, current_subword_start))
+                    ngram_limit_map = {
+                        6: 4,
+                        5: 8,
+                        4: 12,
+                    }
+                    while current_subword_start in ngram_limit_map and len(
+                            ngrams) > ngram_limit_map[current_subword_start]:
+                        # Reduce the search parameter space by sampling every
+                        # other ngram
+                        ngrams = ngrams[:-1][::2] + ngrams[-1:]
                     params = (' OR '.join('"{0}"'.format(_sql_escape_fts(n))
                                           for n in ngrams), topn)
                     results = self._db().execute(search_query,
@@ -656,6 +718,15 @@ class Magnitude(object):
         """Generates a random vector based on the hash of the key."""
         orig_key = key
         is_str, key = self._oov_key_t(key)
+        if self.elmo and is_str:
+            elmo_oov = np.concatenate(self.get_elmo_embedder().embed_batch(
+                [[key]])[0], axis=1).flatten()
+            elmo_oov = elmo_oov / np.linalg.norm(elmo_oov)
+            if self.use_numpy:
+                return elmo_oov
+            else:
+                return elmo_oov.tolist()
+
         if not is_str:
             seed = self._seed(type(key).__name__)
             Magnitude.OOV_RNG_LOCK.acquire()
@@ -755,6 +826,16 @@ class Magnitude(object):
 
     def _vectors_for_keys(self, keys):
         """Queries the database for multiple keys."""
+        if self.elmo:
+            keys = [self._key_t(key) for key in keys]
+            elmo_ctx = np.concatenate(self.get_elmo_embedder().embed_batch(
+                [keys])[0], axis=1)
+            elmo_ctx = norm_matrix(elmo_ctx)
+            if self.use_numpy:
+                return elmo_ctx
+            else:
+                return elmo_ctx.tolist()
+
         unseen_keys = tuple(key for key in keys
                             if not self._query_is_cached(key))
         unseen_keys_map = {}
@@ -1323,6 +1404,27 @@ build the appropriate indexes into the `.magnitude` file.")
             else:
                 raise e
 
+    def get_meta_chunks(self, meta_index):
+        """Gets decompressed chunks of a meta file embedded in
+        the database."""
+        try:
+            db = self._db(force_new=True)
+            with lz4.frame.LZ4FrameDecompressor() as decompressor:
+                chunks = db.execute(
+                    """
+                        SELECT rowid,meta_file
+                        FROM `magnitude_meta_""" + str(meta_index) + """`
+                    """)
+                for chunk in chunks:
+                    yield decompressor.decompress(chunk[1])
+                    if self.closed:
+                        return
+        except Exception as e:
+            if self.closed:
+                pass
+            else:
+                raise e
+
     def get_approx_index(self):
         """Gets an AnnoyIndex of the vectors from the database."""
         chunks = self.get_approx_index_chunks()
@@ -1359,6 +1461,62 @@ build the appropriate indexes into the `.magnitude` file.")
                                 pass
                 sleep(1)  # Block before trying again
         return self._approx_index
+
+    def get_elmo_embedder(self):
+        """Gets an ElmoEmbedder of the vectors from the database."""
+        meta_1_chunks = self.get_meta_chunks(1)
+        meta_2_chunks = self.get_meta_chunks(2)
+        if self._elmo_embedder is None:
+            while True:
+                if not self.setup_for_mmap:
+                    self._setup_for_mmap()
+                try:
+                    elmo_embedder = ElmoEmbedder(
+                        self.path_to_elmo_o_mmap, self.path_to_elmo_w_mmap)
+                    self._elmo_embedder = elmo_embedder
+                    break
+                except BaseException:
+                    path_to_elmo_w_mmap_temp = self.path_to_elmo_w_mmap \
+                        + '.tmp'
+                    path_to_elmo_o_mmap_temp = self.path_to_elmo_o_mmap \
+                        + '.tmp'
+                    tlock_w = self.ELMO_W_MMAP_THREAD_LOCK.acquire(False)
+                    plock_w = self.ELMO_W_MMAP_PROCESS_LOCK.acquire(0)
+                    tlock_o = self.ELMO_O_MMAP_THREAD_LOCK.acquire(False)
+                    plock_o = self.ELMO_O_MMAP_PROCESS_LOCK.acquire(0)
+                    if tlock_w and plock_w and tlock_o and plock_o:
+                        try:
+                            with open(path_to_elmo_w_mmap_temp, "w+b") \
+                                    as mmap_file:
+                                for chunk in meta_1_chunks:
+                                    mmap_file.write(chunk)
+                            if not self.closed:
+                                os.rename(path_to_elmo_w_mmap_temp,
+                                          self.path_to_elmo_w_mmap)
+                            else:
+                                return
+                            with open(path_to_elmo_o_mmap_temp, "w+b") \
+                                    as mmap_file:
+                                for chunk in meta_2_chunks:
+                                    mmap_file.write(chunk)
+                            if not self.closed:
+                                os.rename(path_to_elmo_o_mmap_temp,
+                                          self.path_to_elmo_o_mmap)
+                            else:
+                                return
+                        finally:
+                            self.ELMO_W_MMAP_THREAD_LOCK.release()
+                            try:
+                                self.ELMO_W_MMAP_PROCESS_LOCK.release()
+                            except BaseException:
+                                pass
+                            self.ELMO_O_MMAP_THREAD_LOCK.release()
+                            try:
+                                self.ELMO_O_MMAP_PROCESS_LOCK.release()
+                            except BaseException:
+                                pass
+                sleep(1)  # Block before trying again
+        return self._elmo_embedder
 
     def _iter(self, put_cache):
         """Yields keys and vectors for all vectors in the store."""
@@ -1571,13 +1729,15 @@ class MagnitudeUtils(object):
         orig_model = model
         if model.endswith('.magnitude'):
             model = model[:-10]
+        if model.startswith('http://') or model.startswith('https://'):
+            remote_path = ''
         if model.startswith('http://magnitude.plasticity.ai/'):
             model = model.replace('http://magnitude.plasticity.ai/', '')
             remote_path = 'http://magnitude.plasticity.ai/'
         if model.startswith('https://magnitude.plasticity.ai/'):
             model = model.replace('https://magnitude.plasticity.ai/', '')
             remote_path = 'https://magnitude.plasticity.ai/'
-        if not remote_path.endswith('/'):
+        if not remote_path.endswith('/') and len(remote_path) > 0:
             remote_path = remote_path + '/'
 
         # Make the download directories
@@ -1604,7 +1764,6 @@ class MagnitudeUtils(object):
                         local_file_name_tmp))
                 conn.cursor().execute("SELECT * FROM magnitude_format")
                 conn.close()
-
                 os.rename(
                     os.path.join(
                         download_dir,
@@ -1621,7 +1780,6 @@ class MagnitudeUtils(object):
                     raise RuntimeError(
                         "The download could not be completed. Are you sure a valid model exists at the following URL: " +  # noqa
                         remote_file_path)
-
         return os.path.join(download_dir, local_file_name)
 
     @staticmethod
