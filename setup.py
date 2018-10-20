@@ -65,7 +65,7 @@ def get_supported_wheels(package_name=PACKAGE_NAME, version=__version__):
             'fat64' in t[2] or
             '_universal' in t[2]
         )
-    return ['-'.join((package_name, __version__) + t) + '.whl'
+    return ['-'.join((package_name, version) + t) + '.whl'
             for t in pep425tags.get_supported() if not(tuple_invalid(t))]
 
 
@@ -217,12 +217,15 @@ def build_req_wheels():
         for whl in get_supported_wheels(package, version):
             exitcodes = []
             whl_url = wheelhouse + whl
-            print("Trying to download...", whl_url)
+            sys.stdout.write("Trying to download...", whl_url)
             dl_path = os.path.join('pymagnitude/req_wheels', whl)
             try:
                 urlretrieve(whl_url, dl_path)
+                sys.stdout.write("...SUCCESS")
             except BaseException:
+                sys.stdout.write("...FAIL")
                 continue
+            sys.stdout.flush()
 
     if rc:
         print("Failed to build requirements wheels!")
