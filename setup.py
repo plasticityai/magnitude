@@ -56,7 +56,7 @@ INSTALLED_FROM_WHEEL = os.path.join(
 )
 
 
-def get_supported_wheels():
+def get_supported_wheels(package_name=PACKAGE_NAME, version=__version__):
     """Get supported wheel strings"""
     def tuple_invalid(t):
         return (
@@ -65,7 +65,7 @@ def get_supported_wheels():
             'fat64' in t[2] or
             '_universal' in t[2]
         )
-    return ['-'.join((PACKAGE_NAME, __version__) + t) + '.whl'
+    return ['-'.join((package_name, __version__) + t) + '.whl'
             for t in pep425tags.get_supported() if not(tuple_invalid(t))]
 
 
@@ -207,6 +207,23 @@ def build_req_wheels():
         'requirements.txt',
         '--wheel-dir=pymagnitude/req_wheels'
     ], cwd=PROJ_PATH).wait()
+
+    download_req_wheels = [
+        ('http://download.pytorch.org/whl/cpu/', 'torch', '0.4.1'),
+        ('http://download.pytorch.org/whl/cpu/', 'torch', '0.4.1.post2')
+    ]
+
+    for wheelhouse, package, version in download_req_wheels:
+        for whl in get_supported_wheels(package, version):
+            exitcodes = []
+            whl_url = wheelhouse + whl
+            print("Trying to download...", whl_url)
+            dl_path = os.path.join('pymagnitude/req_wheels', whl)
+            try:
+                urlretrieve(whl_url, dl_path)
+            except BaseException:
+                continue
+
     if rc:
         print("Failed to build requirements wheels!")
         pass
