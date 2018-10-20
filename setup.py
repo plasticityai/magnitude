@@ -217,13 +217,13 @@ def build_req_wheels():
         for whl in get_supported_wheels(package, version):
             exitcodes = []
             whl_url = wheelhouse + whl
-            sys.stdout.write("Trying to download...", whl_url)
+            sys.stdout.write("Trying to download... '" + whl_url+"'")
             dl_path = os.path.join('pymagnitude/req_wheels', whl)
             try:
                 urlretrieve(whl_url, dl_path)
-                sys.stdout.write("...SUCCESS")
+                sys.stdout.write(" ...SUCCESS\n")
             except BaseException:
-                sys.stdout.write("...FAIL")
+                sys.stdout.write(" ...FAIL\n")
                 continue
             sys.stdout.flush()
 
