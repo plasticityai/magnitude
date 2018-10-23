@@ -32,21 +32,26 @@ def md5_file(path, block_size=256 * 128):
     return md5.hexdigest()
 
 
-def fast_md5_file(path, block_size=256 * 128):
-    md5 = hashlib.md5()
-    f_size = os.path.getsize(path)
-    if f_size <= 104857600:
-        return md5_file(path, block_size)
-    clipped_f_size = f_size - (block_size + 1)
-    md5.update(str(f_size).encode('utf-8'))
-    interval = 25
-    seek_interval = int(float(clipped_f_size) / float(interval))
-    with open(path, 'rb') as f:
-        for i in range(interval):
-            f.seek((i * seek_interval) % clipped_f_size)
-            chunk = f.read(block_size)
-            md5.update(chunk)
-    return md5.hexdigest()
+def fast_md5_file(path, block_size=256 * 128, stream=False):
+    if stream:
+        return hashlib.md5(
+            ('###MAGNITUDEURI:' +
+             path).encode('utf-8')).hexdigest()
+    else:
+        md5 = hashlib.md5()
+        f_size = os.path.getsize(path)
+        if f_size <= 104857600:
+            return md5_file(path, block_size)
+        clipped_f_size = f_size - (block_size + 1)
+        md5.update(str(f_size).encode('utf-8'))
+        interval = 25
+        seek_interval = int(float(clipped_f_size) / float(interval))
+        with open(path, 'rb') as f:
+            for i in range(interval):
+                f.seek((i * seek_interval) % clipped_f_size)
+                chunk = f.read(block_size)
+                md5.update(chunk)
+        return md5.hexdigest()
 
 
 def char_ngrams(key, beg, end):

@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import hashlib
 import os
+import shutil
 import sys
 import subprocess
 import traceback
@@ -35,8 +36,10 @@ PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
 BUILD_THIRD_PARTY = PROJ_PATH + '/build/lib/pymagnitude/third_party'
 PYSQLITE = THIRD_PARTY + '/_pysqlite'
+APSW_TP = THIRD_PARTY + '/_apsw'
 INTERNAL = THIRD_PARTY + '/internal'
 PYSQLITE2 = INTERNAL + '/pysqlite2'
+APSW = INTERNAL + '/apsw'
 
 # Get the package version
 __version__ = None
@@ -54,6 +57,13 @@ INSTALLED_FROM_WHEEL = os.path.join(
     hashlib.md5(PROJ_PATH.encode('utf-8')).hexdigest() +
     '.whlinstall'
 )
+
+
+def try_list_dir(d):
+    try:
+        return os.listdir(d)
+    except BaseException:
+        return []
 
 
 def get_supported_wheels(package_name=PACKAGE_NAME, version=__version__):
@@ -150,13 +160,24 @@ def install_custom_sqlite3():
     Can be safely ignored even if it fails, however, system SQLite
     imitations may prevent large .magnitude files with many columns
     from working."""
-    print("Installing custom SQLite 3....")
+    print("Installing custom SQLite 3 (pysqlite) ....")
+    install_env = os.environ.copy()
+    install_env["PYTHONPATH"] = INTERNAL + \
+        (':' + install_env["PYTHONPATH"] if "PYTHONPATH" in install_env else "")
+    shutil.copy(
+        os.path.join(
+            PYSQLITE, 'sqlite3.c'), os.path.join(
+            APSW_TP, 'src', 'sqlite3.c'))
+    shutil.copy(
+        os.path.join(
+            PYSQLITE, 'sqlite3.h'), os.path.join(
+            APSW_TP, 'src', 'sqlite3.h'))
     rc = subprocess.Popen([
         sys.executable,
         PYSQLITE + '/setup.py',
         'install',
         '--install-lib=' + INTERNAL,
-    ], cwd=PYSQLITE).wait()
+    ], cwd=PYSQLITE, env=install_env).wait()
     if rc:
         print("")
         print("============================================================")
@@ -185,14 +206,71 @@ def install_custom_sqlite3():
         print("Building a custom version of SQLite on your machine has")
         print("succeeded.")
         print("Listing internal...")
-        os.system("ls '" + INTERNAL + "'")
-        os.system("dir '" + INTERNAL + "'")
+        print(try_list_dir(INTERNAL))
         print("Listing internal/pysqlite2...")
-        os.system("ls '" + PYSQLITE2 + "'")
-        os.system("dir '" + PYSQLITE2 + "'")
+        print(try_list_dir(PYSQLITE2))
         print("============================================================")
         print("============================================================")
         print("")
+    print("Installing custom SQLite 3 (apsw) ....")
+    rc = subprocess.Popen([
+        sys.executable,
+        APSW_TP + '/setup.py',
+        'install',
+        '--install-lib=' + INTERNAL,
+    ], cwd=APSW_TP, env=install_env).wait()
+    if rc:
+        print("")
+        print("============================================================")
+        print("=========================WARNING============================")
+        print("============================================================")
+        print("It seems like building a custom version of SQLite on your")
+        print("machine has failed. This is fine, Magnitude will likely work")
+        print("just fine with the sytem version of SQLite for most use cases.")
+        print("However, if you are trying to stream a remote model that")
+        print("can only be resolved by using the custom version of SQLite.")
+        print("To troubleshoot make sure you have appropriate build tools on")
+        print("your machine for building C programs like GCC and the standard")
+        print("library. Also make sure you have the python-dev development")
+        print("libraries and headers for building Python C extensions.")
+        print("If you need more help with this, please reach out to ")
+        print("opensource@plasticity.ai.")
+        print("============================================================")
+        print("============================================================")
+        print("")
+    else:
+        print("")
+        print("============================================================")
+        print("=========================SUCCESS============================")
+        print("============================================================")
+        print("Building a custom version of SQLite on your machine has")
+        print("succeeded.")
+        print("Listing internal...")
+        print(try_list_dir(INTERNAL))
+        print("Listing internal/apsw...")
+        print(try_list_dir(APSW))
+        print("============================================================")
+        print("============================================================")
+        print("")
+        if not(os.path.exists(APSW)):
+            print("Install-lib did not install APSW, installing from egg...")
+            for egg in glob(INTERNAL + "/apsw-*.egg"):
+                if (os.path.isfile(egg)):
+                    print("Found an egg file, extracting...")
+                    try:
+                        zip_ref = zipfile.ZipFile(egg, 'r')
+                    except BaseException:
+                        print("Egg extraction error")
+                        continue
+                    zip_ref.extractall(APSW)
+                else:
+                    print("Found an egg folder, renaming...")
+                    os.rename(egg, APSW)
+                print("Renaming apsw.py to __init__.py")
+                os.rename(
+                    os.path.join(
+                        APSW, 'apsw.py'), os.path.join(
+                        APSW, '__init__.py'))
 
 
 def build_req_wheels():
@@ -217,7 +295,7 @@ def build_req_wheels():
         for whl in get_supported_wheels(package, version):
             exitcodes = []
             whl_url = wheelhouse + whl
-            sys.stdout.write("Trying to download... '" + whl_url+"'")
+            sys.stdout.write("Trying to download... '" + whl_url + "'")
             dl_path = os.path.join('pymagnitude/req_wheels', whl)
             try:
                 urlretrieve(whl_url, dl_path)
@@ -277,17 +355,17 @@ def copy_custom_sqlite3():
             from distutils.sysconfig import get_python_lib
             site_packages = [get_python_lib()]
         for sitepack in site_packages:
-            globbed = glob(sitepack + '/pymagnitude*/')
-            try:
-                cp_to = globbed[0] + '/pymagnitude/third_party/internal/'
-            except IndexError as e:
-                print(
-                    "Site Package: '" +
-                    sitepack +
-                    "' did not have pymagnitude")
-                continue
-            print("Copying from: ", cp_from, " --> to: ", cp_to)
-            copy_tree(cp_from, cp_to)
+            for globbed in glob(sitepack + '/pymagnitude*/'):
+                try:
+                    cp_to = globbed + '/pymagnitude/third_party/internal/'
+                except IndexError as e:
+                    print(
+                        "Site Package: '" +
+                        sitepack +
+                        "' did not have pymagnitude")
+                    continue
+                print("Copying from: ", cp_from, " --> to: ", cp_to)
+                copy_tree(cp_from, cp_to)
     except Exception as e:
         print("Error copying internal pysqlite folder to site packages:")
         traceback.print_exc(e)
