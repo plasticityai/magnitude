@@ -11,6 +11,9 @@ MANIFEST
 /*.egg
 /.eggs/
 
+# Third Party Folders
+/pymagnitude/third_party/_apsw/src/sqlite3.h
+
 # Third Party Build Folders
 /pymagnitude/third_party/**/build
 /pymagnitude/third_party/internal/**/*

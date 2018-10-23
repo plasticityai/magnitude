@@ -39,6 +39,7 @@ Test Python 2:
     - wget --quiet http://magnitude.plasticity.ai/word2vec+subword/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.subword.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec+approx/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.approx.magnitude
     - apt-get install python-pip -y
+    - pip2 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
     - pip2 install -U pip setuptools
     - python2 setup.py install
     - pip install gensim
@@ -76,6 +77,7 @@ Test Python 3:
     - wget --quiet http://magnitude.plasticity.ai/word2vec/GoogleNews-vectors-negative300.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec+subword/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.subword.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec+approx/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.approx.magnitude
+    - pip3 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
     - pip3 install -U pip wheel setuptools
     - python3 setup.py install
     - pip3 install gensim

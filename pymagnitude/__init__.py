@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 import difflib
 import gc
+import http.client
 import os
 import re
 import sys
@@ -52,6 +53,11 @@ except BaseException:
     from urllib import urlretrieve
 
 try:
+    from urllib.parse import urlparse
+except BaseException:
+    from urlparse import urlparse
+
+try:
     xrange
 except NameError:
     xrange = range
@@ -72,6 +78,15 @@ try:
 except Exception as e:
     import sqlite3
     _SQLITE_LIB = 'system'
+
+# Import SQLite (APSW)
+try:
+    import pymagnitude.third_party.internal.apsw as apsw
+    db = apsw.Connection(':memory:')
+    db.close()
+    _APSW_LIB = 'internal'
+except Exception as e:
+    _APSW_LIB = 'none'
 
 DEFAULT_LRU_CACHE_SIZE = 1000
 
@@ -94,6 +109,7 @@ def _sqlite_try_max_variable_number(num):
 class Magnitude(object):
 
     SQLITE_LIB = _SQLITE_LIB
+    APSW_LIB = _APSW_LIB
     NGRAM_BEG = 1
     NGRAM_END = DEFAULT_NGRAM_END
     BOW = BOW
@@ -191,17 +207,30 @@ class Magnitude(object):
                    if provided
     """
 
-    def __init__(self, path, lazy_loading=0, blocking=False,
+    def __init__(self, path, stream=False, lazy_loading=0,
+                 blocking=False, normalized=None,
                  use_numpy=True, case_insensitive=False,
                  pad_to_length=None, truncate_left=False,
                  pad_left=False, placeholders=0, ngram_oov=True,
                  supress_warnings=False, batch_size=3000000,
-                 eager=True, language='en', dtype=np.float32,
+                 eager=None, language='en', dtype=np.float32,
                  _namespace=None, _number_of_values=1000000):
         """Initializes a new Magnitude object."""
         self.sqlite_lib = Magnitude.SQLITE_LIB
+        self.apsw_lib = Magnitude.APSW_LIB
         self.closed = False
         self.uid = str(uuid.uuid4()).replace("-", "")
+        self.stream = stream
+        if self.stream:
+            if self.apsw_lib != 'internal':
+                raise RuntimeError(
+                    """You are trying to stream a model, but the
+                    installation of  Magnitude has partially failed so this
+                    component will not work. Please try re-installing or create
+                    a GitHub issue to further debug.""")
+            self.driver = apsw
+        else:
+            self.driver = sqlite3
 
         self.fd = None
         if path is None:
@@ -209,7 +238,7 @@ class Magnitude(object):
             self.path = ":memory:"
         else:
             self.memory_db = False
-            self.path = os.path.expanduser(path)
+            self.path = os.path.expanduser(path) if not self.stream else path
         self._all_conns = []
         self.lazy_loading = lazy_loading
         self.use_numpy = use_numpy
@@ -221,7 +250,10 @@ class Magnitude(object):
         self.ngram_oov = ngram_oov
         self.supress_warnings = supress_warnings
         self.batch_size = batch_size
-        self.eager = eager
+        if eager is None:
+            self.eager = not(self.stream)
+        else:
+            self.eager = eager
         self.language = language and language.lower()
         self.dtype = dtype
         self._namespace = _namespace
@@ -258,16 +290,17 @@ class Magnitude(object):
             self.path = convert_vector_file(self.path)
 
         # If the path doesn't exist locally, try a remote download
-        if not os.path.isfile(self.path) and not self.memory_db:
+        if not self.stream and not os.path.isfile(
+                self.path) and not self.memory_db:
             self.path = MagnitudeUtils.download_model(self.path, _local=True)
 
         # Open a read-only file descriptor against the file
-        if not self.memory_db:
+        if not self.memory_db and not self.stream:
             self.fd = os.open(self.path, os.O_RDONLY)
 
         # Get metadata about the vectors
         self.length = self._db().execute(
-            "SELECT COUNT(key) FROM magnitude") \
+            "SELECT value FROM magnitude_format WHERE key='size'") \
             .fetchall()[0][0]
         version_query = self._db().execute(
             "SELECT value FROM magnitude_format WHERE key='version'") \
@@ -277,15 +310,27 @@ class Magnitude(object):
             "SELECT value FROM magnitude_format WHERE key='elmo'") \
             .fetchall()
         self.elmo = len(elmo_query) > 0 and elmo_query[0][0]
+        if normalized is None:
+            self.normalized = not(self.elmo)
+        else:
+            self.normalized = normalized
+            if not self.normalized:
+                try:
+                    self._db().execute(
+                        "SELECT magnitude FROM magnitude LIMIT 1")\
+                        .fetchall()
+                except BaseException:
+                    raise RuntimeError(
+                        """You are trying to access non-unit-normalized vectors.
+                        However, your .magnitude file version does not support
+                        this. Please re-download a newer .magnitude file for
+                        this model or re-convert it if it is a custom model.""")
         if CONVERTER_VERSION < self.version:
             raise RuntimeError(
                 """The `.magnitude` file you are using was built with a
                 newer version of Magnitude than your version of Magnitude.
                 Please update the Magnitude library as it is incompatible
                 with this particular `.magnitude` file.""")  # noqa
-        self.original_length = self._db().execute(
-            "SELECT value FROM magnitude_format WHERE key='size'") \
-            .fetchall()[0][0]
         self.emb_dim = self._db().execute(
             "SELECT value FROM magnitude_format WHERE key='dim'") \
             .fetchall()[0][0]
@@ -315,17 +360,23 @@ class Magnitude(object):
         self.highest_entropy_dimensions = [row[0] for row in self._db().execute(
             "SELECT value FROM magnitude_format WHERE key='entropy'")
             .fetchall()]
-        duplicate_keys_query = self._db().execute("""
-            SELECT MAX(key_count)
-            FROM (
-                SELECT COUNT(key)
-                AS key_count
-                FROM magnitude
-                GROUP BY key
-            );
-        """).fetchall()
-        self.max_duplicate_keys = (
-            duplicate_keys_query[0][0] if duplicate_keys_query[0][0] is not None else 1)  # noqa
+        duplicate_keys_query = self._db().execute(
+            """SELECT value FROM magnitude_format
+            WHERE key='max_duplicate_keys'""").fetchall()
+        self.max_duplicate_keys = len(
+            duplicate_keys_query) > 0 and duplicate_keys_query[0][0]
+        if len(duplicate_keys_query) == 0:
+            duplicate_keys_query = self._db().execute("""
+                SELECT MAX(key_count)
+                FROM (
+                    SELECT COUNT(key)
+                    AS key_count
+                    FROM magnitude
+                    GROUP BY key
+                );
+            """).fetchall()
+            self.max_duplicate_keys = (
+                duplicate_keys_query[0][0] if duplicate_keys_query[0][0] is not None else 1)  # noqa
 
         # Iterate to pre-load
         def _preload_memory():
@@ -409,7 +460,7 @@ class Magnitude(object):
         self._approx_index = None
         self._elmo_embedder = None
         if not self.memory_db:
-            self.db_hash = fast_md5_file(self.path)
+            self.db_hash = fast_md5_file(self.path, stream=self.stream)
         else:
             self.db_hash = self.uid
         self.md5 = hashlib.md5(",".join(
@@ -451,6 +502,19 @@ class Magnitude(object):
             InterProcessLock(self.path_to_elmo_o_mmap + '.lock')
         self.setup_for_mmap = True
 
+    def sqlite3_connect(self, *args, **kwargs):
+        """Returns a sqlite3 connection."""
+        if (self.driver == apsw):
+            if 'check_same_thread' in kwargs:
+                del kwargs['check_same_thread']
+            if self.stream:
+                httpvfs = HTTPVFS()
+                kwargs['vfs'] = httpvfs.vfsname
+                kwargs['flags'] = self.driver.SQLITE_OPEN_READONLY
+            return self.driver.Connection(*args, **kwargs)
+        else:
+            return self.driver.connect(*args, **kwargs)
+
     def _db(self, force_new=False):
         """Returns a cursor to the database. Each thread gets its
         own cursor.
@@ -460,13 +524,15 @@ class Magnitude(object):
         if not conn_exists or force_new:
             if self.fd:
                 if os.name == 'nt':
-                    conn = sqlite3.connect(self.path,
-                                           check_same_thread=False)
+                    conn = self.sqlite3_connect(self.path,
+                                                check_same_thread=False)
                 else:
-                    conn = sqlite3.connect('/dev/fd/%d' % self.fd,
-                                           check_same_thread=False)
+                    conn = self.sqlite3_connect('/dev/fd/%d' % self.fd,
+                                                check_same_thread=False)
+            elif self.stream:
+                conn = self.sqlite3_connect(self.path, check_same_thread=False)
             else:
-                conn = sqlite3.connect(self.path, check_same_thread=False)
+                conn = self.sqlite3_connect(self.path, check_same_thread=False)
                 self._create_empty_db(conn.cursor())
             self._all_conns.append(conn)
         if not conn_exists:
@@ -487,7 +553,8 @@ class Magnitude(object):
         db.execute("DROP TABLE IF EXISTS `magnitude`;")
         db.execute("""
             CREATE TABLE `magnitude` (
-                key TEXT COLLATE NOCASE
+                key TEXT COLLATE NOCASE,
+                magnitude REAL
             );
         """)
         db.execute("""
@@ -577,8 +644,11 @@ class Magnitude(object):
             return self._oov_english_stem_english_ixes(key)
         return key
 
-    def _db_query_similar_keys_vector(self, key, orig_key, topn=3):
+    def _db_query_similar_keys_vector(
+            self, key, orig_key, topn=3, normalized=None):
         """Finds similar keys in the database and gets the mean vector."""
+        normalized = normalized if normalized is not None else self.normalized
+
         def _sql_escape_single(s):
             return s.replace("'", "''")
 
@@ -696,7 +766,8 @@ class Magnitude(object):
                                          (orig_key, orig_key, topn)).fetchall()
         final_results = []
         for result in results:
-            result_key, vec = self._db_full_result_to_vec(result)
+            result_key, vec = self._db_full_result_to_vec(
+                result, normalized=normalized)
             final_results.append(vec)
         if len(final_results) > 0:
             mean_vector = np.mean(final_results, axis=0)
@@ -714,14 +785,16 @@ class Magnitude(object):
         else:
             return xxhash.xxh32(val.encode('utf-8')).intdigest()
 
-    def _out_of_vocab_vector(self, key):
+    def _out_of_vocab_vector(self, key, normalized=None):
         """Generates a random vector based on the hash of the key."""
+        normalized = normalized if normalized is not None else self.normalized
         orig_key = key
         is_str, key = self._oov_key_t(key)
         if self.elmo and is_str:
             elmo_oov = np.concatenate(self.get_elmo_embedder().embed_batch(
                 [[key]])[0], axis=1).flatten()
-            elmo_oov = elmo_oov / np.linalg.norm(elmo_oov)
+            if normalized:
+                elmo_oov = elmo_oov / np.linalg.norm(elmo_oov)
             if self.use_numpy:
                 return elmo_oov
             else:
@@ -764,7 +837,8 @@ class Magnitude(object):
                 0.3 +
                 self._db_query_similar_keys_vector(
                     key,
-                    orig_key) *
+                    orig_key,
+                    normalized=normalized) *
                 0.7)
             final_vector = final_vector / np.linalg.norm(final_vector)
         else:
@@ -787,30 +861,36 @@ class Magnitude(object):
                     ), ()):
                 yield batch
 
-    def _db_result_to_vec(self, result):
+    def _db_result_to_vec(self, result, normalized=None):
         """Converts a database result to a vector."""
+        normalized = normalized if normalized is not None else self.normalized
         if self.use_numpy:
             vec = np.zeros((self.dim,), dtype=self.dtype)
-            vec[0:self.emb_dim] = result
-            vec = vec / float(10**self.precision)
-            return vec
+            vec[0:self.emb_dim] = result[0:self.emb_dim]
+            if normalized:
+                return vec / float(10**self.precision)
+            else:
+                return vec * (float(result[-1]) / float(10**self.precision))
         else:
             return [v / float(10**self.precision) for v in result] + \
                 [0.0] * self.placeholders
 
-    def _db_full_result_to_vec(self, result, put_cache=True):
+    def _db_full_result_to_vec(self, result, put_cache=True, normalized=None):
         """Converts a full database result to a vector."""
+        normalized = normalized if normalized is not None else self.normalized
         result_key = result[0]
-        if self._query_is_cached(result_key):
-            return (result_key, self.query(result_key))
+        if self._query_is_cached(result_key, normalized):
+            return (result_key, self.query(result_key, normalized=normalized))
         else:
-            vec = self._db_result_to_vec(result[1:])
+            vec = self._db_result_to_vec(result[1:], normalized)
             if put_cache:
-                self._vector_for_key_cached._cache.put((result_key,), vec)
+                self._vector_for_key_cached._cache.put(
+                    (result_key, frozenset([('normalized', normalized)])), vec)
             return (result_key, vec)
 
-    def _vector_for_key(self, key):
+    def _vector_for_key(self, key, normalized=None):
         """Queries the database for a single key."""
+        normalized = normalized if normalized is not None else self.normalized
         result = self._db().execute(
             """
                 SELECT *
@@ -824,20 +904,22 @@ class Magnitude(object):
         else:
             return self._db_result_to_vec(result[1:])
 
-    def _vectors_for_keys(self, keys):
+    def _vectors_for_keys(self, keys, normalized=None):
         """Queries the database for multiple keys."""
+        normalized = normalized if normalized is not None else self.normalized
         if self.elmo:
             keys = [self._key_t(key) for key in keys]
             elmo_ctx = np.concatenate(self.get_elmo_embedder().embed_batch(
                 [keys])[0], axis=1)
-            elmo_ctx = norm_matrix(elmo_ctx)
+            if normalized:
+                elmo_ctx = norm_matrix(elmo_ctx)
             if self.use_numpy:
                 return elmo_ctx
             else:
                 return elmo_ctx.tolist()
 
-        unseen_keys = tuple(key for key in keys
-                            if not self._query_is_cached(key))
+        unseen_keys = tuple(
+            key for key in keys if not self._query_is_cached(key, normalized))
         unseen_keys_map = {}
         if len(unseen_keys) > 0:
             unseen_keys_map = {self._key_t(k): i for i, k in
@@ -855,7 +937,8 @@ class Magnitude(object):
                     """,
                     unseen_keys_batch)
                 for result in results:
-                    result_key, vec = self._db_full_result_to_vec(result)
+                    result_key, vec = self._db_full_result_to_vec(
+                        result, normalized=normalized)
                     result_key_t = self._key_t(result_key)
                     if result_key_t in unseen_keys_map:
                         i = unseen_keys_map[result_key_t]
@@ -870,12 +953,14 @@ class Magnitude(object):
                             seen_keys.add(result_key_t)
                             unseen_vectors[i] = vec
             for i in range(len(unseen_vectors)):
-                self._vector_for_key_cached._cache.put((unseen_keys[i],),
-                                                       unseen_vectors[i])
+                self._vector_for_key_cached._cache.put(
+                    (unseen_keys[i], frozenset([('normalized', normalized)])),
+                    unseen_vectors[i])
                 if unseen_vectors[i] is None:
-                    unseen_vectors[i] = \
-                        self._out_of_vocab_vector_cached(unseen_keys[i])
-        vectors = [self.query(key) if key not in unseen_keys_map else
+                    unseen_vectors[i] = self._out_of_vocab_vector_cached(
+                        unseen_keys[i], normalized)
+        vectors = [self.query(key, normalized=normalized)
+                   if key not in unseen_keys_map else
                    unseen_vectors[unseen_keys_map[self._key_t(key)]]
                    for key in keys]
         return vectors
@@ -897,7 +982,8 @@ class Magnitude(object):
             raise IndexError("The index %d is out-of-range" % index)
         else:
             if return_vector:
-                return self._db_full_result_to_vec(result)
+                return self._db_full_result_to_vec(
+                    result)
             else:
                 return result[0]
 
@@ -950,18 +1036,20 @@ class Magnitude(object):
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def query(self, q, pad_to_length=None,
-              pad_left=None, truncate_left=None):
+              pad_left=None, truncate_left=None,
+              normalized=None):
         """Handles a query of keys which could be a single key, a
         1-D list of keys, or a 2-D list of keys.
         """
+        normalized = normalized if normalized is not None else self.normalized
         pad_to_length = pad_to_length or self.pad_to_length
         pad_left = pad_left or self.pad_left
         truncate_left = truncate_left or self.truncate_left
 
         if not isinstance(q, list):  # Single key
-            vec = self._vector_for_key_cached(q)
+            vec = self._vector_for_key_cached(q, normalized)
             if vec is None:
-                return self._out_of_vocab_vector_cached(q)
+                return self._out_of_vocab_vector_cached(q, normalized)
             else:
                 return vec
         elif isinstance(q, list) \
@@ -969,7 +1057,7 @@ class Magnitude(object):
             pad_to_length = pad_to_length if pad_to_length else len(q)
             padding_length = max(pad_to_length - len(q), 0)
             keys_length = pad_to_length - padding_length
-            vectors = self._vectors_for_keys(q)
+            vectors = self._vectors_for_keys(q, normalized)
             if truncate_left:
                 vectors = vectors[-keys_length:]
             else:
@@ -995,7 +1083,10 @@ class Magnitude(object):
             for row, sq in enumerate(q):
                 padding_length = max(pad_to_length - len(sq), 0)
                 keys_length = pad_to_length - padding_length
-                vectors = self._vectors_for_keys(sq)
+                # TODO: if elmo pass entire 2d thing to vectors_for_keys and
+                # fill in a matrix one by one with the list result
+                vectors = self._vectors_for_keys(
+                    sq, normalized)
                 if truncate_left:
                     vectors = vectors[-keys_length:]
                 else:
@@ -1020,10 +1111,13 @@ class Magnitude(object):
             return self._key_for_index_cached(q, return_vector=return_vector)
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
-    def _query_numpy(self, key):
+    def _query_numpy(self, key, contextualize=False, normalized=None):
         """Returns the query for a key, forcibly converting the
         resulting vector to a numpy array.
         """
+        normalized = normalized if normalized is not None else self.normalized
+        if contextualize:
+            key = [[sq] for sq in key]
         key_is_ndarray = isinstance(key, np.ndarray)
         key_is_list = isinstance(key, list)
         key_len_ge_0 = key_is_list and len(key) > 0
@@ -1033,39 +1127,52 @@ class Magnitude(object):
         key_0_len_ge_0 = key_0_is_list and len(key[0]) > 0
         key_0_0_is_number = (key_0_is_list and key_0_len_ge_0 and
                              isinstance(key[0][0], Number))
+        rval = None
         if (key_is_ndarray or key_0_is_number or key_0_is_ndarray or key_0_0_is_number):  # noqa
-            return key
+            rval = key
         elif not self.use_numpy:
-            return np.asarray(self.query(key))
+            rval = np.asarray(self.query(key, normalized=normalized))
         else:
-            return self.query(key)
+            rval = self.query(key, normalized=normalized)
+        if contextualize:
+            return np.squeeze(rval, axis=1)
+        else:
+            return rval
 
-    def _query_is_cached(self, key):
+    def _query_is_cached(self, key, normalized=None):
         """Checks if the query been cached by Magnitude."""
-        return ((self._vector_for_key_cached._cache.get((key,)) is not None) or (  # noqa
-            self._out_of_vocab_vector_cached._cache.get((key,)) is not None))
+        normalized = normalized if normalized is not None else self.normalized
+        return ((self._vector_for_key_cached._cache.get((key, frozenset([('normalized', normalized)]))) is not None) or (  # noqa
+            self._out_of_vocab_vector_cached._cache.get((key, frozenset([('normalized', normalized)]))) is not None))  # noqa
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def distance(self, key, q):
         """Calculates the distance from key to the key(s) in q."""
-        a = self._query_numpy(key)
+        a = self._query_numpy(key, normalized=True)
         if not isinstance(q, list):
-            b = self._query_numpy(q)
+            b = self._query_numpy(q, normalized=True)
             return np.linalg.norm(a - b)
         else:
-            return [np.linalg.norm(a - self._query_numpy(b)) for b in q]
+            return [
+                np.linalg.norm(
+                    a -
+                    b) for b in self._query_numpy(
+                    q,
+                    contextualize=True,
+                    normalized=True)]
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def similarity(self, key, q):
         """Calculates the similarity from key to the key(s) in q."""
-        a = self._query_numpy(key)
+        a = self._query_numpy(key, normalized=True)
         if not isinstance(q, list):
-            b = self._query_numpy(q)
+            b = self._query_numpy(q, normalized=True)
             return np.inner(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
         else:
-            bs = [self._query_numpy(b) for b in q]
             return [np.inner(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-                    for b in bs]
+                    for b in self._query_numpy(q,
+                                               contextualize=True,
+                                               normalized=True)]
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def most_similar_to_given(self, key, q):
@@ -1079,10 +1186,14 @@ class Magnitude(object):
         """Given a set of keys, figures out which key doesn't
         match the rest.
         """
-        mean_vector = np.mean(self._query_numpy([[sq] for sq in q]), axis=0)
+        mean_vector = np.mean(self._query_numpy(
+            q, contextualize=True, normalized=True), axis=0)
         mean_unit_vector = mean_vector / np.linalg.norm(mean_vector)
-        distances = [np.linalg.norm(mean_unit_vector - self._query_numpy(b))
-                     for b in q]
+        distances = [
+            np.linalg.norm(
+                mean_unit_vector - b
+            )
+            for b in self._query_numpy(q, contextualize=True, normalized=True)]
         max_index, _ = max(enumerate(distances), key=operator.itemgetter(1))
         return q[max_index]
 
@@ -1111,21 +1222,33 @@ class Magnitude(object):
 
         # Find mean unit vector
         if (DISTANCE or APPROX) and (len(negative) > 0 or len(positive) > 1):
-            positive_vecs = np.sum(self._query_numpy(positive), axis=0)
+            positive_vecs = np.sum(
+                self._query_numpy(
+                    positive,
+                    contextualize=True,
+                    normalized=True),
+                axis=0)
             if len(negative) > 0:
-                negative_vecs = -1.0 * np.sum(self._query_numpy(negative),
-                                              axis=0)
+                negative_vecs = -1.0 * \
+                    np.sum(self._query_numpy(
+                        negative,
+                        contextualize=True,
+                        normalized=True),
+                        axis=0)
             else:
                 negative_vecs = np.zeros((self.dim,), dtype=self.dtype)
             mean_vector = (positive_vecs + negative_vecs) / \
                 float(len(positive) + len(negative))
             mean_unit_vector = mean_vector / np.linalg.norm(mean_vector)
         elif (DISTANCE or APPROX):
-            mean_unit_vector = self._query_numpy(positive[0])
+            mean_unit_vector = self._query_numpy(
+                positive[0], normalized=True)
         elif COSMUL:
-            positive_vecs = self._query_numpy(positive)
+            positive_vecs = self._query_numpy(
+                positive, contextualize=True, normalized=True)
             if len(negative) > 0:
-                negative_vecs = self._query_numpy(negative)
+                negative_vecs = self._query_numpy(
+                    negative, contextualize=True, normalized=True)
             else:
                 negative_vecs = np.zeros((0, self.dim))
 
@@ -1528,8 +1651,7 @@ build the appropriate indexes into the `.magnitude` file.")
                     FROM `magnitude`
                 """)
             for result in results:
-                yield self._db_full_result_to_vec(result,
-                                                  put_cache=put_cache)
+                yield self._db_full_result_to_vec(result, put_cache=put_cache)
                 if self.closed:
                     return
         except Exception as e:
@@ -1679,7 +1801,8 @@ class ConcatenatedMagnitude(object):
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def query(self, q, pad_to_length=None,
-              pad_left=None, truncate_left=None):
+              pad_left=None, truncate_left=None,
+              normalized=None):
         """Handles a query of keys which could be a single key, a
         1-D list of keys, or a 2-D list of keys.
         """
@@ -1700,8 +1823,10 @@ class ConcatenatedMagnitude(object):
         truncate_left = truncate_left or self.magnitudes[0].truncate_left
 
         # Query each model with the right set of keys
-        v = [m.query(self._take(q, multikey, i)) for i, m in enumerate(
-            self.magnitudes)]
+        v = [m.query(self._take(q, multikey, i), normalized=(
+            normalized if normalized is not None else m.normalized
+        ))
+            for i, m in enumerate(self.magnitudes)]
 
         if not isinstance(q, list):  # Single key
             return self._hstack(v, self.use_numpy)
@@ -1846,3 +1971,223 @@ class MagnitudeUtils(object):
     def from_categorical(categorical):
         """Converts a binary class matrix to a class vector (integers)"""
         return np.argmax(categorical, axis=1)
+
+
+if _APSW_LIB == 'internal':
+    class NetworkCache():
+        """ This cache sort of acts like a predictor for sequential
+            network reads. It proactively pulls in a more data than
+            requested from the network if it sees a pattern of sequential
+            reads. The amount of data predictively pulled is
+            adjusts based on the last few true sequential reads.
+        """
+
+        def __init__(self, vfsfile):
+            self.vfsfile = vfsfile
+            self.caches = self.vfsfile.caches
+            self._start_offset = 0
+            self.data = "".encode('utf-8')
+
+        def get_cache(self, offset):
+            """Checks if a cache exists for the data offset"""
+            if offset in self.caches:
+                return self.caches[offset]
+            else:
+                return None
+
+        def write_data(self, data, amount, offset, clear=-1):
+            """Writes data fetched to the network cache and
+            returns only the amount requested back."""
+            # Writes the entire data fetched to the cache
+
+            # Uses itself as a cache object
+            self.data = data
+            self._start_offset = offset
+            self.caches.clear()
+
+            # Setup the cache dictionary to make the offset
+            # requested point to itself
+            self.caches[offset] = self
+            if clear != offset:
+                self.vfsfile.running_hit_amount = 0
+            return self.read_data(amount, offset)
+
+        def read_data(self, amount, offset):
+            """Reads data from the network cache and
+            returns only the amount requested back or
+            None if there is a cache miss."""
+            cache = self.get_cache(offset)
+            if cache:
+                # If a cache exists for the data offset, calculate the cache
+                # data range
+                start = offset - cache._start_offset
+                end = start + amount
+                if len(cache.data) >= end:
+                    # If cache data satisfies the full request,
+                    # gather the data and point the cache dictionary
+                    # to the next offset
+                    data = cache.data[start:end]
+                    del self.caches[offset]
+                    self.caches[offset + amount] = cache
+
+                    # Keep track of the latest sequential reads and calculate
+                    # the ideal amount predictively read
+                    self.vfsfile.running_hit_amount += amount
+                    if self.vfsfile.running_hit_amount < self.vfsfile.last_running_hit_amount:  # noqa
+                        self.vfsfile.hit_amount_window_index = (self.vfsfile.hit_amount_window_index + 1) % self.vfsfile.hit_amount_window_size  # noqa
+                        self.vfsfile.hit_amount_window[self.vfsfile.hit_amount_window_index] = self.vfsfile.last_running_hit_amount  # noqa
+                        self.vfsfile.ideal_running_hit_amount = max(self.vfsfile.hit_amount_window + [self.vfsfile.default_cache_amount])  # noqa
+
+                        # Adjust the cache amount for the next read
+                        self.vfsfile.cache_amount = self.vfsfile.ideal_running_hit_amount  # noqa
+
+                    return data
+
+    class HTTPVFSFile(apsw.VFSFile):
+        """ This acts as the representation of a single file on
+            the HTTP virtual file system.
+        """
+
+        def __init__(self, inheritfromvfsname, name, flags, caches):
+            # Initialization
+            self.length = 99999999999999999
+            self.name = name
+            self.url = self.name.filename()
+            url_cis = self.url.lower()
+            try:
+                self.url = self.url[url_cis.index('http://'):]
+                self.parsed_url = urlparse(self.url)
+                self._prepare_connection()
+            except BaseException:
+                try:
+                    self.url = self.url[url_cis.index('https://'):]
+                    self.parsed_url = urlparse(self.url)
+                    self._prepare_connection()
+                except BaseException:
+                    pass
+
+            # Configuration for retrying a network connection
+            self.tries = 1
+            self.try_delay = 10
+
+            # Cache configuration
+            self.caches = caches
+            self.default_cache_amount = 4096 * 2
+            self.cache_amount = self.default_cache_amount
+            self.cache_keys = []
+            self.data_cache = {}
+            self.last_offset = -1
+            self.last_amount = -1
+
+            # State to keep tracking adjusting the predictive network cache
+            # window
+            self.last_running_hit_amount = 0
+            self.running_hit_amount = 0
+            self.ideal_running_hit_amount = 4096
+            self.hit_amount_window_size = 3
+            self.hit_amount_window = [0] * self.hit_amount_window_size
+            self.hit_amount_window_index = -1
+
+            # Prepare the VFS
+            apsw.VFSFile.__init__(self, inheritfromvfsname, os.devnull, flags)
+
+        def _prepare_connection(self):
+            """Creates an HTTP connection"""
+            if self.parsed_url.scheme.lower() == 'http':
+                self.conn = http.client.HTTPConnection(self.parsed_url.netloc)
+            else:
+                self.conn = http.client.HTTPSConnection(self.parsed_url.netloc)
+
+        def _network_error(self, e, i):
+            """Handles an network error"""
+            if i + 1 >= self.tries:
+                raise RuntimeError(
+                    "Could not reach the server at: '" + self.url + "'")
+            else:
+                self._prepare_connection()
+                if i > 2:
+                    sleep(self.try_delay)
+
+        def xRead(self, amount, offset):  # noqa: N802
+            """Intercepts SQLite's file read command"""
+            for i in range(self.tries):
+                try:
+                    # Try to see if we have already read the data
+                    # and cached it
+                    cache = NetworkCache(self)
+                    data = cache.read_data(amount, offset)
+                    if data is None:
+                        print("READING", self.cache_amount)
+                        # Fire off a network request with the range of bytes
+                        # (potentially predicatively reading a larger amount
+                        # and storing it in the network cache)
+                        headers = {
+                            'Range': "bytes=" + str(offset) + "-" + str(
+                                min((offset + self.cache_amount) - 1, self.length)  # noqa
+                            ),
+                        }
+                        self.conn.request(
+                            "GET", self.parsed_url.path, headers=headers)
+                        res = self.conn.getresponse()
+                        if not(res.status >= 200 and res.status <= 299):
+                            # Check for a valid status from the server
+                            raise RuntimeError(
+                                "HTTP Status Code Error from Server")
+                        data = res.read()
+                        # Store the extra data fetched back in the network cache
+                        data = cache.write_data(
+                            data, amount, offset, self.last_offset + self.last_amount)  # noqa
+                    # Save some state about the last read
+                    self.last_offset = offset
+                    self.last_amount = amount
+                    self.last_running_hit_amount = self.running_hit_amount
+                    print(
+                        "xRead",
+                        self.parsed_url,
+                        amount,
+                        offset,
+                        len(data) if data else None)
+                    # Return the data to SQLite
+                    return data
+                except BaseException as e:
+                    # Handle a network error
+                    self._network_error(e, i)
+
+        def xWrite(self, data, offset):  # noqa: N802
+            """Intercepts SQLite's file write command"""
+            # Can't write to an HTTP server, ignore
+            pass
+
+        def xFileSize(self):  # noqa: N802
+            """Intercepts SQLite's file size command"""
+            for i in range(self.tries):
+                try:
+                    # Fire of a content-length request to the server
+                    self.conn.request("GET", self.parsed_url.path)
+                    res = self.conn.getresponse()
+                    self.tries = 10
+                    self.length = int(res.getheader('content-length'))
+                    return self.length
+                except BaseException as e:
+                    # Handle a network error
+                    self._network_error(e, i)
+
+    class HTTPVFS(apsw.VFS):
+        """ This acts as the representation of a filesystem that
+            proxies to HTTP requests so that SQLite can connect
+            to HTTP URLs.
+        """
+
+        def __init__(self, vfsname="http", basevfs=""):
+            self.vfsname = vfsname
+            self.basevfs = basevfs
+            self.caches = {}
+            apsw.VFS.__init__(self, self.vfsname, self.basevfs)
+
+        def xOpen(self, name, flags):  # noqa: N802
+            """Intercepts SQLite's file open command"""
+            flags[1] = flags[1] | apsw.SQLITE_OPEN_READONLY
+            if flags[0] & apsw.SQLITE_OPEN_MAIN_DB:
+                return HTTPVFSFile(self.basevfs, name, flags, self.caches)
+            else:
+                return None

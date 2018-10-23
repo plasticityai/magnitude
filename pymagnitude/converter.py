@@ -285,6 +285,7 @@ def convert(input_file_path, output_file_path=None,
             key TEXT COLLATE NOCASE,
             """ +
                ",\n".join([("dim_%d INTEGER" % i) for i in range(dimensions)]) +
+               ",\nmagnitude REAL" +
                """
         );
     """)
@@ -330,11 +331,12 @@ def convert(input_file_path, output_file_path=None,
         INSERT INTO `magnitude`(
             key,
             """ + \
-        ",\n".join([("dim_%d" % i) for i in range(dimensions)]) \
+        ",\n".join([("dim_%d" % i) for i in range(dimensions)]) + \
+        ",\nmagnitude" \
         + """)
         VALUES (
             """ + \
-        (",\n".join(["?"] * (dimensions + 1))) \
+        (",\n".join(["?"] * (dimensions + 2))) \
         + """
         );
     """
@@ -359,14 +361,16 @@ def convert(input_file_path, output_file_path=None,
         if i % 100000 == 0:
             db.execute("COMMIT;")
             db.execute("BEGIN;")
-        vector = vector / np.linalg.norm(vector)
+        magnitude = np.linalg.norm(vector)
+        vector = vector / magnitude
         epsilon = np.random.choice(
             [-1.0 / (10**precision), 1.0 / (10**precision)], dimensions)
         vector = epsilon if np.isnan(vector).any() else vector
         for d, v in enumerate(vector):
             counters[d][int(v * 100)] += 1
+        print(type(magnitude))
         db.execute(insert_query, (key,) + tuple(int(round(v * (10**precision)))
-                                                for v in vector))
+                                                for v in vector) + (float(magnitude),))  # noqa
         if subword:
             ngrams = set(
                 (n.lower() for n in char_ngrams(
@@ -495,6 +499,24 @@ def convert(input_file_path, output_file_path=None,
         eprint("Cleaning up temporary files...")
         for file_to_remove in files_to_remove:
             try_deleting(file_to_remove)
+
+    # Calculate max duplicate keys
+    eprint("Finding duplicate keys... (this may take some time)")
+    duplicate_keys_query = db.execute("""
+        SELECT MAX(key_count)
+        FROM (
+            SELECT COUNT(key)
+            AS key_count
+            FROM magnitude
+            GROUP BY key
+        );
+    """).fetchall()
+    max_duplicate_keys = (
+        duplicate_keys_query[0][0] if duplicate_keys_query[0][0] is not None else 1)  # noqa
+    eprint(
+        "Found %d as the maximum number of duplicate key(s)" %
+        max_duplicate_keys)
+    db.execute(insert_format_query, ('max_duplicate_keys', max_duplicate_keys))
 
     # VACUUM
     eprint("Vacuuming to save space... (this may take some time)")
