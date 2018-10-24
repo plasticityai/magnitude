@@ -368,7 +368,6 @@ def convert(input_file_path, output_file_path=None,
         vector = epsilon if np.isnan(vector).any() else vector
         for d, v in enumerate(vector):
             counters[d][int(v * 100)] += 1
-        print(type(magnitude))
         db.execute(insert_query, (key,) + tuple(int(round(v * (10**precision)))
                                                 for v in vector) + (float(magnitude),))  # noqa
         if subword:
