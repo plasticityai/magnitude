@@ -75,7 +75,7 @@ try:
     db = sqlite3.connect(':memory:')
     db.close()
     _SQLITE_LIB = 'internal'
-except Exception as e:
+except Exception:
     import sqlite3
     _SQLITE_LIB = 'system'
 
@@ -85,7 +85,7 @@ try:
     db = apsw.Connection(':memory:')
     db.close()
     _APSW_LIB = 'internal'
-except Exception as e:
+except Exception:
     _APSW_LIB = 'none'
 
 DEFAULT_LRU_CACHE_SIZE = 1000
