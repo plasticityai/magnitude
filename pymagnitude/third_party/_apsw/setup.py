@@ -607,7 +607,7 @@ class apsw_build_ext(beparent):
                 ext.library_dirs.append(d)
             else:
                 write("SQLite: Using system sqlite include/libraries")
-            ext.libraries.append('sqlite3')
+            # ext.libraries.append('sqlite3') PLASTICITY
 
         s3config=os.path.join(os.path.dirname(os.path.abspath(__file__)), "sqlite3", "sqlite3config.h")
         if os.path.exists(s3config):
