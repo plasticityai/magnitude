@@ -25,6 +25,7 @@ def _clear_mmap():
 
 
 class MagnitudeTest(unittest.TestCase):
+    ELMO_PATH = "elmo.magnitude"
     MAGNITUDE_PATH = ""
     MAGNITUDE_SUBWORD_PATH = ""
     MAGNITUDE_APPROX_PATH = ""
@@ -32,6 +33,9 @@ class MagnitudeTest(unittest.TestCase):
     def setUp(self):
         self.vectors = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
                                  case_insensitive=True, eager=True)
+        self.vectors_un = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
+                                    case_insensitive=True, eager=False,
+                                    normalized=False)
         self.vectors_cs = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
                                     case_insensitive=False, eager=False)
         self.vectors_batch = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
@@ -43,6 +47,12 @@ class MagnitudeTest(unittest.TestCase):
                                         case_insensitive=True, eager=False)
         self.tmp_vectors = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
                                      case_insensitive=True, eager=False)
+        try:
+            self.vectors_elmo = Magnitude(MagnitudeTest.ELMO_PATH,
+                                          case_insensitive=True, eager=False,
+                                          normalized=False)
+        except BaseException:
+            pass
         self.concat_1 = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
                                   case_insensitive=True, eager=False)
         self.concat_2 = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
@@ -339,6 +349,12 @@ class MagnitudeTest(unittest.TestCase):
         self.vectors_oov_1.close()
         self.vectors_oov_2.close()
 
+    def test_oov_unnorm(self):
+        self.assertTrue(isclose(self.vectors.query("*<<<<")[0],
+                                self.vectors_un.query("*<<<<")[0]))
+        self.assertTrue(isclose(self.vectors.query("uberx")[0],
+                                self.vectors_un.query("uberx")[0]))
+
     def test_oov_subword_values(self):
         self.vectors_oov_1 = Magnitude(
             MagnitudeTest.MAGNITUDE_SUBWORD_PATH,
@@ -584,6 +600,27 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(isclose(result[1][4], self.v['mall']).all())
         return result
 
+    def test_unnorm(self):
+        q = "School"
+        result = self.vectors_un.query(q)
+        result_2 = self.vectors.query(q)
+        self.assertTrue(isclose(result[0], 0.01141345).all())
+        result_2 = self.vectors_un.query(q)
+        self.assertTrue(isclose(result, result_2).all())
+        q = ["I", "saw", "a", "cat"]
+        result = self.vectors_un.query(q)
+        result_2 = self.vectors.query(q)
+        self.assertTrue(isclose(result[0][0], 0.07910153).all())
+        result_2 = self.vectors_un.query(q)
+        self.assertTrue(isclose(result, result_2).all())
+        q = [["He", "went", "to", "the", "mall"], ["I", "saw", "a", "cat"]]
+        result = self.vectors_un.query(q)
+        result_2 = self.vectors.query(q)
+        self.assertTrue(isclose(result[0][0][0], -0.03808582).all())
+        self.assertTrue(isclose(result[1][0][0], 0.07910153).all())
+        result_2 = self.vectors_un.query(q)
+        self.assertTrue(isclose(result, result_2).all())
+
     def test_pad_to_length_right_truncate_none(self):
         q = [["I", "saw", "a", "cat"], ["He", "went", "to", "the", "mall"]]
         result = self.vectors.query(q, pad_to_length=6)
@@ -771,11 +808,71 @@ class MagnitudeTest(unittest.TestCase):
         self.assertEqual(self.vectors.doesnt_match(
             ["breakfast", "lunch", "dinner", "cereal"]), "cereal")
 
+    def test_distance_unnorm(self):
+        self.assertTrue(isclose(self.vectors_un.distance("cat", "dog"),
+                                2.0815337))
+
+    def test_distance_multiple_unnorm(self):
+        self.assertTrue(
+            isclose(
+                self.vectors_un.distance(
+                    "cat", [
+                        "cats", "dog"]), [
+                    1.8781065, 2.0815337]).all())
+
+    def test_similarity_unnorm(self):
+        self.assertTrue(isclose(self.vectors_un.similarity("cat", "dog"),
+                                0.7609457089782209))
+
+    def test_similarity_multiple_unnorm(self):
+        self.assertTrue(
+            isclose(
+                self.vectors_un.similarity(
+                    "cat", [
+                        "cats", "dog"]), [
+                    0.8099378824686305, 0.7609457089782209]).all())
+
+    def test_most_similar_to_given_unnorm(self):
+        self.assertEqual(self.vectors_un.most_similar_to_given(
+            "cat", ["dog", "television", "laptop"]), "dog")
+        self.assertEqual(self.vectors_un.most_similar_to_given(
+            "cat", ["television", "dog", "laptop"]), "dog")
+        self.assertEqual(self.vectors_un.most_similar_to_given(
+            "cat", ["television", "laptop", "dog"]), "dog")
+
+    def test_doesnt_match_unnorm(self):
+        self.assertEqual(self.vectors_un.doesnt_match(
+            ["breakfast", "cereal", "lunch", "dinner"]), "cereal")
+        self.assertEqual(self.vectors_un.doesnt_match(
+            ["breakfast", "lunch", "cereal", "dinner"]), "cereal")
+        self.assertEqual(self.vectors_un.doesnt_match(
+            ["breakfast", "lunch", "dinner", "cereal"]), "cereal")
+
     def test_most_similar_case_insensitive(self):
         keys = [s[0] for s in self.vectors.most_similar("queen",
                                                         topn=5)]
         similarities = [s[1] for s in self.vectors.most_similar("queen",
                                                                 topn=5)]
+        self.assertTrue(isclose(asarray(similarities),
+                                asarray([0.7399442791938782,
+                                         0.7070531845092773,
+                                         0.6510956287384033,
+                                         0.6383601427078247,
+                                         0.6357027292251587
+                                         ]), atol=.02).all())
+        self.assertEqual(keys,
+                         [u'queens',
+                          u'princess',
+                          u'king',
+                          u'monarch',
+                          u'very_pampered_McElhatton'
+                          ])
+
+    def test_most_similar_case_insensitive_unnorm(self):
+        keys = [s[0] for s in self.vectors_un.most_similar("queen",
+                                                           topn=5)]
+        similarities = [s[1] for s in self.vectors_un.most_similar("queen",
+                                                                   topn=5)]
         self.assertTrue(isclose(asarray(similarities),
                                 asarray([0.7399442791938782,
                                          0.7070531845092773,
@@ -1072,6 +1169,37 @@ class MagnitudeTest(unittest.TestCase):
         os.system("rm -rf ~/.magnitude")
         self.remote_vectors = Magnitude('test/nonexistent.magnitude')
         self.assertTrue(len(self.remote_vectors) > 0)
+
+    def test_stream(self):
+        self.stream_vectors = Magnitude('http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude', stream=True)  # noqa
+        for _ in range(2):
+            for i, (k, v) in enumerate(self.stream_vectors):
+                if i > 1000:
+                    break
+                k2, v2 = self.vectors[i]
+                self.assertEqual(k, k2)
+                self.assertTrue(isclose(v[0], v2[0]))
+
+    def test_elmo(self):
+        self.assertEqual(len(self.vectors_elmo), 5)
+        self.assertEqual(self.vectors_elmo.dim, 768)
+        self.assertTrue(isclose(self.vectors_elmo.query("the")[0], 0.09842498))
+        self.assertTrue(isclose(self.vectors_elmo.query("uberx")[0], 0.1594867))
+        q = ["I", "saw", "a", "cat"]
+        self.assertEqual(self.vectors_elmo.query(q).shape, (4, 768))
+        self.assertTrue(isclose(self.vectors_elmo.query(q)[0][0], -0.12764566))
+        self.assertTrue(isclose(self.vectors_elmo.query(q)[3][0], -0.582507))
+        q = [["I", "saw", "a", "cat"], ["He", "went", "to", "the", "mall"]]
+        self.assertEqual(self.vectors_elmo.query(q).shape, (2, 5, 768))
+        self.assertTrue(isclose(self.vectors_elmo.query(q)[0][0][0],
+                                -0.12764566))
+        self.assertTrue(isclose(self.vectors_elmo.query(q)[0][3][0],
+                                -0.582507))
+        self.assertTrue(isclose(self.vectors_elmo.query(q)[0][4][0], 0))
+        self.assertTrue(isclose(self.vectors_elmo.query(q)[1][0][0],
+                                0.09789153))
+        self.assertTrue(isclose(self.vectors_elmo.query(q)[1][4][0],
+                                0.005302878))
 
     def test_batchify(self):
         X = [0, 1, 2, 3, 4, 5]  # noqa: N806
