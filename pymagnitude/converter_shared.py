@@ -73,3 +73,15 @@ def ibatch(iterable, size):
     while True:
         batchiter = islice(sourceiter, size)
         yield chain([next(batchiter)], batchiter)
+
+
+class KeyList(object):
+    def __init__(self, ls, key):
+        self.ls = ls
+        self.key = key
+
+    def __len__(self):
+        return len(self.ls)
+
+    def __getitem__(self, index):
+        return self.key(self.ls[index])

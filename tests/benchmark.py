@@ -209,10 +209,13 @@ def create_gensim():
 
 
 def create_magnitude(case_insensitive=True, eager=False, **kwargs):
+    stream = True if (
+        'http://' in MAGNITUDE_PATH or 'https://' in MAGNITUDE_PATH) else False
     vectors = Magnitude(
         MAGNITUDE_PATH,
         case_insensitive=case_insensitive,
         eager=eager,
+        stream=stream,
         **kwargs)
     return vectors
 

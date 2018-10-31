@@ -5,6 +5,12 @@ from abc import ABCMeta
 import threading
 import time
 import uuid
+import inspect
+
+try:
+    from itertools import izip
+except ImportError:
+    izip = zip
 
 
 _MARKER = object()
@@ -319,7 +325,9 @@ class lru_cache(object):
                  maxsize,
                  cache=None, # cache is an arg to serve tests
                  timeout=None,
-                 ignore_unhashable_args=False):
+                 ignore_unhashable_args=False,
+                 real_func=None,
+                 remove_self=False):
         if cache is None:
             if maxsize is None:
                 cache = UnboundedCache()
@@ -327,6 +335,8 @@ class lru_cache(object):
                 cache = LRUCache(maxsize)
             else:
                 cache = ExpiringLRUCache(maxsize, default_timeout=timeout)
+        self.real_func = real_func
+        self.remove_self = remove_self
         self.cache = cache
         self._ignore_unhashable_args = ignore_unhashable_args
 
@@ -339,7 +349,33 @@ class lru_cache(object):
                 return tuple(tuple(x) if isinstance(x, list) else x 
                     for x in list_of_lists)
 
+            def get_default_args(remove_self, func, rargs, kwargs):
+                """
+                returns a dictionary of arg_name:default_values for the input function
+                """
+                if hasattr(inspect, 'getfullargspec'):
+                    argspec = inspect.getfullargspec(func)
+                    args = argspec.args
+                    defaults = argspec.defaults
+                else:
+                    args, _, _, defaults = inspect.getargspec(func)
+                args = args or []
+                defaults = defaults or []
+                if remove_self:
+                    args = args[1:]
+
+                if defaults is not None:
+                    ddict = dict(zip(args[-len(defaults):], defaults))
+                    new_kwargs = dict(zip(args[-len(defaults):], rargs[len(args)-len(defaults):]))
+                    ddict.update(new_kwargs)
+                    ddict.update(kwargs)
+                else:
+                    ddict = dict()
+                new_rargs = rargs[:len(args)-len(defaults)]
+                return new_rargs, ddict 
+
             try:
+                args, kwargs = get_default_args(self.remove_self, self.real_func or func, args, kwargs)
                 args_t = tuple(list_to_tuple(arg) if isinstance(arg, list) else arg for arg in args)
                 kwargs_t = frozenset(((kwarg[0], list_to_tuple(kwarg[1])) if isinstance(kwarg[1], list) else kwarg for kwarg in kwargs.items()))
                 key = (args_t, kwargs_t) if kwargs else args_t
