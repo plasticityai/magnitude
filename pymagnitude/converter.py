@@ -263,10 +263,22 @@ def convert(input_file_path, output_file_path=None,
     eprint("Found %d key(s)" % number_of_keys)
     eprint("Each vector has %d dimension(s)" % dimensions)
 
-    # Connect to magnitude datastore
+    # Delete files if they exist
     try_deleting(output_file_path)
     try_deleting(output_file_path + "-shm")
     try_deleting(output_file_path + "-wal")
+
+    # Temporarily re-direct the output to a tmp file
+    output_file_path_tmp = output_file_path + '.tmp'
+    output_file_path_orig = output_file_path
+    output_file_path = output_file_path_tmp
+
+    # Delete files if they exist
+    try_deleting(output_file_path)
+    try_deleting(output_file_path + "-shm")
+    try_deleting(output_file_path + "-wal")
+
+    # Connect to magnitude datastore
     conn = sqlite3.connect(output_file_path)
     db = conn.cursor()
 
@@ -538,6 +550,10 @@ def convert(input_file_path, output_file_path=None,
         eprint("Cleaning up temporary files...")
         for file_to_remove in files_to_remove:
             try_deleting(file_to_remove)
+
+    # Rename file the temporary output to the real output
+    os.rename(output_file_path, output_file_path_orig)
+    output_file_path = output_file_path_orig
 
     # Print success
     eprint("Successfully converted '%s' to '%s'!" %

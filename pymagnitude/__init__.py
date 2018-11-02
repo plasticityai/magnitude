@@ -35,6 +35,7 @@ from pymagnitude.converter_shared import CONVERTER_VERSION
 from pymagnitude.converter_shared import fast_md5_file
 from pymagnitude.converter_shared import char_ngrams
 from pymagnitude.converter_shared import norm_matrix
+from pymagnitude.converter_shared import unroll_elmo
 from pymagnitude.converter_shared import KeyList
 from pymagnitude.third_party.repoze.lru import lru_cache
 
@@ -244,7 +245,11 @@ class Magnitude(object):
                     component will not work. Please try re-installing or create
                     a GitHub issue to further debug.""")
             self.driver = apsw
-            self.httpvfs = HTTPVFS()
+            self.http_vfs = HTTPVFS()
+            self.http_download_vfs = HTTPVFS(vfsname='http_download', options={
+                # 'trace_log': True,
+                # 'sequential_cache_max_read': 500 * (1024 * 1024),
+            })
         else:
             self.driver = sqlite3
 
@@ -310,7 +315,8 @@ class Magnitude(object):
         # If the path doesn't exist locally, try a remote download
         if not self.stream and not os.path.isfile(
                 self.path) and not self.memory_db:
-            self.path = MagnitudeUtils.download_model(self.path, _local=True)
+            self.path = MagnitudeUtils.download_model(
+                self.path, log=self.log, _local=True)
 
         # Open a read-only file descriptor against the file
         if not self.memory_db and not self.stream:
@@ -399,7 +405,7 @@ class Magnitude(object):
         # Iterate to pre-load
         def _preload_memory():
             if not self.eager:  # So that it doesn't loop over the vectors twice
-                for key, vector in self._iter(put_cache=True):
+                for key, vector in self._iter(put_cache=True, downloader=True):
                     pass
 
         # Start creating mmap in background
@@ -533,19 +539,22 @@ class Magnitude(object):
             InterProcessLock(self.path_to_elmo_o_mmap + '.lock')
         self.setup_for_mmap = True
 
-    def sqlite3_connect(self, *args, **kwargs):
+    def sqlite3_connect(self, downloader, *args, **kwargs):
         """Returns a sqlite3 connection."""
-        if (self.driver == apsw):
+        if (self.driver != sqlite3):
             if 'check_same_thread' in kwargs:
                 del kwargs['check_same_thread']
             if self.stream:
-                kwargs['vfs'] = self.httpvfs.vfsname
+                if downloader:
+                    kwargs['vfs'] = self.http_download_vfs.vfsname
+                else:
+                    kwargs['vfs'] = self.http_vfs.vfsname
                 kwargs['flags'] = self.driver.SQLITE_OPEN_READONLY
             return self.driver.Connection(*args, **kwargs)
         else:
             return self.driver.connect(*args, **kwargs)
 
-    def _db(self, force_new=False):
+    def _db(self, force_new=False, downloader=False):
         """Returns a cursor to the database. Each thread gets its
         own cursor.
         """
@@ -554,15 +563,18 @@ class Magnitude(object):
         if not conn_exists or force_new:
             if self.fd:
                 if os.name == 'nt':
-                    conn = self.sqlite3_connect(self.path,
+                    conn = self.sqlite3_connect(downloader, self.path,
                                                 check_same_thread=False)
                 else:
-                    conn = self.sqlite3_connect('/dev/fd/%d' % self.fd,
+                    conn = self.sqlite3_connect(downloader,
+                                                '/dev/fd/%d' % self.fd,
                                                 check_same_thread=False)
             elif self.stream:
-                conn = self.sqlite3_connect(self.path, check_same_thread=False)
+                conn = self.sqlite3_connect(downloader,
+                                            self.path, check_same_thread=False)
             else:
-                conn = self.sqlite3_connect(self.path, check_same_thread=False)
+                conn = self.sqlite3_connect(downloader,
+                                            self.path, check_same_thread=False)
                 self._create_empty_db(conn.cursor())
             self._all_conns.append(conn)
         if not conn_exists:
@@ -898,18 +910,19 @@ class Magnitude(object):
             vec = np.zeros((self.dim,), dtype=self.dtype)
             vec[0:self.emb_dim] = result[0:self.emb_dim]
             if normalized:
-                return vec / float(10**self.precision)
+                rv = vec / float(10**self.precision)
             else:
-                return vec * (float(result[-1]) / float(10**self.precision))
+                rv = vec * (float(result[-1]) / float(10**self.precision))
         else:
             if normalized:
-                return [v / float(10**self.precision)
-                        for v in islice(result, self.emb_dim)] + \
+                rv = [v / float(10**self.precision)
+                      for v in islice(result, self.emb_dim)] + \
                     [0.0] * self.placeholders
             else:
-                return [v * (float(result[-1]) / float(10**self.precision))
-                        for v in islice(result, self.emb_dim)] + \
+                rv = [v * (float(result[-1]) / float(10**self.precision))
+                      for v in islice(result, self.emb_dim)] + \
                     [0.0] * self.placeholders
+        return rv
 
     def _db_full_result_to_vec(self, result, put_cache=True, normalized=None):
         """Converts a full database result to a vector."""
@@ -1135,6 +1148,14 @@ class Magnitude(object):
                     else:
                         tensor[row][0:keys_length] = vectors
             return tensor
+
+    def unroll(self, v):
+        """ Unrolls a vector if it was concatenated from its base model
+        form. """
+        if self.elmo and isinstance(v, np.ndarray):
+            return unroll_elmo(v)
+        else:
+            return v
 
     def index(self, q, return_vector=True):
         """Gets a key for an index or multiple indices."""
@@ -1482,7 +1503,7 @@ build the appropriate indexes into the `.magnitude` file.")
                 if not self.setup_for_mmap:
                     self._setup_for_mmap()
                 try:
-                    if not self.memory_db:
+                    if not self.memory_db and self.length > 0:
                         all_vectors = np.memmap(
                             self.path_to_mmap, dtype=self.dtype, mode='r',
                             shape=(self.length, self.dim))
@@ -1522,7 +1543,10 @@ build the appropriate indexes into the `.magnitude` file.")
                                               file=sys.stderr)
                                     all_vectors[i] = value
                                 all_vectors.flush()
-                                del all_vectors
+                                try:
+                                    del all_vectors
+                                except BaseException:
+                                    pass
                             if not self.closed:
                                 os.rename(path_to_mmap_temp, self.path_to_mmap)
                             else:
@@ -1558,7 +1582,7 @@ build the appropriate indexes into the `.magnitude` file.")
         """Gets decompressed chunks of the AnnoyIndex of the vectors from
         the database."""
         try:
-            db = self._db(force_new=True)
+            db = self._db(force_new=True, downloader=True)
             num_chunks = db.execute(
                 """
                     SELECT COUNT(rowid)
@@ -1586,7 +1610,7 @@ build the appropriate indexes into the `.magnitude` file.")
         """Gets decompressed chunks of a meta file embedded in
         the database."""
         try:
-            db = self._db(force_new=True)
+            db = self._db(force_new=True, downloader=True)
             num_chunks = db.execute(
                 """
                     SELECT COUNT(rowid)
@@ -1735,10 +1759,10 @@ build the appropriate indexes into the `.magnitude` file.")
                 sleep(1)  # Block before trying again
         return self._elmo_embedder
 
-    def _iter(self, put_cache):
+    def _iter(self, put_cache, downloader=False):
         """Yields keys and vectors for all vectors in the store."""
         try:
-            db = self._db(force_new=True)
+            db = self._db(force_new=True, downloader=downloader)
             results = db.execute(
                 """
                     SELECT *
@@ -1948,6 +1972,8 @@ class MagnitudeUtils(object):
             model,
             download_dir=os.path.expanduser('~/.magnitude/'),
             remote_path='http://magnitude.plasticity.ai/',
+            log=False,
+            _download=True,
             _local=False):
         """ Downloads a remote Magnitude model locally (if it doesn't already
         exist) and synchronously returns the local file path once it has
@@ -1968,6 +1994,14 @@ class MagnitudeUtils(object):
         if not remote_path.endswith('/') and len(remote_path) > 0:
             remote_path = remote_path + '/'
 
+        # Local download
+        local_file_name = model.replace('/', '_') + '.magnitude'
+        local_file_name_tmp = model.replace('/', '_') + '.magnitude.tmp'
+        remote_file_path = remote_path + model + '.magnitude'
+
+        if not _download:
+            return remote_file_path
+
         # Make the download directories
         try:
             os.makedirs(download_dir)
@@ -1975,13 +2009,15 @@ class MagnitudeUtils(object):
             if not os.path.isdir(download_dir):
                 raise RuntimeError("The download folder is not a folder.")
 
-        # Local download
-        local_file_name = model.replace('/', '_') + '.magnitude'
-        local_file_name_tmp = model.replace('/', '_') + '.magnitude.tmp'
-        remote_file_path = remote_path + model + '.magnitude'
-
         if not os.path.isfile(os.path.join(download_dir, local_file_name)):
             try:
+                if log:
+                    print("[Magnitude] Downloading file..."
+                          "this may take some time. If you want "
+                          "to stream the model, pass stream=True "
+                          "to the Magnitude constructor along with"
+                          "the full URL to the .magnitude file instead.",
+                          file=sys.stderr)
                 urlretrieve(
                     remote_file_path,
                     os.path.join(download_dir, local_file_name_tmp)
@@ -2808,7 +2844,7 @@ if _APSW_LIB == 'internal':
 
         def _prefetch_in_background(self, n, amount, offset):
             headers = {
-                'Range': "bytes=" + str(offset) + "-" + str(
+                'Range': "bytes=" + str(max(offset, 0)) + "-" + str(
                     min((offset + amount) - 1, self.length)  # noqa
                 ),
             }

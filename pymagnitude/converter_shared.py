@@ -68,6 +68,20 @@ def norm_elmo(e):
         e[i, :, :] = norm_matrix(e[i, :, :])
 
 
+def unroll_elmo(v):
+    if len(v.shape) <= 2:
+        return np.asarray(np.split(v, 3, axis=-1))
+    elif len(v.shape) == 3:
+        result = np.zeros(
+            (v.shape[0], 3, v.shape[1], int(
+                v.shape[2] / 3)), dtype=v.dtype)
+        for i in xrange(v.shape[0]):
+            result[i] = np.asarray(np.split(v[i], 3, axis=-1))
+        return result
+    else:
+        return v
+
+
 def ibatch(iterable, size):
     sourceiter = iter(iterable)
     while True:
