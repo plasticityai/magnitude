@@ -452,6 +452,7 @@ if __name__ == '__main__':
     #     reqs = parse_requirements('requirements.txt')
     # else:
     #     reqs = []
+    reqs=[]
 
     setup(
         name=PACKAGE_NAME,
