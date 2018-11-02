@@ -86,6 +86,8 @@ def install_wheel(whl):
         '-m',
         'pip',
         'install',
+        '--user',
+        '--ignore-installed',
         whl,
     ]).wait()
     return rc
@@ -322,6 +324,7 @@ def install_req_wheels():
             '-m',
             'pip',
             'install',
+            '--user',
             '--ignore-installed',
             whl,
         ], cwd=PROJ_PATH).wait()
