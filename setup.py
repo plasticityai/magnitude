@@ -322,6 +322,7 @@ def install_req_wheels():
             '-m',
             'pip',
             'install',
+            '--ignore-installed',
             whl,
         ], cwd=PROJ_PATH).wait()
     print("Done installing requirements wheels")
