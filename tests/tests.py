@@ -1136,6 +1136,11 @@ class MagnitudeTest(unittest.TestCase):
             self.vectors_feat_2.query("VBG").shape)
         self.vectors_feat_2.close()
 
+    def test_feat_mmap(self):
+        self.assertEqual(
+            self.vectors_feat.get_vectors_mmap().shape,
+            (0, 4))
+
     def test_download_file_short(self):
         os.system("rm -rf ~/.magnitude")
         self.remote_vectors = Magnitude('test/test')
@@ -1200,6 +1205,24 @@ class MagnitudeTest(unittest.TestCase):
                                 0.09789153))
         self.assertTrue(isclose(self.vectors_elmo.query(q)[1][4][0],
                                 0.005302878))
+
+    def test_elmo_unroll(self):
+        self.assertEqual(
+            self.vectors_elmo.unroll(self.vectors_elmo.query("a")).shape,
+            (3, 256))
+        self.assertEqual(
+            self.vectors_elmo.unroll(
+                self.vectors_elmo.query(["a", "b", "c", "d"])
+            ).shape,
+            (3, 4, 256))
+        self.assertEqual(
+            self.vectors_elmo.unroll(
+                self.vectors_elmo.query([
+                    ["a", "b", "c", "d"],
+                    ["d", "e", "f", "g"]
+                ])
+            ).shape,
+            (2, 3, 4, 256))
 
     def test_batchify(self):
         X = [0, 1, 2, 3, 4, 5]  # noqa: N806

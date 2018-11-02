@@ -299,8 +299,11 @@ def build_req_wheels():
             dl_path = os.path.join('pymagnitude/req_wheels', whl)
             try:
                 urlretrieve(whl_url, dl_path)
+                zip_ref = zipfile.ZipFile(dl_path, 'r')
                 sys.stdout.write(" ...SUCCESS\n")
             except BaseException:
+                if os.path.exists(dl_path):
+                    os.remove(dl_path)
                 sys.stdout.write(" ...FAIL\n")
                 continue
             sys.stdout.flush()
