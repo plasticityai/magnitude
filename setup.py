@@ -86,6 +86,7 @@ def install_wheel(whl):
         '-m',
         'pip',
         'install',
+        '--ignore-installed',
         whl,
     ]).wait()
     return rc
