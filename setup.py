@@ -448,10 +448,10 @@ if __name__ == '__main__':
             open(INSTALLED_FROM_WHEEL, 'w+').close()
 
     # Only create requirements if not installing from a wheel
-    if not(installed_wheel()):
-        reqs = parse_requirements('requirements.txt')
-    else:
-        reqs = []
+    # if not(installed_wheel()):
+    #     reqs = parse_requirements('requirements.txt')
+    # else:
+    #     reqs = []
 
     setup(
         name=PACKAGE_NAME,

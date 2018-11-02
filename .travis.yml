@@ -19,6 +19,7 @@ script:
   - $PIP install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
   - eval "buildwheel() { cibuildwheel --output-dir wheelhouse >>buildwheel.log 2>&1; }"
   - travis_wait 60 buildwheel || (tail -c 3670016 buildwheel.log && exit 1)
+  - tail -c 3670016 buildwheel.log
   - ls wheelhouse
   - $PIP install awscli --upgrade
   - /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || true
