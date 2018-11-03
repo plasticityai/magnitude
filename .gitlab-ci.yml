@@ -1,4 +1,4 @@
-image: python:latest
+image: registry.gitlab.com/plasticity/ubuntu-dind:16.04
 
 services:
   - docker:dind
@@ -13,6 +13,9 @@ before_script:
   - apt-get update 2>&1 >/dev/null
   - apt-get install curl wget git -y
   - apt-get install libblas-dev liblapack-dev libatlas-base-dev gfortran -y
+  - apt-get install python3 python
+  - apt-get install python-pip 
+  - apt-get install python3-pip
   - apt-get install python-setuptools -y
   - apt-get install python3-setuptools -y
   - apt-get install python-dev -y
@@ -37,6 +40,7 @@ Test Python 2:
   stage: Test
   script:
     - echo pass
+    - python2 -c "print('pass')"
     # - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
     # - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
     # - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
