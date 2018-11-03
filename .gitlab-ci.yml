@@ -159,6 +159,9 @@ Deploy Linux Wheels:
     - export SHARED_PATH=/builds/shared/$CI_PROJECT_PATH
     - mkdir -p ${SHARED_PATH}
     - touch ${SHARED_PATH}/setup.py
+    - echo $SHARED_PATH
+    - cp -a $CI_PROJECT_DIR/. /$SHARED_PATH/
+    - ls $SHARED_PATH
     - export CIBW_PLATFORM=linux
     - export CIBW_BUILD_VERBOSITY=3
     - export CIBW_BEFORE_BUILD="echo 'PRINT ROOT';ls /||true;echo 'PRINT HOST';ls /host;echo 'PRINT PROJECT';ls /project;"
