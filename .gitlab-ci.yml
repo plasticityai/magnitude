@@ -157,6 +157,11 @@ Deploy Linux Wheels:
   stage: Deploy Linux Wheels
   script:
     - export SHARED_PATH=/builds/shared/$CI_PROJECT_PATH
+    - mkdir -p ${SHARED_PATH}
+    - touch ${SHARED_PATH}/setup.py
+    - echo $SHARED_PATH
+    - cp -a $CI_PROJECT_DIR/. /$SHARED_PATH/
+    - ls $SHARED_PATH
     - export CIBW_PLATFORM=linux
     - export CIBW_BUILD_VERBOSITY=3
     - export CIBW_BEFORE_BUILD="echo 'PRINT PROJECT';ls /project;echo 'PRINT BUILDS';ls /host/builds;echo 'PRINT BUILDS PLASTICITY';ls /host/builds/Plasticity;echo 'PRINT BUILDS PLASTICITY MAG';ls /host/builds/Plasticity/magnitude; echo "DYNAMIC"; ls /host/$CI_PROJECT_DIR; rm -rf /project || true; umount -l /project || true; ln -s /host/$CI_PROJECT_DIR /project; echo 'PRINT PROJECT';ls /project;"
