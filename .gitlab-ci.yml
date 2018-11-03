@@ -170,7 +170,7 @@ Deploy Linux Wheels:
     - ls $SHARED_PATH
     - export CIBW_PLATFORM=linux
     - export CIBW_BUILD_VERBOSITY=3
-    - export CIBW_BEFORE_BUILD="echo 'PRINT PROJECT';ls /project;echo 'PRINT BUILDS';ls /host/builds;echo 'PRINT BUILDS PLASTICITY';ls /host/builds/Plasticity;echo 'PRINT BUILDS PLASTICITY MAG'; ls /host/builds/Plasticity/magnitude; echo "DYNAMIC"; ls /host/$CI_PROJECT_DIR; rm -rf /project || true; rm -rf /project/**/*; rm -rf /project/*; cd /host/$CI_PROJECT_DIR; pwd; find . | xargs -I % ln -s /host/$CI_PROJECT_DIR/% ~/project/%; echo 'PRINT PROJECT';ls -alh /project;"
+    - export CIBW_BEFORE_BUILD="echo 'PRINT PROJECT';ls /project;echo 'PRINT BUILDS';ls /host/builds;echo 'PRINT SHARED';ls /host/builds/shared || true;echo 'PRINT SHARED2';ls /host/builds/shared/Plasticity || true;echo 'PRINT SHARED3';ls /host/builds/shared/Plasticity/magnitude || true;echo 'PRINT BUILDS PLASTICITY';ls /host/builds/Plasticity;echo 'PRINT BUILDS PLASTICITY MAG'; ls /host/builds/Plasticity/magnitude; echo "DYNAMIC"; ls /host/$CI_PROJECT_DIR; rm -rf /project || true; rm -rf /project/**/*; rm -rf /project/*; cd /host/$CI_PROJECT_DIR; pwd; find . | xargs -I % ln -s /host/$CI_PROJECT_DIR/% ~/project/%; echo 'PRINT PROJECT';ls -alh /project;"
     - echo $CIBW_BEFORE_BUILD
     - pip2 install pip setuptools -U
     - pip2 install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
