@@ -160,7 +160,7 @@ Deploy Linux Wheels:
     - export CIBW_BUILD_VERBOSITY=3
     - pip2 install pip setuptools -U
     - pip2 install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
-    - cibuildwheel --output-dir wheelhouse
+    - cibuildwheel --output-dir wheelhouse $CI_PROJECT_DIR
     - ls wheelhouse
     - pip2 install awscli --upgrade
     - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/

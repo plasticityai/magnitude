@@ -3,20 +3,13 @@ language: python
 env:
   global:
     CIBW_BUILD_VERBOSITY: 3
+    PIP: pip2
 
 os:
   - linux
   - osx
-  
+
 matrix:
-  include:
-    - sudo: required
-      services:
-        - docker
-      env: PIP=pip
-    - os: osx
-      language: generic
-      env: PIP=pip2
   exclude:
     - os: linux
 
