@@ -164,7 +164,7 @@ Deploy Linux Wheels:
     - ls $SHARED_PATH
     - export CIBW_PLATFORM=linux
     - export CIBW_BUILD_VERBOSITY=3
-    - export CIBW_BEFORE_BUILD="echo 'PRINT ROOT';ls /||true;echo 'PRINT HOST';ls /host;echo 'PRINT PROJECT';ls /project;"
+    - export CIBW_BEFORE_BUILD="echo 'PRINT ROOT';ls /||true;echo 'PRINT HOST';ls /host;echo 'PRINT PROJECT';ls /project;echo 'PRINT BUILDS';ls /builds;echo 'PRINT BUILDS PLASTICITY';ls /builds/Plasticity;echo 'PRINT BUILDS PLASTICITY MAG';ls /builds/Plasticity/magnitude;"
     - pip2 install pip setuptools -U
     - pip2 install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
     - cibuildwheel --output-dir wheelhouse $SHARED_PATH
