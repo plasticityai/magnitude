@@ -156,11 +156,15 @@ Deploy to PyPI:
 Deploy Linux Wheels:
   stage: Deploy Linux Wheels
   script:
+    - export SHARED_PATH=/builds/shared/$CI_PROJECT_PATH
+    - mkdir -p ${SHARED_PATH}
+    - touch ${SHARED_PATH}/setup.py
     - export CIBW_PLATFORM=linux
     - export CIBW_BUILD_VERBOSITY=3
+    - export CIBW_BEFORE_BUILD="echo 'PRINT ROOT';ls /||true;echo 'PRINT HOST';ls /host;echo 'PRINT PROJECT';ls /project;"
     - pip2 install pip setuptools -U
     - pip2 install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
-    - cibuildwheel --output-dir wheelhouse $CI_PROJECT_DIR
+    - cibuildwheel --output-dir wheelhouse $SHARED_PATH
     - ls wheelhouse
     - pip2 install awscli --upgrade
     - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/

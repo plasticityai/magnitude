@@ -5,6 +5,8 @@ env:
     CIBW_BUILD_VERBOSITY: 3
     PIP: pip2
 
+language: generic
+
 os:
   - linux
   - osx
