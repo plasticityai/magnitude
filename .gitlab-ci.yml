@@ -152,6 +152,7 @@ Deploy to PyPI:
 Deploy Linux Wheels:
   stage: Deploy Linux Wheels
   script:
+    - export CIBW_PLATFORM=linux
     - export CIBW_BUILD_VERBOSITY=3
     - pip install pip setuptools -U
     - pip install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
