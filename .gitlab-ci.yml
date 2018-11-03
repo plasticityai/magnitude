@@ -13,9 +13,9 @@ before_script:
   - apt-get update 2>&1 >/dev/null
   - apt-get install curl wget git -y
   - apt-get install libblas-dev liblapack-dev libatlas-base-dev gfortran -y
-  - apt-get install python3 python
-  - apt-get install python-pip 
-  - apt-get install python3-pip
+  - apt-get install python3 python -y
+  - apt-get install python-pip -y
+  - apt-get install python3-pip -y
   - apt-get install python-setuptools -y
   - apt-get install python3-setuptools -y
   - apt-get install python-dev -y
