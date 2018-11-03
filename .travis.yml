@@ -13,6 +13,8 @@ matrix:
     - os: osx
       language: generic
       env: PIP=pip2
+  exclude:
+    - os: linux
 
 script:
   - $PIP install pip setuptools -U
