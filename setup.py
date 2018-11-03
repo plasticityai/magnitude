@@ -287,6 +287,7 @@ def build_req_wheels():
         '--wheel-dir=pymagnitude/req_wheels'
     ], cwd=PROJ_PATH).wait()
 
+    # Try torch from PyTorch website
     download_req_wheels = [
         ('http://download.pytorch.org/whl/cpu/', 'torch', '0.4.1'),
         ('http://download.pytorch.org/whl/cpu/', 'torch', '0.4.1.post2')
@@ -308,6 +309,16 @@ def build_req_wheels():
                 sys.stdout.write(" ...FAIL\n")
                 continue
             sys.stdout.flush()
+
+    # Try torch from PyPI
+    rc2 = subprocess.Popen([
+        sys.executable,
+        '-m',
+        'pip',
+        'wheel',
+        'torch',
+        '--wheel-dir=pymagnitude/req_wheels'
+    ], cwd=PROJ_PATH).wait()
 
     if rc:
         print("Failed to build requirements wheels!")
@@ -448,11 +459,13 @@ if __name__ == '__main__':
             open(INSTALLED_FROM_WHEEL, 'w+').close()
 
     # Only create requirements if not installing from a wheel
-    # if not(installed_wheel()):
-    #     reqs = parse_requirements('requirements.txt')
-    # else:
-    #     reqs = []
-    reqs=[]
+    if any([a in sys.argv for a in ['bdist_wheel']]):
+        # The wheel shouldn't have any reqs
+        # since it gets packaged with all of its req wheels
+        reqs = []
+    else:
+        reqs = parse_requirements('requirements.txt')
+        reqs.append('torch')
 
     setup(
         name=PACKAGE_NAME,
