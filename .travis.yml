@@ -4,6 +4,10 @@ env:
   global:
     CIBW_BUILD_VERBOSITY: 3
 
+os:
+  - linux
+  - osx
+  
 matrix:
   include:
     - sudo: required
