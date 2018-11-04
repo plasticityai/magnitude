@@ -138,8 +138,10 @@ def download_and_install_wheel():
         whl_url = RM_WHEELHOUSE + whl
         dl_path = os.path.join(tmpwhl_dir, whl)
         try:
+            print("Trying...", whl_url)
             urlretrieve(whl_url, dl_path)
         except BaseException:
+            print("FAILED")
             continue
         extract_dir = os.path.join(
             tempfile.gettempdir(), whl.replace(
@@ -150,6 +152,7 @@ def download_and_install_wheel():
         try:
             zip_ref = zipfile.ZipFile(dl_path, 'r')
         except BaseException:
+            print("FAILED")
             continue
         zip_ref.extractall(extract_dir)
         for ewhl in glob(extract_dir + "/*/req_wheels/*.whl"):
@@ -489,10 +492,12 @@ if __name__ == '__main__':
         # The wheel shouldn't have any reqs
         # since it gets packaged with all of its req wheels
         reqs = []
-    else:
+    elif not any([a in sys.argv for a in ['-V']]):
         reqs = parse_requirements('requirements.txt')
         reqs.append('torch')
         print("Adding requirements: ", reqs)
+    else:
+        reqs = []
 
     setup(
         name=PACKAGE_NAME,
