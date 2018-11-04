@@ -82,7 +82,7 @@ Test Python 3:
     - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
     - pip3 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
-    - pip3 install -U pip wheel setuptools
+    - pip3 install -U wheel setuptools # TEMP: removing upgrading of pip here, because the newest one is broken for Python 3
     - python3 setup.py install
     - pip3 install gensim
     - python3 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
