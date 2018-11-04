@@ -41,9 +41,11 @@ class TeeUnbuffered:
         self.stream.write(data)
         self.stream.flush()
         tee.write(data)
+        tee.flush()
 
     def flush(self):
         self.stream.flush()
+        tee.flush()
 
 
 sys.stdout = TeeUnbuffered(sys.stdout)
