@@ -81,7 +81,7 @@ Test Python 3:
     - apt-get install libgdbm-dev libdb5.3-dev libbz2-dev libexpat1-dev liblzma-dev tk-dev -y
     - wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
     - tar xf Python-3.7.1.tar.xz
-    - cd Python-3.7.1 && ./configure --enable-shared && make -j 8 build_all && make altinstall
+    - cd Python-3.7.1 && ./configure --enable-shared && make -j 8 && make altinstall
     - rm -rf Python-3.7.1.tar.xz Python-3.7.1 || true
     - apt-get install python3-pip -y
     - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
