@@ -87,7 +87,7 @@ Test Python 3:
     - apt-get install python3-pip -y
     - echo $(pwd)/Python-3.7.1
     - ls $(pwd)/Python-3.7.1
-    - export LD_LIBRARY_PATH = $(pwd)/Python-3.7.1:$LD_LIBRARY_PATH
+    - export LD_LIBRARY_PATH=$(pwd)/Python-3.7.1:$LD_LIBRARY_PATH
     - echo $LD_LIBRARY_PATH
     - pip3 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
     - pip3 install -U wheel setuptools # TEMP: removing upgrading of pip here, because the newest one is broken for Python 3

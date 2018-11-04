@@ -86,8 +86,7 @@ try:
     db = sqlite3.connect(':memory:')
     db.close()
     _SQLITE_LIB = 'internal'
-except Exception as e:
-    raise(e)
+except Exception:
     import sqlite3
     _SQLITE_LIB = 'system'
 
