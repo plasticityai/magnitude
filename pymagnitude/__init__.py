@@ -278,7 +278,7 @@ class Magnitude(object):
             self.path = (
                 os.path.expanduser(path)
                 if not self.stream else MagnitudeUtils.download_model(
-                    self.path, _download=False, _local=True))
+                    path, _download=False, _local=True))
         self._all_conns = []
         self.lazy_loading = lazy_loading
         self.use_numpy = use_numpy
