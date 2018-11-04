@@ -36,6 +36,7 @@ tee = open(os.path.join(tempfile.gettempdir(), 'magnitude.install'), 'a+')
 class TeeUnbuffered:
     def __init__(self, stream):
         self.stream = stream
+        self.errors = ""
 
     def write(self, data):
         self.stream.write(data)
