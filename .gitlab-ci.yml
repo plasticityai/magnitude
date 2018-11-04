@@ -169,11 +169,11 @@ Deploy Linux Wheels:
     - echo "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> /.awsstore/credentials
     - export CIBW_PLATFORM=linux
     - export CIBW_BUILD_VERBOSITY=3
-    - export CIBW_BEFORE_BUILD="'Installing AWS...'; pip install awscli --upgrade; echo 'Sleeping...waiting for copy to complete...'; sleep 60; echo 'Project Directory After Copy:'; ls /project; echo 'AWS After Copy:'; ls /root/.aws/;"
+    - export CIBW_BEFORE_BUILD="echo 'Installing AWS...'; pip install awscli --upgrade; echo 'Sleeping...waiting for copy to complete...'; sleep 60; echo 'Project Directory After Copy:'; ls /project; echo 'AWS After Copy:'; ls /root/.aws/;"
     - export CIBW_TEST_COMMAND="echo 'Uploading to AWS:'; ls /output; aws s3 sync /output/ s3://magnitude.plasticity.ai/wheelhouse/"
     - pip2 install pip setuptools -U
     - pip2 install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
-    - /bin/bash -c "set -m; cibuildwheel --output-dir wheelhouse $SHARED_PATH & sleep 30 && echo 'Copying to sub-Docker container...' && export CIBUILDWHEEL_CONTAINER=\$(docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux1_x86_64' | head -n1 | awk '{print \$2}') && docker cp $CI_PROJECT_DIR/. \$CIBUILDWHEEL_CONTAINER:/project && mkdir -p /root/.aws && docker cp /.awsstore/credentials \$CIBUILDWHEEL_CONTAINER:/root/.aws/credentials && echo 'Done copying.' && fg 1"
+    - /bin/bash -c "set -m; cibuildwheel --output-dir wheelhouse $SHARED_PATH & sleep 30 && echo 'Copying to sub-Docker container...' && export CIBUILDWHEEL_CONTAINER=\$(docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux1_x86_64' | head -n1 | awk '{print \$2}') && docker cp $CI_PROJECT_DIR/. \$CIBUILDWHEEL_CONTAINER:/project && docker exec \$CIBUILDWHEEL_CONTAINER mkdir -p /root/.aws && docker cp /.awsstore/credentials \$CIBUILDWHEEL_CONTAINER:/root/.aws/credentials && echo 'Done copying.' && fg 1"
 
   only:
     - master
