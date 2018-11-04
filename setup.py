@@ -29,6 +29,23 @@ try:
 except BaseException:
     from urllib import urlretrieve
 
+# Redirect output to a file
+tee = open(os.path.join(tempfile.gettempdir(), 'magnitude.install'), 'a+')
+
+
+class TeeUnbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+        tee.write(data)
+
+
+sys.stdout = TeeUnbuffered(sys.stdout)
+sys.stderr = TeeUnbuffered(sys.stderr)
+
 PACKAGE_NAME = 'pymagnitude'
 
 # Setup path constants
@@ -293,6 +310,7 @@ def build_req_wheels():
         ('http://download.pytorch.org/whl/cpu/', 'torch', '0.4.1.post2')
     ]
 
+    pytorch_success = False
     for wheelhouse, package, version in download_req_wheels:
         for whl in get_supported_wheels(package, version):
             exitcodes = []
@@ -302,6 +320,7 @@ def build_req_wheels():
             try:
                 urlretrieve(whl_url, dl_path)
                 zip_ref = zipfile.ZipFile(dl_path, 'r')
+                pytorch_success = True
                 sys.stdout.write(" ...SUCCESS\n")
             except BaseException:
                 if os.path.exists(dl_path):
@@ -311,14 +330,15 @@ def build_req_wheels():
             sys.stdout.flush()
 
     # Try torch from PyPI
-    rc2 = subprocess.Popen([
-        sys.executable,
-        '-m',
-        'pip',
-        'wheel',
-        'torch',
-        '--wheel-dir=pymagnitude/req_wheels'
-    ], cwd=PROJ_PATH).wait()
+    if not pytorch_success:
+        rc2 = subprocess.Popen([
+            sys.executable,
+            '-m',
+            'pip',
+            'wheel',
+            'torch',
+            '--wheel-dir=pymagnitude/req_wheels'
+        ], cwd=PROJ_PATH).wait()
 
     if rc:
         print("Failed to build requirements wheels!")
