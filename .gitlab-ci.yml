@@ -16,7 +16,7 @@ before_script:
   - apt-get install python -y
   - apt-get install python-pip -y
   - apt-get install python-setuptools -y
-  - apt-get install python3-setuptools -y
+  - apt-get install python3-setuptools python3-dev -y
   - apt-get install python-dev -y
   - apt-get install openssh-server -y
   # Setup SSH configuration
@@ -28,6 +28,8 @@ before_script:
 Lint:
   stage: Test
   script:
+    - apt-get install python3 -y
+    - apt-get install python3-pip -y
     - pip3 install flake8
     - pip3 install pep8-naming
     - flake8 --version
@@ -37,14 +39,14 @@ Lint:
 Test Python 2:
   stage: Test
   script:
-    - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
-    - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
-    - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
     - apt-get install python-pip -y
     - pip2 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
     - pip2 install -U pip setuptools
     - python2 setup.py install
     - pip install gensim
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
     - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
     - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
     - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
@@ -76,21 +78,24 @@ Test Python 2:
 Test Python 3:
   stage: Test
   script:
-    - apt-get install build-essential python3-dev -y
+    - apt-get install build-essential -y
     - apt-get install libffi-dev libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev  -y
     - apt-get install libgdbm-dev libdb5.3-dev libbz2-dev libexpat1-dev liblzma-dev tk-dev -y
     - wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
     - tar xf Python-3.7.1.tar.xz
     - cd Python-3.7.1 && ./configure --enable-shared && make -j 8 && make altinstall
-    - rm -rf Python-3.7.1.tar.xz Python-3.7.1 || true
     - apt-get install python3-pip -y
-    - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
-    - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
-    - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
+    - echo $(pwd)/Python-3.7.1
+    - ls $(pwd)/Python-3.7.1
+    - export LD_LIBRARY_PATH = $(pwd)/Python-3.7.1:$LD_LIBRARY_PATH
+    - echo $LD_LIBRARY_PATH
     - pip3 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
     - pip3 install -U wheel setuptools # TEMP: removing upgrading of pip here, because the newest one is broken for Python 3
     - python3.7 setup.py install
     - pip3 install gensim
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
     - python3.7 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
     - python3.7 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
     - python3.7 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
