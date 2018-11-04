@@ -39,117 +39,113 @@ Lint:
 Test Python 2:
   stage: Test
   script:
-    - echo pass
-    - python2 -c "print('pass')"
-    # - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
-    # - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
-    # - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
-    # - apt-get install python-pip -y
-    # - pip2 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
-    # - pip2 install -U pip setuptools
-    # - python2 setup.py install
-    # - pip install gensim
-    # - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
-    # - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
-    # - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
-    # - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude
-    # - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude
-    # - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude
-    # - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s
-    # - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s
-    # - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s
-    # - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s
-    # - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s
-    # - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s
-    # - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s -a
-    # - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s -a
-    # - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s -a
-    # - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s -a
-    # - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s -a
-    # - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s -a
-    # - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o w2v.magnitude
-    # - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude
-    # - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s
-    # - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s -a
-    # - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude
-    # - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -s
-    # - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -a
-    # - ls
-    # - python2 -m tests.tests -i GoogleNews-vectors-negative300.light.magnitude -s GoogleNews-vectors-negative300.medium.magnitude -a GoogleNews-vectors-negative300.heavy.magnitude -- -v
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
+    - apt-get install python-pip -y
+    - pip2 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
+    - pip2 install -U pip setuptools
+    - python2 setup.py install
+    - pip install gensim
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o w2v.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -a
+    - ls
+    - python2 -m tests.tests -i GoogleNews-vectors-negative300.light.magnitude -s GoogleNews-vectors-negative300.medium.magnitude -a GoogleNews-vectors-negative300.heavy.magnitude -- -v
 
 Test Python 3:
   stage: Test
   script:
-    - echo pass
-    # - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
-    # - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
-    # - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
-    # - pip3 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
-    # - pip3 install -U pip wheel setuptools
-    # - python3 setup.py install
-    # - pip3 install gensim
-    # - python3 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
-    # - python3 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
-    # - python3 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
-    # - python3 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude
-    # - python3 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude
-    # - python3 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude
-    # - python3 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s
-    # - python3 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s
-    # - python3 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s
-    # - python3 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s
-    # - python3 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s
-    # - python3 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s
-    # - python3 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s -a
-    # - python3 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s -a
-    # - python3 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s -a
-    # - python3 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s -a
-    # - python3 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s -a
-    # - python3 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s -a
-    # - python3 -m pymagnitude.converter -i tests/models/word2vec.bin -o w2v.magnitude
-    # - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude
-    # - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s
-    # - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s -a
-    # - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude
-    # - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -s
-    # - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -a
-    # - ls
-    # - python3 -m tests.tests -i GoogleNews-vectors-negative300.light.magnitude -s GoogleNews-vectors-negative300.medium.magnitude -a GoogleNews-vectors-negative300.heavy.magnitude -- -v
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
+    - pip3 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
+    - pip3 install -U pip wheel setuptools
+    - python3 setup.py install
+    - pip3 install gensim
+    - python3 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
+    - python3 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
+    - python3 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
+    - python3 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude
+    - python3 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude
+    - python3 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude
+    - python3 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s
+    - python3 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s
+    - python3 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s
+    - python3 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s
+    - python3 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s
+    - python3 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s
+    - python3 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s -a
+    - python3 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s -a
+    - python3 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s -a
+    - python3 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s -a
+    - python3 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s -a
+    - python3 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s -a
+    - python3 -m pymagnitude.converter -i tests/models/word2vec.bin -o w2v.magnitude
+    - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude
+    - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s
+    - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s -a
+    - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude
+    - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -s
+    - python3 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -a
+    - ls
+    - python3 -m tests.tests -i GoogleNews-vectors-negative300.light.magnitude -s GoogleNews-vectors-negative300.medium.magnitude -a GoogleNews-vectors-negative300.heavy.magnitude -- -v
 
 Deploy to PyPI:
   stage: Deploy to PyPI
   script:
-    - echo pass
-    # # Add GitLab SSH private deploy key
-    # - eval $(ssh-agent -s)
-    # - tmpfile=$(mktemp ~/pk.XXXXXX)
-    # - echo "$SSH_PRIVATE_KEY" > $tmpfile
-    # - ssh-add $tmpfile
-    # - rm $tmpfile
-    # # Tag the release on GitLab
-    # - rm -rf ../tagger
-    # - mkdir -p ../tagger
-    # - cd ../tagger
-    # - git clone git@gitlab.com:$CI_PROJECT_PATH.git
-    # - cd $CI_PROJECT_NAME
-    # - git config --global user.email "dev_ci_bot@plasticity.ai"
-    # - git config --global user.name "Plasticity Developer Bot"
-    # - git tag -a $(python setup.py -V) -m "Release $(python setup.py -V)"
-    # - git push origin --tags
-    # - cd $CI_PROJECT_DIR
-    # - rm -rf ../tagger
-    # - sleep 60 # Wait for GitLab to mirror to GitHub
-    # # Create a release on GitHub
-    # - curl -u plasticity-admin:$GITHUB_TOKEN -d "{\"tag_name\":\"$(python setup.py -V)\", \"name\":\"Release $(python setup.py -V)\"}" -H "Content-Type:"" application/json" -X POST https://api.github.com/repos/plasticityai/$CI_PROJECT_NAME/releases
-    # # Upload to PyPI
-    # - envsubst < deployment/.pypirc > ~/.pypirc
-    # - chmod 600 ~/.pypirc
-    # - python setup.py sdist upload -r pypitest
-    # - python setup.py sdist upload -r pypi
-    # # Trigger Travis CI
-    # - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Travis-API-Version:3" -H "Authorization:token $TRAVIS_CI_TOKEN" -d '{"request":{"branch":"master"}}' https://api.travis-ci.org/repo/plasticityai%2Fmagnitude/requests
-    # # Trigger Appveyor CI
-    # - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Authorization:Bearer $APPVEYOR_CI_TOKEN" -d '{"accountName":"plasticity-admin","projectSlug":"magnitude","branch":"master"}' https://ci.appveyor.com/api/builds
+    # Add GitLab SSH private deploy key
+    - eval $(ssh-agent -s)
+    - tmpfile=$(mktemp ~/pk.XXXXXX)
+    - echo "$SSH_PRIVATE_KEY" > $tmpfile
+    - ssh-add $tmpfile
+    - rm $tmpfile
+    # Tag the release on GitLab
+    - rm -rf ../tagger
+    - mkdir -p ../tagger
+    - cd ../tagger
+    - git clone git@gitlab.com:$CI_PROJECT_PATH.git
+    - cd $CI_PROJECT_NAME
+    - git config --global user.email "dev_ci_bot@plasticity.ai"
+    - git config --global user.name "Plasticity Developer Bot"
+    - git tag -a $(python setup.py -V) -m "Release $(python setup.py -V)"
+    - git push origin --tags
+    - cd $CI_PROJECT_DIR
+    - rm -rf ../tagger
+    - sleep 60 # Wait for GitLab to mirror to GitHub
+    # Create a release on GitHub
+    - curl -u plasticity-admin:$GITHUB_TOKEN -d "{\"tag_name\":\"$(python setup.py -V)\", \"name\":\"Release $(python setup.py -V)\"}" -H "Content-Type:"" application/json" -X POST https://api.github.com/repos/plasticityai/$CI_PROJECT_NAME/releases
+    # Upload to PyPI
+    - envsubst < deployment/.pypirc > ~/.pypirc
+    - chmod 600 ~/.pypirc
+    - python setup.py sdist upload -r pypitest
+    - python setup.py sdist upload -r pypi
+    # Trigger Travis CI
+    - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Travis-API-Version:3" -H "Authorization:token $TRAVIS_CI_TOKEN" -d '{"request":{"branch":"master"}}' https://api.travis-ci.org/repo/plasticityai%2Fmagnitude/requests
+    # Trigger Appveyor CI
+    - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Authorization:Bearer $APPVEYOR_CI_TOKEN" -d '{"accountName":"plasticity-admin","projectSlug":"magnitude","branch":"master"}' https://ci.appveyor.com/api/builds
 
   only:
     - master
