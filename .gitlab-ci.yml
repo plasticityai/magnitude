@@ -12,20 +12,12 @@ before_script:
   # Setup package manager
   - apt-get update 2>&1 >/dev/null
   - apt-get install curl wget git -y
-  - apt-get install libblas-dev liblapack-dev libatlas-base-dev gfortran build-essential -y
-  - apt-get install libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev  -y
-  - apt-get install libgdbm-dev libdb5.3-dev libbz2-dev libexpat1-dev liblzma-dev tk-dev -y
-  - wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
-  - tar xf Python-3.7.1.tar.xz
-  - cd Python-3.7.1 && ./configure --enable-optimizations && make -j 8 && make altinstall
-  - rm -rf Python-3.7.1.tar.xz Python-3.7.1
+  - apt-get install libblas-dev liblapack-dev libatlas-base-dev gfortran -y
   - apt-get install python -y
   - apt-get install python-pip -y
-  - apt-get install python3-pip -y
   - apt-get install python-setuptools -y
   - apt-get install python3-setuptools -y
   - apt-get install python-dev -y
-  - apt-get install python3-dev -y
   - apt-get install openssh-server -y
   # Setup SSH configuration
   - mkdir -p ~/.ssh
@@ -84,6 +76,14 @@ Test Python 2:
 Test Python 3:
   stage: Test
   script:
+    - apt-get install build-essential python3-dev -y
+    - apt-get install libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev  -y
+    - apt-get install libgdbm-dev libdb5.3-dev libbz2-dev libexpat1-dev liblzma-dev tk-dev -y
+    - wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
+    - tar xf Python-3.7.1.tar.xz
+    - cd Python-3.7.1 && ./configure --enable-shared && make -j 8 build_all && make altinstall
+    - rm -rf Python-3.7.1.tar.xz Python-3.7.1 || true
+    - apt-get install python3-pip -y
     - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
