@@ -77,7 +77,7 @@ Test Python 3:
   stage: Test
   script:
     - apt-get install build-essential python3-dev -y
-    - apt-get install libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev  -y
+    - apt-get install libffi-dev libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev  -y
     - apt-get install libgdbm-dev libdb5.3-dev libbz2-dev libexpat1-dev liblzma-dev tk-dev -y
     - wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
     - tar xf Python-3.7.1.tar.xz
