@@ -459,7 +459,7 @@ if __name__ == '__main__':
             open(INSTALLED_FROM_WHEEL, 'w+').close()
 
     # Only create requirements if not installing from a wheel
-    if any([a in sys.argv for a in ['bdist_wheel']]):
+    if any([a in sys.argv for a in ['bdist_wheel', 'sdist']]):
         # The wheel shouldn't have any reqs
         # since it gets packaged with all of its req wheels
         reqs = []

@@ -129,36 +129,37 @@ Test Python 3:
 Deploy to PyPI:
   stage: Deploy to PyPI
   script:
-    # Add GitLab SSH private deploy key
-    - eval $(ssh-agent -s)
-    - tmpfile=$(mktemp ~/pk.XXXXXX)
-    - echo "$SSH_PRIVATE_KEY" > $tmpfile
-    - ssh-add $tmpfile
-    - rm $tmpfile
-    # Tag the release on GitLab
-    - rm -rf ../tagger
-    - mkdir -p ../tagger
-    - cd ../tagger
-    - git clone git@gitlab.com:$CI_PROJECT_PATH.git
-    - cd $CI_PROJECT_NAME
-    - git config --global user.email "dev_ci_bot@plasticity.ai"
-    - git config --global user.name "Plasticity Developer Bot"
-    - git tag -a $(python setup.py -V) -m "Release $(python setup.py -V)"
-    - git push origin --tags
-    - cd $CI_PROJECT_DIR
-    - rm -rf ../tagger
-    - sleep 60 # Wait for GitLab to mirror to GitHub
-    # Create a release on GitHub
-    - curl -u plasticity-admin:$GITHUB_TOKEN -d "{\"tag_name\":\"$(python setup.py -V)\", \"name\":\"Release $(python setup.py -V)\"}" -H "Content-Type:"" application/json" -X POST https://api.github.com/repos/plasticityai/$CI_PROJECT_NAME/releases
-    # Upload to PyPI
-    - envsubst < deployment/.pypirc > ~/.pypirc
-    - chmod 600 ~/.pypirc
-    - python setup.py sdist upload -r pypitest
-    - python setup.py sdist upload -r pypi
-    # Trigger Travis CI
-    - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Travis-API-Version:3" -H "Authorization:token $TRAVIS_CI_TOKEN" -d '{"request":{"branch":"master"}}' https://api.travis-ci.org/repo/plasticityai%2Fmagnitude/requests
-    # Trigger Appveyor CI
-    - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Authorization:Bearer $APPVEYOR_CI_TOKEN" -d '{"accountName":"plasticity-admin","projectSlug":"magnitude","branch":"master"}' https://ci.appveyor.com/api/builds
+    - echo pass
+    # # Add GitLab SSH private deploy key
+    # - eval $(ssh-agent -s)
+    # - tmpfile=$(mktemp ~/pk.XXXXXX)
+    # - echo "$SSH_PRIVATE_KEY" > $tmpfile
+    # - ssh-add $tmpfile
+    # - rm $tmpfile
+    # # Tag the release on GitLab
+    # - rm -rf ../tagger
+    # - mkdir -p ../tagger
+    # - cd ../tagger
+    # - git clone git@gitlab.com:$CI_PROJECT_PATH.git
+    # - cd $CI_PROJECT_NAME
+    # - git config --global user.email "dev_ci_bot@plasticity.ai"
+    # - git config --global user.name "Plasticity Developer Bot"
+    # - git tag -a $(python setup.py -V) -m "Release $(python setup.py -V)"
+    # - git push origin --tags
+    # - cd $CI_PROJECT_DIR
+    # - rm -rf ../tagger
+    # - sleep 60 # Wait for GitLab to mirror to GitHub
+    # # Create a release on GitHub
+    # - curl -u plasticity-admin:$GITHUB_TOKEN -d "{\"tag_name\":\"$(python setup.py -V)\", \"name\":\"Release $(python setup.py -V)\"}" -H "Content-Type:"" application/json" -X POST https://api.github.com/repos/plasticityai/$CI_PROJECT_NAME/releases
+    # # Upload to PyPI
+    # - envsubst < deployment/.pypirc > ~/.pypirc
+    # - chmod 600 ~/.pypirc
+    # - python setup.py sdist upload -r pypitest
+    # - python setup.py sdist upload -r pypi
+    # # Trigger Travis CI
+    # - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Travis-API-Version:3" -H "Authorization:token $TRAVIS_CI_TOKEN" -d '{"request":{"branch":"master"}}' https://api.travis-ci.org/repo/plasticityai%2Fmagnitude/requests
+    # # Trigger Appveyor CI
+    # - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Authorization:Bearer $APPVEYOR_CI_TOKEN" -d '{"accountName":"plasticity-admin","projectSlug":"magnitude","branch":"master"}' https://ci.appveyor.com/api/builds
 
   only:
     - master
@@ -176,7 +177,7 @@ Deploy Linux Wheels:
     - echo "[default]" >> /.awsstore/credentials
     - echo "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> /.awsstore/credentials
     - echo "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> /.awsstore/credentials
-    - eval "copytocibuildwheel() { export CIBUILDWHEEL_CONTAINER=\$(docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux1_x86_64' | head -n1 | awk '{print \$2}') && docker cp $CI_PROJECT_DIR/. \$CIBUILDWHEEL_CONTAINER:/project && docker exec \$CIBUILDWHEEL_CONTAINER mkdir -p /root/.aws && docker cp /.awsstore/credentials \$CIBUILDWHEEL_CONTAINER:/root/.aws/credentials; }"
+    - eval "copytocibuildwheel() { export CIBUILDWHEEL_CONTAINER=\$(docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux1_x86_64' | head -n1 | awk '{print \$2}') && (docker cp $CI_PROJECT_DIR/. \$CIBUILDWHEEL_CONTAINER:/project || docker ps) && docker exec \$CIBUILDWHEEL_CONTAINER mkdir -p /root/.aws && (docker cp /.awsstore/credentials \$CIBUILDWHEEL_CONTAINER:/root/.aws/credentials || docker ps); }"
     - eval "repeatcopytocibuildwheel() { while sleep 1; do copytocibuildwheel || true; done }"
     - export -f copytocibuildwheel
     - export -f repeatcopytocibuildwheel
