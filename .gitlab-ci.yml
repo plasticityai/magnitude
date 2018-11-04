@@ -167,11 +167,11 @@ Deploy Linux Wheels:
     - export CIBW_PLATFORM=linux
     - export CIBW_BUILD_VERBOSITY=3
     # - export CIBW_BEFORE_BUILD="echo 'PRINT PROJECT';ls /project;echo 'PRINT BUILDS';ls /host/builds;echo 'PRINT SHARED';ls /host/builds/shared || true;echo 'PRINT SHARED2';ls /host/builds/shared/Plasticity || true;echo 'PRINT SHARED3';ls /host/builds/shared/Plasticity/magnitude || true;echo 'PRINT BUILDS PLASTICITY';ls /host/builds/Plasticity;echo 'PRINT BUILDS PLASTICITY MAG'; ls /host/builds/Plasticity/magnitude; echo "DYNAMIC"; ls /host/$CI_PROJECT_DIR; rm -rf /project || true; cd /host/$CI_PROJECT_DIR; pwd; find . | xargs -I % ln -s /host/$CI_PROJECT_DIR/% ~/project/%; echo 'PRINT PROJECT';ls -alh /project;"
-    - export CIBW_BEFORE_BUILD="echo 'PRINT PROJECT BEFORE'; ls /project; sleep 30; echo 'PRINT PROJECT AFTER'; ls /project;"
+    - export CIBW_BEFORE_BUILD="echo 'PRINT PROJECT BEFORE'; ls /project; sleep 60; echo 'PRINT PROJECT AFTER'; ls /project;"
     - echo $CIBW_BEFORE_BUILD
     - pip2 install pip setuptools -U
     - pip2 install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
-    - cibuildwheel --output-dir wheelhouse $SHARED_PATH & docker ps && fg 1
+    - /bin/bash -c "cibuildwheel --output-dir wheelhouse $SHARED_PATH && sleep 30 && echo 'Copying to sub-Docker container...' && docker ps && fg 1"
     - ls wheelhouse
     - pip2 install awscli --upgrade
     - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/
