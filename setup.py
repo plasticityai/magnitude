@@ -485,13 +485,14 @@ if __name__ == '__main__':
             open(INSTALLED_FROM_WHEEL, 'w+').close()
 
     # Only create requirements if not installing from a wheel
-    if any([a in sys.argv for a in ['bdist_wheel', 'sdist']]):
+    if any([a in sys.argv for a in ['bdist_wheel', 'sdist', 'egg_info']]):
         # The wheel shouldn't have any reqs
         # since it gets packaged with all of its req wheels
         reqs = []
     else:
         reqs = parse_requirements('requirements.txt')
         reqs.append('torch')
+        print("Adding requirements: ", reqs)
 
     setup(
         name=PACKAGE_NAME,
