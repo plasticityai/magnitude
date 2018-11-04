@@ -84,15 +84,15 @@ Test Python 3:
     - wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
     - tar xf Python-3.7.1.tar.xz
     - cd Python-3.7.1 && ./configure --enable-shared && make -j 8 && make altinstall && cd ../
-    - apt-get install python3-pip -y
     - echo $(pwd)/Python-3.7.1
     - ls $(pwd)/Python-3.7.1
     - export LD_LIBRARY_PATH=$(pwd)/Python-3.7.1:$LD_LIBRARY_PATH
     - echo $LD_LIBRARY_PATH
-    - pip3 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
-    - pip3 install -U wheel setuptools # TEMP: removing upgrading of pip here, because the newest one is broken for Python 3
+    - curl https://bootstrap.pypa.io/get-pip.py | python3.7
+    - python3.7 -m pip install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
+    - python3.7 -m pip install -U wheel setuptools # TEMP: removing upgrading of pip here, because the newest one is broken for Python 3
     - python3.7 setup.py install
-    - pip3 install gensim
+    - python3.7 -m pip install gensim
     - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
     - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
