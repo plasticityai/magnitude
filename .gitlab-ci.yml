@@ -83,7 +83,7 @@ Test Python 3:
     - apt-get install libgdbm-dev libdb5.3-dev libbz2-dev libexpat1-dev liblzma-dev tk-dev -y
     - wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
     - tar xf Python-3.7.1.tar.xz
-    - cd Python-3.7.1 && ./configure --enable-shared && make -j 8 && make altinstall
+    - cd Python-3.7.1 && ./configure --enable-shared && make -j 8 && make altinstall && cd ../
     - apt-get install python3-pip -y
     - echo $(pwd)/Python-3.7.1
     - ls $(pwd)/Python-3.7.1
