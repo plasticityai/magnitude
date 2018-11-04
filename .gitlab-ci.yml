@@ -171,7 +171,7 @@ Deploy Linux Wheels:
     - echo $CIBW_BEFORE_BUILD
     - pip2 install pip setuptools -U
     - pip2 install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
-    - /bin/bash -c "cibuildwheel --output-dir wheelhouse $SHARED_PATH & sleep 30 && echo 'Copying to sub-Docker container...' && (docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux1_x86_64')  && echo 'EXTRACT' && (docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux1_x86_64' | head -n1 | awk '{print \$1}') && fg 1"
+    - /bin/bash -c "set -m; cibuildwheel --output-dir wheelhouse $SHARED_PATH & sleep 30 && echo 'Copying to sub-Docker container...' && (docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux1_x86_64')  && echo 'EXTRACT' && (docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux1_x86_64' | head -n1 | awk '{print \$2}') && docker cp $CI_PROJECT_DIR/. \$(docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux1_x86_64' | head -n1 | awk '{print \$2}'):/project && fg 1"
     - ls wheelhouse
     - pip2 install awscli --upgrade
     - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/
