@@ -7,15 +7,15 @@ import bisect
 import difflib
 import gc
 import http.client
-import os
-import re
-import sys
 import hashlib
 import heapq
 import lz4.frame
 import math
 import mmap
 import operator
+import os
+import re
+import sys
 import tempfile
 import threading
 import time
@@ -115,6 +115,22 @@ def _sqlite_try_max_variable_number(num):
         return -1
     finally:
         db.close()
+
+
+# Log function
+def _log(*args):
+    args = list(args)
+    args[0] += "[Magnitude] "
+    if not _log.disable_message:
+        print("Magnitude is logging messages for slow "
+              "operations to standard error. To turn this"
+              " off pass log=False to the Magnitude "
+              "constructor.", file=sys.stderr)
+        _log.disable_message = True
+    print(*args, file=sys.stderr)
+
+
+_log.disable_message = False
 
 
 class Magnitude(object):
@@ -229,7 +245,7 @@ class Magnitude(object):
                  pad_left=False, placeholders=0, ngram_oov=True,
                  supress_warnings=False, batch_size=3000000,
                  eager=None, language='en', dtype=np.float32,
-                 temp_dir=tempfile.gettempdir(), log=False,
+                 temp_dir=tempfile.gettempdir(), log=None,
                  _namespace=None, _number_of_values=1000000):
         """Initializes a new Magnitude object."""
         self.sqlite_lib = Magnitude.SQLITE_LIB
@@ -259,7 +275,10 @@ class Magnitude(object):
             self.path = ":memory:"
         else:
             self.memory_db = False
-            self.path = os.path.expanduser(path) if not self.stream else path
+            self.path = (
+                os.path.expanduser(path)
+                if not self.stream else MagnitudeUtils.download_model(
+                    self.path, _download=False, _local=True))
         self._all_conns = []
         self.lazy_loading = lazy_loading
         self.use_numpy = use_numpy
@@ -278,7 +297,10 @@ class Magnitude(object):
         self.language = language and language.lower()
         self.dtype = dtype
         self.temp_dir = temp_dir
-        self.log = log
+        if log is None:
+            self.log = True if self.stream else log
+        else:
+            self.log = log
         self._namespace = _namespace
         self._number_of_values = _number_of_values
 
@@ -1514,13 +1536,13 @@ build the appropriate indexes into the `.magnitude` file.")
                     break
                 except BaseException:
                     if not logged and log and self.log:
-                        print("[Magnitude] Need to build a memory map. "
-                              "This may take some time...but it only "
-                              "needs to be done once (even between "
-                              "multiple runs of this program). The result"
-                              " will get stashed into a temporary "
-                              "directory on your "
-                              "computer.", file=sys.stderr)
+                        _log("Need to build a memory map. "
+                             "This may take some time...but it only "
+                             "needs to be done once (even between "
+                             "multiple runs of this program). The result"
+                             " will get stashed into a temporary "
+                             "directory on your "
+                             "computer.")
                     path_to_mmap_temp = self.path_to_mmap + '.tmp'
                     tlock = self.MMAP_THREAD_LOCK.acquire(False)
                     plock = self.MMAP_PROCESS_LOCK.acquire(0)
@@ -1538,9 +1560,8 @@ build the appropriate indexes into the `.magnitude` file.")
                                     progress = round((float(i) / float(self.length)) * 100, 2)  # noqa
                                     if log and self.log and int(progress) > last_p:  # noqa
                                         last_p = int(progress)
-                                        print("[Magnitude] Progress: %.2f%%" %
-                                              (progress,),
-                                              file=sys.stderr)
+                                        _log("Progress: %.2f%%" %
+                                             (progress,))
                                     all_vectors[i] = value
                                 all_vectors.flush()
                                 try:
@@ -1647,13 +1668,13 @@ build the appropriate indexes into the `.magnitude` file.")
                     break
                 except BaseException:
                     if not logged and log and self.log:
-                        print("[Magnitude] Need to build the approximate index."
-                              " This may take some time...but it only "
-                              "needs to be done once (even between "
-                              "multiple runs of this program). The result"
-                              " will get stashed into a temporary "
-                              "directory on your "
-                              "computer.", file=sys.stderr)
+                        _log("Need to build the approximate index."
+                             " This may take some time...but it only "
+                             "needs to be done once (even between "
+                             "multiple runs of this program). The result"
+                             " will get stashed into a temporary "
+                             "directory on your "
+                             "computer.")
                     path_to_approx_mmap_temp = self.path_to_approx_mmap \
                         + '.tmp'
                     tlock = self.APPROX_MMAP_THREAD_LOCK.acquire(False)
@@ -1667,9 +1688,8 @@ build the appropriate indexes into the `.magnitude` file.")
                                     progress = round((float(i) / float(length)) * 100, 2)  # noqa
                                     if log and self.log and int(progress) > last_p:  # noqa
                                         last_p = int(progress)
-                                        print("[Magnitude] Progress: %.2f%%" %
-                                              (progress,),
-                                              file=sys.stderr)
+                                        _log("Progress: %.2f%%" %
+                                             (progress,))
                                     mmap_file.write(chunk)
                             if not self.closed:
                                 os.rename(path_to_approx_mmap_temp,
@@ -1701,13 +1721,13 @@ build the appropriate indexes into the `.magnitude` file.")
                     break
                 except BaseException:
                     if not logged and log and self.log:
-                        print("[Magnitude] Need to build ElmoEmbedder. "
-                              "This may take some time...but it only "
-                              "needs to be done once (even between "
-                              "multiple runs of this program). The result"
-                              " will get stashed into a temporary "
-                              "directory on your "
-                              "computer.", file=sys.stderr)
+                        _log("Need to build ElmoEmbedder. "
+                             "This may take some time...but it only "
+                             "needs to be done once (even between "
+                             "multiple runs of this program). The result"
+                             " will get stashed into a temporary "
+                             "directory on your "
+                             "computer.")
                     path_to_elmo_w_mmap_temp = self.path_to_elmo_w_mmap \
                         + '.tmp'
                     path_to_elmo_o_mmap_temp = self.path_to_elmo_o_mmap \
@@ -1726,10 +1746,8 @@ build the appropriate indexes into the `.magnitude` file.")
                                     progress = round((float(i) / float(length)) * 100, 2)  # noqa
                                     if log and self.log and int(progress) > last_p:  # noqa
                                         last_p = int(progress)
-                                        print("[Magnitude] "
-                                              "Progress: %.2f%%" %
-                                              (progress,),
-                                              file=sys.stderr)
+                                        _log("Progress: %.2f%%" %
+                                             (progress,))
                                     mmap_file.write(chunk)
                             if not self.closed:
                                 os.rename(path_to_elmo_w_mmap_temp,
@@ -2012,12 +2030,11 @@ class MagnitudeUtils(object):
         if not os.path.isfile(os.path.join(download_dir, local_file_name)):
             try:
                 if log:
-                    print("[Magnitude] Downloading file..."
-                          "this may take some time. If you want "
-                          "to stream the model, pass stream=True "
-                          "to the Magnitude constructor along with"
-                          "the full URL to the .magnitude file instead.",
-                          file=sys.stderr)
+                    _log("Downloading '.magnitude' file..."
+                         "this may take some time. If you want "
+                         "to stream the model, pass stream=True "
+                         "to the Magnitude constructor instead."
+                         "This only needs to happen once.")
                 urlretrieve(
                     remote_file_path,
                     os.path.join(download_dir, local_file_name_tmp)
