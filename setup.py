@@ -8,6 +8,8 @@ import subprocess
 import traceback
 import tempfile
 import zipfile
+import distutils.sysconfig as dsc
+print("PREFIX", dsc.get_config_vars())
 
 from glob import glob
 from setuptools import find_packages
@@ -16,6 +18,7 @@ from setuptools.command.install import install
 from setuptools.command.egg_info import egg_info
 from setuptools import setup, Distribution
 from multiprocessing import Process
+
 
 try:
     import pip._internal.pep425tags as pep425tags
@@ -122,14 +125,26 @@ def get_supported_wheels(package_name=PACKAGE_NAME, version=__version__):
 
 def install_wheel(whl):
     """Installs a wheel file"""
-    rc = subprocess.Popen([
+    whl_args = [
         sys.executable,
         '-m',
         'pip',
         'install',
         '--ignore-installed',
-        whl,
-    ]).wait()
+    ]
+    rc = subprocess.Popen(whl_args + [whl]).wait()
+    if rc != 0:
+        print("Installing to user site packages...")
+        try:
+            import site
+            if hasattr(site, 'getusersitepackages'):
+                site_packages = site.getusersitepackages()
+                rc = subprocess.Popen(
+                    whl_args + ["--install-option=\"--install-lib=" + site_packages + "\""] +
+                    [whl]
+                ).wait()
+        except ImportError:
+            pass
     return rc
 
 
@@ -394,14 +409,7 @@ def install_req_wheels():
     """Installs requirement wheels"""
     print("Installing requirements wheels...")
     for whl in glob('pymagnitude/req_wheels/*.whl'):
-        rc = subprocess.Popen([
-            sys.executable,
-            '-m',
-            'pip',
-            'install',
-            '--ignore-installed',
-            whl,
-        ], cwd=PROJ_PATH).wait()
+        rc = install_wheel(whl)
     print("Done installing requirements wheels")
 
 
@@ -435,6 +443,8 @@ def copy_custom_sqlite3():
         else:
             from distutils.sysconfig import get_python_lib
             site_packages = [get_python_lib()]
+        if hasattr(site, 'getusersitepackages'):
+            site_packages = site_packages + [site.getusersitepackages()]
         for sitepack in site_packages:
             for globbed in glob(sitepack + '/pymagnitude*/'):
                 try:
