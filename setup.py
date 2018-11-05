@@ -71,6 +71,15 @@ with open(os.path.join(PROJ_PATH, 'version.py')) as f:
 
 # Setup remote wheel configurations
 RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
+TRIED_DOWNLOADING_WHEEL = os.path.join(
+    tempfile.gettempdir(),
+    PACKAGE_NAME +
+    '-' +
+    __version__ +
+    '-' +
+    hashlib.md5(PROJ_PATH.encode('utf-8')).hexdigest() +
+    '.whldownload'
+)
 INSTALLED_FROM_WHEEL = os.path.join(
     tempfile.gettempdir(),
     PACKAGE_NAME +
@@ -79,6 +88,15 @@ INSTALLED_FROM_WHEEL = os.path.join(
     '-' +
     hashlib.md5(PROJ_PATH.encode('utf-8')).hexdigest() +
     '.whlinstall'
+)
+BUILT_LOCAL = os.path.join(
+    tempfile.gettempdir(),
+    PACKAGE_NAME +
+    '-' +
+    __version__ +
+    '-' +
+    hashlib.md5(PROJ_PATH.encode('utf-8')).hexdigest() +
+    '.buildlocal'
 )
 
 
@@ -125,12 +143,24 @@ def installed_wheel():
     return os.path.exists(INSTALLED_FROM_WHEEL)
 
 
+def tried_downloading_wheel():
+    """Checks if already tried downloading a wheel"""
+    return os.path.exists(TRIED_DOWNLOADING_WHEEL)
+
+
+def built_local():
+    """Checks if built out the project locally"""
+    return os.path.exists(BUILT_LOCAL)
+
+
 def download_and_install_wheel():
     """Downloads and installs pre-compiled remote wheels"""
     if skip_wheel():
         return False
     if installed_wheel():
         return True
+    if tried_downloading_wheel():
+        return False
     print("Downloading and installing wheel (if it exists)...")
     tmpwhl_dir = tempfile.gettempdir()
     for whl in get_supported_wheels():
@@ -163,8 +193,10 @@ def download_and_install_wheel():
         zip_ref.extractall(PROJ_PATH)
         zip_ref.close()
         if len(exitcodes) > 0 and max(exitcodes) == 0 and min(exitcodes) == 0:
+            open(TRIED_DOWNLOADING_WHEEL, 'w+').close()
             print("Done downloading and installing wheel")
             return True
+    open(TRIED_DOWNLOADING_WHEEL, 'w+').close()
     print("Done trying to download and install wheel (it didn't exist)")
     return False
 
@@ -187,6 +219,8 @@ def install_custom_sqlite3():
     Can be safely ignored even if it fails, however, system SQLite
     imitations may prevent large .magnitude files with many columns
     from working."""
+    if built_local():
+        return
     print("Installing custom SQLite 3 (pysqlite) ....")
     install_env = os.environ.copy()
     install_env["PYTHONPATH"] = INTERNAL + \
@@ -302,6 +336,8 @@ def install_custom_sqlite3():
 
 def build_req_wheels():
     """Builds requirement wheels"""
+    if built_local():
+        return
     print("Building requirements wheels...")
     rc = subprocess.Popen([
         sys.executable,
@@ -434,6 +470,7 @@ try:
             if not(download_and_install_wheel()):
                 install_custom_sqlite3()
                 build_req_wheels()
+                open(BUILT_LOCAL, 'w+').close()
             print("Running wheel...")
             bdist_wheel_.run(self)
             print("Done running wheel")
@@ -450,6 +487,7 @@ class CustomInstallCommand(install):
         if not(download_and_install_wheel()):
             install_custom_sqlite3()
             install_req_wheels()
+            open(BUILT_LOCAL, 'w+').close()
         print("Running install...")
         p = Process(target=install.run, args=(self,))
         p.start()
