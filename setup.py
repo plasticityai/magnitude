@@ -133,13 +133,13 @@ def install_wheel(whl):
     ]
     rc = subprocess.Popen(whl_args + [whl]).wait()
     if rc != 0:
-        print("Installing to user site packages...")
         try:
             import site
             if hasattr(site, 'getusersitepackages'):
                 site_packages = site.getusersitepackages()
+                print("Installing to user site packages...", site_packages)
                 rc = subprocess.Popen(
-                    whl_args + ["--install-option=\"--install-lib=" + site_packages + "\""] +
+                    whl_args + ["--install-option=--install-lib=" + site_packages] +
                     [whl]
                 ).wait()
         except ImportError:
