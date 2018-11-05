@@ -9,7 +9,6 @@ import traceback
 import tempfile
 import zipfile
 import distutils.sysconfig as dsc
-print("PREFIX", dsc.get_config_vars())
 
 from glob import glob
 from setuptools import find_packages
