@@ -138,10 +138,7 @@ def install_wheel(whl):
             if hasattr(site, 'getusersitepackages'):
                 site_packages = site.getusersitepackages()
                 print("Installing to user site packages...", site_packages)
-                rc = subprocess.Popen(
-                    whl_args + ["--install-option=--install-lib=" + site_packages] +
-                    [whl]
-                ).wait()
+                rc = subprocess.Popen(whl_args + ["--user"] + [whl]).wait()
         except ImportError:
             pass
     return rc
