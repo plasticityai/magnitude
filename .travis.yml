@@ -3,7 +3,7 @@ language: python
 env:
   global:
     CIBW_BUILD_VERBOSITY: 3
-    PIP: pip2
+    PIP: pip3
 
 language: generic
 
@@ -16,6 +16,8 @@ matrix:
     - os: linux
 
 script:
+  - ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+  - brew install python
   - python --version || true
   - python2 --version || true
   - python3 --version || true
@@ -29,6 +31,5 @@ script:
   - tail -c 3670016 buildwheel.log
   - ls wheelhouse
   - $PIP install awscli --upgrade
-  - /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" || true
   - brew install awscli || true
   - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/
