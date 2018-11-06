@@ -31,10 +31,12 @@ try:
 except BaseException:
     from urllib import urlretrieve
 
+
+PACKAGE_NAME = 'pymagnitude'
+PACKAGE_SHORT_NAME = 'magnitude'
+
 # Redirect output to a file
-tee = open(os.path.join(tempfile.gettempdir(), 'magnitude.install'), 'a+')
-
-
+tee = open(os.path.join(tempfile.gettempdir(), PACKAGE_SHORT_NAME+'.install'), 'a+')
 class TeeUnbuffered:
     def __init__(self, stream):
         self.stream = stream
@@ -49,17 +51,13 @@ class TeeUnbuffered:
     def flush(self):
         self.stream.flush()
         tee.flush()
-
-
 sys.stdout = TeeUnbuffered(sys.stdout)
 sys.stderr = TeeUnbuffered(sys.stderr)
 
-PACKAGE_NAME = 'pymagnitude'
-
 # Setup path constants
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-THIRD_PARTY = PROJ_PATH + '/pymagnitude/third_party'
-BUILD_THIRD_PARTY = PROJ_PATH + '/build/lib/pymagnitude/third_party'
+THIRD_PARTY = PROJ_PATH + '/'+PACKAGE_NAME+'/third_party'
+BUILD_THIRD_PARTY = PROJ_PATH + '/build/lib/'+PACKAGE_NAME+'/third_party'
 PYSQLITE = THIRD_PARTY + '/_pysqlite'
 APSW_TP = THIRD_PARTY + '/_apsw'
 INTERNAL = THIRD_PARTY + '/internal'
@@ -72,7 +70,7 @@ with open(os.path.join(PROJ_PATH, 'version.py')) as f:
     exec(f.read())
 
 # Setup remote wheel configurations
-RM_WHEELHOUSE = 'https://s3.amazonaws.com/magnitude.plasticity.ai/wheelhouse/'
+RM_WHEELHOUSE = 'https://s3.amazonaws.com/'+PACKAGE_SHORT_NAME+'.plasticity.ai/wheelhouse/'
 TRIED_DOWNLOADING_WHEEL = os.path.join(
     tempfile.gettempdir(),
     PACKAGE_NAME +
@@ -228,7 +226,7 @@ def custom_sqlite3_build():
 def install_custom_sqlite3():
     """ Begin install custom SQLite
     Can be safely ignored even if it fails, however, system SQLite
-    imitations may prevent large .magnitude files with many columns
+    imitations may prevent large database files with many columns
     from working."""
     if built_local():
         return
@@ -357,7 +355,7 @@ def build_req_wheels():
         'wheel',
         '-r',
         'requirements.txt',
-        '--wheel-dir=pymagnitude/req_wheels'
+        '--wheel-dir='+PACKAGE_NAME+'/req_wheels'
     ], cwd=PROJ_PATH).wait()
 
     # Try torch from PyTorch website
@@ -372,7 +370,7 @@ def build_req_wheels():
             exitcodes = []
             whl_url = wheelhouse + whl
             sys.stdout.write("Trying to download... '" + whl_url + "'")
-            dl_path = os.path.join('pymagnitude/req_wheels', whl)
+            dl_path = os.path.join(PACKAGE_NAME+'/req_wheels', whl)
             try:
                 urlretrieve(whl_url, dl_path)
                 zip_ref = zipfile.ZipFile(dl_path, 'r')
@@ -393,7 +391,7 @@ def build_req_wheels():
             'pip',
             'wheel',
             'torch',
-            '--wheel-dir=pymagnitude/req_wheels'
+            '--wheel-dir='+PACKAGE_NAME+'/req_wheels'
         ], cwd=PROJ_PATH).wait()
 
     if rc:
@@ -404,7 +402,7 @@ def build_req_wheels():
 def install_req_wheels():
     """Installs requirement wheels"""
     print("Installing requirements wheels...")
-    for whl in glob('pymagnitude/req_wheels/*.whl'):
+    for whl in glob(PACKAGE_NAME+'/req_wheels/*.whl'):
         rc = install_wheel(whl)
     print("Done installing requirements wheels")
 
@@ -427,8 +425,8 @@ def install_requirements():
 
 def copy_custom_sqlite3():
     """Copy the pysqlite2 folder into site-packages under
-    pymagnitude/third_party/internal/ and
-    ./build/lib/pymagnitude/third_party/internal/
+    PACKAGE_NAME/third_party/internal/ and
+    ./build/lib/PACKAGE_NAME/third_party/internal/
     for good measure"""
     from distutils.dir_util import copy_tree
     try:
@@ -442,14 +440,14 @@ def copy_custom_sqlite3():
         if hasattr(site, 'getusersitepackages'):
             site_packages = site_packages + [site.getusersitepackages()]
         for sitepack in site_packages:
-            for globbed in glob(sitepack + '/pymagnitude*/'):
+            for globbed in glob(sitepack + '/'+PACKAGE_NAME+'*/'):
                 try:
-                    cp_to = globbed + '/pymagnitude/third_party/internal/'
+                    cp_to = globbed + '/'+PACKAGE_NAME+'/third_party/internal/'
                 except IndexError as e:
                     print(
                         "Site Package: '" +
                         sitepack +
-                        "' did not have pymagnitude")
+                        "' did not have "+PACKAGE_NAME)
                     continue
                 print("Copying from: ", cp_from, " --> to: ", cp_to)
                 copy_tree(cp_from, cp_to)

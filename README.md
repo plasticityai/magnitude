@@ -516,6 +516,8 @@ This is explicitly different from the [remote loading feature](#remote-loading),
   vecs.query("king") # Returns: the vector for "king" quickly, even with no local model file downloaded
 ```
 
+You can play around with a demo of this in a [Google Colaboratory Python Notebook](https://colab.research.google.com/drive/1zkPhoNM1NvbTmEk9gr0Jnt8hONrca1Fv).
+
 This feature is extremely useful if your computing environment is resource constrainted (low RAM and low disk space), you want to experiment quickly with vectors without downloading and setting up large model files, or you are training a small model.
 While there is some added network latency since the data is being streamed, Magnitude will still use an in-memory cache as specified by the [`lazy_loading`](#constructing-a-magnitude-object) constructor parameter. Since languages generally have a [Zipf-ian distribution](https://en.wikipedia.org/wiki/Zipf%27s_law), the network latency should largely not be an issue after the cache is warmed after being queried a small number of times.
 

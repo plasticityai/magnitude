@@ -16,6 +16,9 @@ matrix:
     - os: linux
 
 script:
+  - echo python --version
+  - echo python2 --version
+  - echo python3 --version
   - $PIP install pip setuptools -U
   - $PIP install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
   - eval "buildwheel() { cibuildwheel --output-dir wheelhouse >>buildwheel.log 2>&1; }"
