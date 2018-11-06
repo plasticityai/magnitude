@@ -16,8 +16,8 @@ matrix:
     - os: linux
 
 script:
-  - ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-  - brew install python
+  - /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+  - brew install python || brew upgrade python
   - python --version || true
   - python2 --version || true
   - python3 --version || true
