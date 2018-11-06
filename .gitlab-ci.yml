@@ -185,7 +185,7 @@ Deploy Linux Wheels:
     - export CIBW_BEFORE_BUILD="echo 'Installing AWS...'; pip install awscli --upgrade; echo 'Sleeping...waiting for copy to complete...'; sleep 90; echo 'Project Directory After Copy:'; ls /project; echo 'AWS After Copy:'; ls /root/.aws/;"
     - export CIBW_TEST_COMMAND="echo 'Uploading to AWS:'; ls /output; aws s3 sync /output/ s3://magnitude.plasticity.ai/wheelhouse/"
     - pip2 install pip setuptools -U
-    - pip2 install git+https://github.com/plasticity-admin/cibuildwheel.git@macos-ssl
+    - pip2 install cibuildwheel==0.10.0
     - /bin/bash -c "set -m; cibuildwheel --output-dir wheelhouse $SHARED_PATH & sleep 30 && echo 'Copying to sub-Docker container...' && repeatcopytocibuildwheel& sleep 28 && echo 'Done copying.' && fg 1"
 
   only:
