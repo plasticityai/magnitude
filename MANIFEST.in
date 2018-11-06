@@ -6,8 +6,8 @@ include requirements.txt
 include pymagnitude/third_party/*
 include pymagnitude/third_party/**/*
 recursive-include pymagnitude/third_party *
-recursive-include pymagnitude/third_party *.txt *.py *.c *.yml *.cfg *.h *.ini Makefile *.whl *.so *.pyd .gitkeep
+recursive-include pymagnitude/third_party *.txt *.py *.c *.yml *.cfg *.h *.ini Makefile *.whl *.so *.o *.dll *.pyd .gitkeep
 include pymagnitude/req_wheels/*
 include pymagnitude/req_wheels/**/*
 recursive-include pymagnitude/req_wheels *
-recursive-include pymagnitude/req_wheels *.txt *.py *.c *.yml *.cfg *.h *.ini Makefile *.whl *.so *.pyd .gitkeep
+recursive-include pymagnitude/req_wheels *.txt *.py *.c *.yml *.cfg *.h *.ini Makefile *.whl *.so *.o *.dll *.pyd .gitkeep

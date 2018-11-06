@@ -54,18 +54,18 @@ except NameError:
 
 try:
     from http.client import CannotSendRequest, ResponseNotReady
-except BaseException:
+except:
     from httplib import CannotSendRequest, ResponseNotReady
 
 
 try:
     from urllib.request import urlretrieve
-except BaseException:
+except:
     from urllib import urlretrieve
 
 try:
     from urllib.parse import urlparse
-except BaseException:
+except:
     from urlparse import urlparse
 
 try:
@@ -111,7 +111,7 @@ def _sqlite_try_max_variable_number(num):
             ([0] * num)
         ).fetchall()
         return num
-    except BaseException:
+    except:
         return -1
     finally:
         db.close()
@@ -120,9 +120,9 @@ def _sqlite_try_max_variable_number(num):
 # Log function
 def _log(*args):
     args = list(args)
-    args[0] += "[Magnitude] "
+    args[0] = "[Magnitude] "+args[0]
     if not _log.disable_message:
-        print("Magnitude is logging messages for slow "
+        print("[Magnitude] Magnitude is logging messages for slow "
               "operations to standard error. To turn this"
               " off pass log=False to the Magnitude "
               "constructor.", file=sys.stderr)
@@ -263,8 +263,8 @@ class Magnitude(object):
             self.driver = apsw
             self.http_vfs = HTTPVFS()
             self.http_download_vfs = HTTPVFS(vfsname='http_download', options={
-                # 'trace_log': True,
-                # 'sequential_cache_max_read': 500 * (1024 * 1024),
+                'use_mmap': False,
+                'sequential_cache_max_read': 500 * (1024 ** 2),
             })
         else:
             self.driver = sqlite3
@@ -365,7 +365,7 @@ class Magnitude(object):
                     self._db().execute(
                         "SELECT magnitude FROM magnitude LIMIT 1")\
                         .fetchall()
-                except BaseException:
+                except:
                     raise RuntimeError(
                         """You are trying to access non-unit-normalized vectors.
                         However, your .magnitude file version does not support
@@ -1534,7 +1534,7 @@ build the appropriate indexes into the `.magnitude` file.")
                         all_vectors = np.zeros((0, self.dim))
                         self._all_vectors = all_vectors
                     break
-                except BaseException:
+                except:
                     if not logged and log and self.log:
                         _log("Need to build a memory map. "
                              "This may take some time...but it only "
@@ -1549,7 +1549,8 @@ build the appropriate indexes into the `.magnitude` file.")
                     if tlock and plock:
                         values = imap(
                             lambda kv: kv[1], self._iter(
-                                put_cache=self.lazy_loading == -1))
+                                put_cache=self.lazy_loading == -1,
+                                downloader=True))
                         try:
                             with open(path_to_mmap_temp, "w+b") as mmap_file:
                                 all_vectors = np.memmap(
@@ -1566,7 +1567,7 @@ build the appropriate indexes into the `.magnitude` file.")
                                 all_vectors.flush()
                                 try:
                                     del all_vectors
-                                except BaseException:
+                                except:
                                     pass
                             if not self.closed:
                                 os.rename(path_to_mmap_temp, self.path_to_mmap)
@@ -1576,7 +1577,7 @@ build the appropriate indexes into the `.magnitude` file.")
                             self.MMAP_THREAD_LOCK.release()
                             try:
                                 self.MMAP_PROCESS_LOCK.release()
-                            except BaseException:
+                            except:
                                 pass
                 sleep(1)  # Block before trying again
         return self._all_vectors
@@ -1662,11 +1663,15 @@ build the appropriate indexes into the `.magnitude` file.")
                 if not self.setup_for_mmap:
                     self._setup_for_mmap()
                 try:
+                    sys.stdout.flush()
+                    sys.stderr.flush()
                     approx_index = AnnoyIndex(self.emb_dim, metric='angular')
                     approx_index.load(self.path_to_approx_mmap)
                     self._approx_index = approx_index
                     break
-                except BaseException:
+                except:
+                    sys.stdout.flush()
+                    sys.stderr.flush()
                     if not logged and log and self.log:
                         _log("Need to build the approximate index."
                              " This may take some time...but it only "
@@ -1700,7 +1705,7 @@ build the appropriate indexes into the `.magnitude` file.")
                             self.APPROX_MMAP_THREAD_LOCK.release()
                             try:
                                 self.APPROX_MMAP_PROCESS_LOCK.release()
-                            except BaseException:
+                            except:
                                 pass
                 sleep(1)  # Block before trying again
         return self._approx_index
@@ -1719,7 +1724,7 @@ build the appropriate indexes into the `.magnitude` file.")
                         self.path_to_elmo_o_mmap, self.path_to_elmo_w_mmap)
                     self._elmo_embedder = elmo_embedder
                     break
-                except BaseException:
+                except:
                     if not logged and log and self.log:
                         _log("Need to build ElmoEmbedder. "
                              "This may take some time...but it only "
@@ -1767,12 +1772,12 @@ build the appropriate indexes into the `.magnitude` file.")
                             self.ELMO_W_MMAP_THREAD_LOCK.release()
                             try:
                                 self.ELMO_W_MMAP_PROCESS_LOCK.release()
-                            except BaseException:
+                            except:
                                 pass
                             self.ELMO_O_MMAP_THREAD_LOCK.release()
                             try:
                                 self.ELMO_O_MMAP_PROCESS_LOCK.release()
-                            except BaseException:
+                            except:
                                 pass
                 sleep(1)  # Block before trying again
         return self._elmo_embedder
@@ -1829,41 +1834,41 @@ build the appropriate indexes into the `.magnitude` file.")
         if hasattr(self, 'fd'):
             try:
                 os.close(self.fd)
-            except BaseException:
+            except:
                 pass
         try:
             self._all_vectors._mmap.close()
-        except BaseException:
+        except:
             pass
         try:
             del self._all_vectors
             gc.collect()
-        except BaseException:
+        except:
             pass
         try:
             self._approx_index.unload()
-        except BaseException:
+        except:
             pass
         if (hasattr(self, 'MMAP_PROCESS_LOCK') and
             hasattr(self.MMAP_PROCESS_LOCK, 'lockfile') and
                 self.MMAP_PROCESS_LOCK.lockfile is not None):
             try:
                 self.MMAP_PROCESS_LOCK.lockfile.close()
-            except BaseException:
+            except:
                 pass
         if (hasattr(self, 'APPROX_MMAP_PROCESS_LOCK') and
             hasattr(self.APPROX_MMAP_PROCESS_LOCK, 'lockfile') and
                 self.APPROX_MMAP_PROCESS_LOCK.lockfile is not None):
             try:
                 self.APPROX_MMAP_PROCESS_LOCK.lockfile.close()
-            except BaseException:
+            except:
                 pass
 
     def __del__(self):
         """ Destructor for the class """
         try:
             self.close()
-        except BaseException:
+        except:
             pass
 
 
@@ -2052,7 +2057,7 @@ class MagnitudeUtils(object):
                     os.path.join(
                         download_dir,
                         local_file_name))
-            except BaseException:
+            except:
                 if _local:
                     raise RuntimeError(
                         "The path to the Magnitude file at '" + orig_model + "' could not be found. Also failed to find a valid remote model at the following URL: " +  # noqa
@@ -2347,7 +2352,7 @@ if _APSW_LIB == 'internal':
                         print(
                             "[HTTPVFS] Prefetching terminated early @ %d + %d" %
                             (offset, amount))
-            except BaseException:
+            except:
                 if self.vfsfile.trace_log:
                     print(
                         "[HTTPVFS] Prefetching error @ %d + %d" %
@@ -2564,7 +2569,7 @@ if _APSW_LIB == 'internal':
             try:
                 return os.path.getsize(os.path.join(self.cache_dir_path,
                                                     self.cache_key))
-            except BaseException:
+            except:
                 return 0
 
         def add_to_mmaps(self, new, mm):
@@ -2575,15 +2580,15 @@ if _APSW_LIB == 'internal':
                 _, evict = heapq.heappop(self.vfsfile.cache_mmaps_heap)
                 try:
                     evict_mm = self.vfsfile.cache_mmaps[evict]
-                except BaseException:
+                except:
                     pass
                 try:
                     evict_mm.close()
-                except BaseException:
+                except:
                     pass
                 try:
                     del self.vfsfile.cache_mmaps[evict]
-                except BaseException:
+                except:
                     pass
             heapq.heappush(self.vfsfile.cache_mmaps_heap,
                            (time.time(), new))
@@ -2627,11 +2632,11 @@ if _APSW_LIB == 'internal':
             mm = self.get_mmap(create=False)
             try:
                 del self.vfsfile.cache_mmaps[self.cache_key]
-            except BaseException:
+            except:
                 pass
             try:
                 mm.close()
-            except BaseException:
+            except:
                 pass
             f = open(os.path.join(self.cache_dir_path,
                                   self.cache_key), "w+b")
@@ -2669,13 +2674,13 @@ if _APSW_LIB == 'internal':
             new = os.path.join(self.cache_dir_path, new_key)
             try:
                 os.rename(old, new)
-            except BaseException:
+            except:
                 pass
             try:
                 mm = self.vfsfile.cache_mmaps[self.cache_key]
                 del self.vfsfile.cache_mmaps[self.cache_key]
                 self.add_to_mmaps(new_key, mm)
-            except BaseException:
+            except:
                 pass
             self.cache_key = new_key
 
@@ -2683,23 +2688,25 @@ if _APSW_LIB == 'internal':
             """Deletes old caches."""
             current_time = time.time()
             for cache in self.vfsfile._get_caches():
+                if cache.id == self.id:
+                    continue
                 if (current_time - cache.time) > self.vfsfile.cache_ttl:
                     try:
                         mmap = cache.get_mmap(create=False)
-                    except BaseException:
+                    except:
                         pass
                     try:
                         del self.vfsfile.cache_mmaps[self.cache_key]
-                    except BaseException:
+                    except:
                         pass
                     try:
                         mmap.close()
-                    except BaseException:
+                    except:
                         pass
                     try:
                         os.remove(os.path.join(cache.cache_dir_path,
                                                cache.cache_key))
-                    except BaseException:
+                    except:
                         pass
 
     class HTTPVFSFile(apsw.VFSFile):
@@ -2777,7 +2784,7 @@ if _APSW_LIB == 'internal':
                     self._prepare_prefetch_connection(self.RANDOM_ACCESS)
                 if self.sequential_cache_prefetch:
                     self._prepare_prefetch_connection(self.SEQUENTIAL)
-            except BaseException:
+            except:
                 try:
                     self.url = self.url[url_cis.index('https://'):]
                     self.parsed_url = urlparse(self.url)
@@ -2786,7 +2793,7 @@ if _APSW_LIB == 'internal':
                         self._prepare_prefetch_connection(self.RANDOM_ACCESS)
                     if self.sequential_cache_prefetch:
                         self._prepare_prefetch_connection(self.SEQUENTIAL)
-                except BaseException:
+                except:
                     raise RuntimeError("Invalid URL.")
             self.cache_dir = (
                 hashlib.md5(
@@ -2814,7 +2821,7 @@ if _APSW_LIB == 'internal':
             """Prepares a new HTTP connection"""
             try:
                 self.conn.close()
-            except BaseException:
+            except:
                 pass
             if new:
                 self.conn = self._new_connection()
@@ -2826,7 +2833,7 @@ if _APSW_LIB == 'internal':
                 while self.pconn_count[n] > 0:
                     sleep(1)
                 self.pconn[n].close()
-            except BaseException:
+            except:
                 pass
             if new:
                 self.pconn[n] = self._new_connection()
@@ -2992,7 +2999,8 @@ if _APSW_LIB == 'internal':
                                 (start, 1 + end - start, offset, amount))
 
                         # Store the extra data fetched back in the network cache
-                        data = cache.write_data(start, data, amount, offset)
+                        cache.write_data(start, data, amount, offset)
+                        data = data[offset - start: (offset-start)+amount]
 
                         # Prefetch the next sequential chunk of data in the
                         # background
@@ -3020,7 +3028,7 @@ if _APSW_LIB == 'internal':
                 except BaseException as e:
                     try:
                         self.conn_lock.release()
-                    except BaseException:
+                    except:
                         pass
                     # Handle a network error
                     self._network_error(e, i)
@@ -3046,7 +3054,7 @@ if _APSW_LIB == 'internal':
                 except BaseException as e:
                     try:
                         self.conn_lock.release()
-                    except BaseException:
+                    except:
                         pass
                     # Handle a network error
                     self._network_error(e, i)

@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import fnmatch
 import hashlib
 import os
 import shutil
@@ -464,6 +465,25 @@ def copy_custom_sqlite3():
         traceback.print_exc(e)
 
 
+def delete_pip_caches():
+    """Delete all the pip caches"""
+    try:
+        from pip.utils.appdirs import user_cache_dir
+    except:
+        try:
+            from pip._internal.utils.appdirs import user_cache_dir
+        except:
+            return
+    for root, dirnames, filenames in os.walk(user_cache_dir('pip/wheels')):
+        for filename in fnmatch.filter(filenames, PACKAGE_NAME+'-*.whl'):
+            try:
+                whl = os.path.join(root, filename)
+                print("Deleting...", whl)
+                os.remove(whl)
+            except:
+                pass
+
+
 cmdclass = {}
 
 try:
@@ -541,6 +561,9 @@ if __name__ == '__main__':
     else:
         reqs = []
 
+    # Delete caches
+    delete_pip_caches()
+
     setup(
         name=PACKAGE_NAME,
         packages=find_packages(
@@ -601,3 +624,6 @@ if __name__ == '__main__':
         cmdclass=cmdclass,
         distclass=BinaryDistribution,
     )
+
+    # Delete caches
+    delete_pip_caches()

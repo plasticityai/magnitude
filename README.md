@@ -500,7 +500,7 @@ You can instruct Magnitude download and open a model from Magnitude's remote rep
 
 ```python
   vecs = Magnitude('http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude') # full url
-  vecs = Magnitude('word2vec/heavy/GoogleNews-vectors-negative300') # shorthand for the url
+  vecs = Magnitude('word2vec/heavy/GoogleNews-vectors-negative300') # or, use the shorthand for the url
 ```
 
 For more control over the remote download domain and local download directory, see how to use [`MagnitudeUtils.download_model`](#utils).
@@ -513,6 +513,8 @@ This is explicitly different from the [remote loading feature](#remote-loading),
 
 ```python
   vecs = Magnitude('http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude', stream=True) # full url
+  vecs = Magnitude('word2vec/heavy/GoogleNews-vectors-negative300', stream=True) # or, use the shorthand for the url
+  
   vecs.query("king") # Returns: the vector for "king" quickly, even with no local model file downloaded
 ```
 
