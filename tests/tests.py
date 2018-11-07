@@ -49,8 +49,24 @@ class MagnitudeTest(unittest.TestCase):
                                      case_insensitive=True, eager=False)
         try:
             self.vectors_elmo = Magnitude(MagnitudeTest.ELMO_PATH,
-                                          case_insensitive=True, eager=False,
-                                          normalized=False)
+                                          case_insensitive=True, eager=False)
+            self.vectors_elmo_p = Magnitude(MagnitudeTest.ELMO_PATH,
+                                            case_insensitive=True, eager=False,
+                                            placeholders=2)
+            self.vectors_elmo_ngram = Magnitude(
+                MagnitudeTest.ELMO_PATH,
+                case_insensitive=True,
+                eager=False,
+                ngram_oov=True)
+            self.vectors_elmo_ngram_p = Magnitude(
+                MagnitudeTest.ELMO_PATH,
+                case_insensitive=True,
+                eager=False,
+                ngram_oov=True,
+                placeholders=2)
+            self.vectors_elmo_n = Magnitude(MagnitudeTest.ELMO_PATH,
+                                            case_insensitive=True, eager=False,
+                                            normalized=True)
         except BaseException:
             pass
         self.concat_1 = Magnitude(MagnitudeTest.MAGNITUDE_PATH,
@@ -1206,6 +1222,123 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(isclose(self.vectors_elmo.query(q)[1][4][0],
                                 0.005302878))
 
+    def test_elmo_norm(self):
+        self.assertEqual(len(self.vectors_elmo_n), 5)
+        self.assertEqual(self.vectors_elmo_n.dim, 768)
+        self.assertTrue(isclose(self.vectors_elmo_n.query("the")[0], 0.0071634))
+        self.assertTrue(
+            isclose(
+                self.vectors_elmo_n.query("uberx")[0],
+                0.009964361))
+        q = ["I", "saw", "a", "cat"]
+        self.assertEqual(self.vectors_elmo_n.query(q).shape, (4, 768))
+        self.assertTrue(
+            isclose(
+                self.vectors_elmo_n.query(q)[0][0], -0.0059032375))
+        self.assertTrue(
+            isclose(
+                self.vectors_elmo_n.query(q)[3][0], -0.03499423))
+        q = [["I", "saw", "a", "cat"], ["He", "went", "to", "the", "mall"]]
+        self.assertEqual(self.vectors_elmo_n.query(q).shape, (2, 5, 768))
+        self.assertTrue(isclose(self.vectors_elmo_n.query(q)[0][0][0],
+                                -0.0057514487))
+        self.assertTrue(isclose(self.vectors_elmo_n.query(q)[0][3][0],
+                                -0.03564348))
+        self.assertTrue(isclose(self.vectors_elmo_n.query(q)[0][4][0], 0))
+        self.assertTrue(isclose(self.vectors_elmo_n.query(q)[1][0][0],
+                                0.0049551507))
+        self.assertTrue(isclose(self.vectors_elmo_n.query(q)[1][4][0],
+                                0.00026647424))
+
+    def test_elmo_oov(self):
+        self.assertEqual(
+            self.vectors_elmo.query("uberx").shape, (768,))
+        self.assertTrue(
+            isclose(self.vectors_elmo.query("uberx")[0], 0.1594867))
+        self.assertEqual(
+            self.vectors_elmo.query(["uberx"]).shape, (1, 768))
+        self.assertTrue(
+            isclose(self.vectors_elmo.query(["uberx"])[0][0], -0.4041161))
+        self.assertEqual(
+            self.vectors_elmo.query(
+                [["uberx"], ["the", "cat"]]).shape, (2, 2, 768))
+        self.assertTrue(
+            isclose(self.vectors_elmo.query(
+                [["uberx"], ["the", "cat"]])[0][0][0], -0.4041161))
+
+    def test_elmo_placeholders(self):
+        self.assertEqual(
+            self.vectors_elmo_p.query("uberx").shape, (770,))
+        self.assertTrue(
+            isclose(self.vectors_elmo_p.query("uberx")[0], 0.1594867))
+        self.assertEqual(
+            self.vectors_elmo_p.query(["uberx"]).shape, (1, 770))
+        self.assertTrue(
+            isclose(self.vectors_elmo_p.query(["uberx"])[0][0], -0.4041161))
+        self.assertEqual(
+            self.vectors_elmo_p.query(
+                [["uberx"], ["the", "cat"]]).shape, (2, 2, 770))
+        self.assertTrue(
+            isclose(self.vectors_elmo_p.query(
+                [["uberx"], ["the", "cat"]])[0][0][0], -0.4041161))
+
+    def test_elmo_ngram_oov(self):
+        self.assertEqual(
+            self.vectors_elmo_ngram.query("uberx").shape, (768,))
+        self.assertTrue(
+            isclose(self.vectors_elmo_ngram.query("uberx")[0], -0.011485805))
+        self.assertEqual(
+            self.vectors_elmo_ngram.query(["uberx"]).shape, (1, 768))
+        self.assertTrue(
+            isclose(self.vectors_elmo_ngram.query(["uberx"])[0][0], -0.0062455))
+        self.assertEqual(
+            self.vectors_elmo_ngram.query(
+                [["uberx", "the"], ["cat"]]).shape, (2, 2, 768)
+        )
+        self.assertTrue(
+            isclose(
+                self.vectors_elmo_ngram.query(
+                    [["uberx", "the"], ["cat"]])[0][0][0], -0.0062455)
+        )
+        self.assertTrue(
+            isclose(
+                self.vectors_elmo_ngram.query(
+                    [["uberx", "the"], ["cat"]])[1][0][0], 0.0013800792)
+        )
+        self.assertTrue(
+            self.vectors_elmo.similarity(
+                "discriminatoryy",
+                "discriminnatory") < .7)
+        self.assertTrue(
+            self.vectors_elmo_ngram.similarity(
+                "discriminatoryy",
+                "discriminnatory") > .8)
+
+    def test_elmo_ngram_placeholders(self):
+        self.assertEqual(
+            self.vectors_elmo_ngram_p.query("uberx").shape, (770,))
+        self.assertTrue(
+            isclose(self.vectors_elmo_ngram_p.query("uberx")[0], -0.011485805))
+        self.assertEqual(
+            self.vectors_elmo_ngram_p.query(["uberx"]).shape, (1, 770))
+        self.assertTrue(
+            isclose(self.vectors_elmo_ngram_p.query(["uberx"])[0][0],
+                    -0.0062455))
+        self.assertEqual(
+            self.vectors_elmo_ngram_p.query(
+                [["uberx", "the"], ["cat"]]).shape, (2, 2, 770)
+        )
+        self.assertTrue(
+            isclose(
+                self.vectors_elmo_ngram_p.query(
+                    [["uberx", "the"], ["cat"]])[0][0][0], -0.0062455)
+        )
+        self.assertTrue(
+            isclose(
+                self.vectors_elmo_ngram_p.query(
+                    [["uberx", "the"], ["cat"]])[1][0][0], 0.0013800792)
+        )
+
     def test_elmo_unroll(self):
         self.assertEqual(
             self.vectors_elmo.unroll(self.vectors_elmo.query("a")).shape,
@@ -1218,6 +1351,24 @@ class MagnitudeTest(unittest.TestCase):
         self.assertEqual(
             self.vectors_elmo.unroll(
                 self.vectors_elmo.query([
+                    ["a", "b", "c", "d"],
+                    ["d", "e", "f", "g"]
+                ])
+            ).shape,
+            (2, 3, 4, 256))
+
+    def test_elmo_unroll_placeholders(self):
+        self.assertEqual(
+            self.vectors_elmo_p.unroll(self.vectors_elmo_p.query("a")).shape,
+            (3, 256))
+        self.assertEqual(
+            self.vectors_elmo_p.unroll(
+                self.vectors_elmo_p.query(["a", "b", "c", "d"])
+            ).shape,
+            (3, 4, 256))
+        self.assertEqual(
+            self.vectors_elmo_p.unroll(
+                self.vectors_elmo_p.query([
                     ["a", "b", "c", "d"],
                     ["d", "e", "f", "g"]
                 ])

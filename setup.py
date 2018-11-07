@@ -2,7 +2,9 @@ from __future__ import print_function
 
 import fnmatch
 import hashlib
+import importlib
 import os
+import pkg_resources
 import shutil
 import sys
 import subprocess
@@ -37,7 +39,14 @@ PACKAGE_NAME = 'pymagnitude'
 PACKAGE_SHORT_NAME = 'magnitude'
 
 # Redirect output to a file
-tee = open(os.path.join(tempfile.gettempdir(), PACKAGE_SHORT_NAME+'.install'), 'a+')
+tee = open(
+    os.path.join(
+        tempfile.gettempdir(),
+        PACKAGE_SHORT_NAME +
+        '.install'),
+    'a+')
+
+
 class TeeUnbuffered:
     def __init__(self, stream):
         self.stream = stream
@@ -52,13 +61,15 @@ class TeeUnbuffered:
     def flush(self):
         self.stream.flush()
         tee.flush()
+
+
 sys.stdout = TeeUnbuffered(sys.stdout)
 sys.stderr = TeeUnbuffered(sys.stderr)
 
 # Setup path constants
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
-THIRD_PARTY = PROJ_PATH + '/'+PACKAGE_NAME+'/third_party'
-BUILD_THIRD_PARTY = PROJ_PATH + '/build/lib/'+PACKAGE_NAME+'/third_party'
+THIRD_PARTY = PROJ_PATH + '/' + PACKAGE_NAME + '/third_party'
+BUILD_THIRD_PARTY = PROJ_PATH + '/build/lib/' + PACKAGE_NAME + '/third_party'
 PYSQLITE = THIRD_PARTY + '/_pysqlite'
 APSW_TP = THIRD_PARTY + '/_apsw'
 INTERNAL = THIRD_PARTY + '/internal'
@@ -71,7 +82,8 @@ with open(os.path.join(PROJ_PATH, 'version.py')) as f:
     exec(f.read())
 
 # Setup remote wheel configurations
-RM_WHEELHOUSE = 'https://s3.amazonaws.com/'+PACKAGE_SHORT_NAME+'.plasticity.ai/wheelhouse/'
+RM_WHEELHOUSE = 'https://s3.amazonaws.com/' + \
+    PACKAGE_SHORT_NAME + '.plasticity.ai/wheelhouse/'
 TRIED_DOWNLOADING_WHEEL = os.path.join(
     tempfile.gettempdir(),
     PACKAGE_NAME +
@@ -356,7 +368,7 @@ def build_req_wheels():
         'wheel',
         '-r',
         'requirements.txt',
-        '--wheel-dir='+PACKAGE_NAME+'/req_wheels'
+        '--wheel-dir=' + PACKAGE_NAME + '/req_wheels'
     ], cwd=PROJ_PATH).wait()
 
     # Try torch from PyTorch website
@@ -371,7 +383,7 @@ def build_req_wheels():
             exitcodes = []
             whl_url = wheelhouse + whl
             sys.stdout.write("Trying to download... '" + whl_url + "'")
-            dl_path = os.path.join(PACKAGE_NAME+'/req_wheels', whl)
+            dl_path = os.path.join(PACKAGE_NAME + '/req_wheels', whl)
             try:
                 urlretrieve(whl_url, dl_path)
                 zip_ref = zipfile.ZipFile(dl_path, 'r')
@@ -392,7 +404,7 @@ def build_req_wheels():
             'pip',
             'wheel',
             'torch',
-            '--wheel-dir='+PACKAGE_NAME+'/req_wheels'
+            '--wheel-dir=' + PACKAGE_NAME + '/req_wheels'
         ], cwd=PROJ_PATH).wait()
 
     if rc:
@@ -403,8 +415,18 @@ def build_req_wheels():
 def install_req_wheels():
     """Installs requirement wheels"""
     print("Installing requirements wheels...")
-    for whl in glob(PACKAGE_NAME+'/req_wheels/*.whl'):
-        rc = install_wheel(whl)
+    for whl in glob(PACKAGE_NAME + '/req_wheels/*.whl'):
+        package_name = os.path.basename(whl).split('-')[0]
+        version = os.path.basename(whl).split('-')[1]
+        requirement = package_name + ">=" + version
+        print("Checking if requirement is met: ", requirement)
+        pkg_resources.require(requirement)
+        try:
+            importlib.import_module(package_name)
+            print("Requirement met...skipping install of: ", package_name)
+        except BaseException:
+            print("Requirement not met...installing: ", package_name)
+            rc = install_wheel(whl)
     print("Done installing requirements wheels")
 
 
@@ -441,14 +463,14 @@ def copy_custom_sqlite3():
         if hasattr(site, 'getusersitepackages'):
             site_packages = site_packages + [site.getusersitepackages()]
         for sitepack in site_packages:
-            for globbed in glob(sitepack + '/'+PACKAGE_NAME+'*/'):
+            for globbed in glob(sitepack + '/' + PACKAGE_NAME + '*/'):
                 try:
-                    cp_to = globbed + '/'+PACKAGE_NAME+'/third_party/internal/'
+                    cp_to = globbed + '/' + PACKAGE_NAME + '/third_party/internal/'
                 except IndexError as e:
                     print(
                         "Site Package: '" +
                         sitepack +
-                        "' did not have "+PACKAGE_NAME)
+                        "' did not have " + PACKAGE_NAME)
                     continue
                 print("Copying from: ", cp_from, " --> to: ", cp_to)
                 copy_tree(cp_from, cp_to)
@@ -465,23 +487,41 @@ def copy_custom_sqlite3():
         traceback.print_exc(e)
 
 
-def delete_pip_caches():
-    """Delete all the pip caches"""
+def delete_pip_files():
+    """Delete random pip files"""
     try:
         from pip.utils.appdirs import user_cache_dir
-    except:
+    except BaseException:
         try:
             from pip._internal.utils.appdirs import user_cache_dir
-        except:
+        except BaseException:
             return
     for root, dirnames, filenames in os.walk(user_cache_dir('pip/wheels')):
-        for filename in fnmatch.filter(filenames, PACKAGE_NAME+'-*.whl'):
+        for filename in fnmatch.filter(filenames, PACKAGE_NAME + '-*.whl'):
             try:
                 whl = os.path.join(root, filename)
                 print("Deleting...", whl)
                 os.remove(whl)
-            except:
+            except BaseException:
                 pass
+    try:
+        import site
+        if hasattr(site, 'getsitepackages'):
+            site_packages = site.getsitepackages()
+        else:
+            from distutils.sysconfig import get_python_lib
+            site_packages = [get_python_lib()]
+        if hasattr(site, 'getusersitepackages'):
+            site_packages = site_packages + [site.getusersitepackages()]
+        for sitepack in site_packages:
+            for globbed in glob(sitepack + '/' + PACKAGE_NAME + '*/'):
+                try:
+                    if globbed.endswith('.dist-info/'):
+                        shutil.rmtree(globbed)
+                except BaseException:
+                    pass
+    except BaseException:
+        pass
 
 
 cmdclass = {}
@@ -561,8 +601,8 @@ if __name__ == '__main__':
     else:
         reqs = []
 
-    # Delete caches
-    delete_pip_caches()
+    # Delete pip files
+    delete_pip_files()
 
     setup(
         name=PACKAGE_NAME,
@@ -625,5 +665,5 @@ if __name__ == '__main__':
         distclass=BinaryDistribution,
     )
 
-    # Delete caches
-    delete_pip_caches()
+    # Delete pip files
+    delete_pip_files()

@@ -24,8 +24,9 @@ import numpy as np
 import uuid
 
 from annoy import AnnoyIndex
+from copy import deepcopy
 from fasteners import InterProcessLock
-from itertools import cycle, islice, chain, tee
+from itertools import cycle, islice, chain, product, tee
 from numbers import Number
 from time import sleep
 
@@ -54,18 +55,18 @@ except NameError:
 
 try:
     from http.client import CannotSendRequest, ResponseNotReady
-except:
+except BaseException:
     from httplib import CannotSendRequest, ResponseNotReady
 
 
 try:
     from urllib.request import urlretrieve
-except:
+except BaseException:
     from urllib import urlretrieve
 
 try:
     from urllib.parse import urlparse
-except:
+except BaseException:
     from urlparse import urlparse
 
 try:
@@ -111,7 +112,7 @@ def _sqlite_try_max_variable_number(num):
             ([0] * num)
         ).fetchall()
         return num
-    except:
+    except BaseException:
         return -1
     finally:
         db.close()
@@ -120,7 +121,7 @@ def _sqlite_try_max_variable_number(num):
 # Log function
 def _log(*args):
     args = list(args)
-    args[0] = "[Magnitude] "+args[0]
+    args[0] = "[Magnitude] " + args[0]
     if not _log.disable_message:
         print("[Magnitude] Magnitude is logging messages for slow "
               "operations to standard error. To turn this"
@@ -200,6 +201,7 @@ class Magnitude(object):
     Attributes:
         path: The file path or URL to the magnitude file
         stream: Stream the URL instead of downloading it
+        stream_options: Options to control the behavior of the streaming
         lazy_loading: -1 = pre-load into memory, 0 = lazy loads with unbounded
                       in-memory cache, >0 lazy loads with an LRU cache of that
                       size
@@ -224,6 +226,7 @@ class Magnitude(object):
                anticipation they will be used.
         language: A ISO 639-1 Language Code (default: English 'en')
         dtype: The dtype to use when use_numpy is True.
+        devices: A list of GPU device ids.
         temp_dir: The directory Magnitude will use as its temporary directory
         log: Enable log messages from Magnitude
         _number_of_values: When the path is set to None and Magnitude is being
@@ -238,21 +241,23 @@ class Magnitude(object):
                    if provided
     """
 
-    def __init__(self, path, stream=False, lazy_loading=0,
-                 blocking=False, normalized=None,
+    def __init__(self, path, stream=False, stream_options=None,
+                 lazy_loading=0, blocking=False, normalized=None,
                  use_numpy=True, case_insensitive=False,
                  pad_to_length=None, truncate_left=False,
-                 pad_left=False, placeholders=0, ngram_oov=True,
+                 pad_left=False, placeholders=0, ngram_oov=None,
                  supress_warnings=False, batch_size=3000000,
                  eager=None, language='en', dtype=np.float32,
-                 temp_dir=tempfile.gettempdir(), log=None,
-                 _namespace=None, _number_of_values=1000000):
+                 devices=[], temp_dir=tempfile.gettempdir(),
+                 log=None, _namespace=None,
+                 _number_of_values=1000000):
         """Initializes a new Magnitude object."""
         self.sqlite_lib = Magnitude.SQLITE_LIB
         self.apsw_lib = Magnitude.APSW_LIB
         self.closed = False
         self.uid = str(uuid.uuid4()).replace("-", "")
         self.stream = stream
+        self.stream_options = stream_options
         if self.stream:
             if self.apsw_lib != 'internal':
                 raise RuntimeError(
@@ -261,11 +266,13 @@ class Magnitude(object):
                     component will not work. Please try re-installing or create
                     a GitHub issue to further debug.""")
             self.driver = apsw
-            self.http_vfs = HTTPVFS()
-            self.http_download_vfs = HTTPVFS(vfsname='http_download', options={
-                'use_mmap': False,
+            self.http_vfs = HTTPVFS(options=self.stream_options)
+            download_vfs_options = deepcopy(self.stream_options)
+            download_vfs_options.update({
                 'sequential_cache_max_read': 500 * (1024 ** 2),
             })
+            self.http_download_vfs = HTTPVFS(vfsname='http_download',
+                                             options=download_vfs_options)
         else:
             self.driver = sqlite3
 
@@ -287,7 +294,6 @@ class Magnitude(object):
         self.truncate_left = truncate_left
         self.pad_left = pad_left
         self.placeholders = placeholders
-        self.ngram_oov = ngram_oov
         self.supress_warnings = supress_warnings
         self.batch_size = batch_size
         if eager is None:
@@ -296,6 +302,10 @@ class Magnitude(object):
             self.eager = eager
         self.language = language and language.lower()
         self.dtype = dtype
+        if isinstance(devices, list):
+            self.devices = devices
+        else:
+            self.devices = [devices]
         self.temp_dir = temp_dir
         if log is None:
             self.log = True if self.stream else log
@@ -356,8 +366,12 @@ class Magnitude(object):
             "SELECT value FROM magnitude_format WHERE key='elmo'") \
             .fetchall()
         self.elmo = len(elmo_query) > 0 and elmo_query[0][0]
+        if ngram_oov is None:
+            self.ngram_oov = not(self._is_lm())
+        else:
+            self.ngram_oov = ngram_oov
         if normalized is None:
-            self.normalized = not(self.elmo)
+            self.normalized = not(self._is_lm())
         else:
             self.normalized = normalized
             if not self.normalized:
@@ -365,7 +379,7 @@ class Magnitude(object):
                     self._db().execute(
                         "SELECT magnitude FROM magnitude LIMIT 1")\
                         .fetchall()
-                except:
+                except BaseException:
                     raise RuntimeError(
                         """You are trying to access non-unit-normalized vectors.
                         However, your .magnitude file version does not support
@@ -849,21 +863,92 @@ class Magnitude(object):
         else:
             return xxhash.xxh32(val.encode('utf-8')).intdigest()
 
-    def _out_of_vocab_vector(self, key, normalized=None):
+    def _is_lm(self):
+        """Check if using a language model"""
+        return self.elmo
+
+    def _process_lm_output(self, q, normalized):
+        """Process the output from a language model"""
+        zero_d = not(isinstance(q, list))
+        one_d = not(zero_d) and (len(q) == 0 or not(isinstance(q[0], list)))
+        if self.elmo:
+            if zero_d:
+                r_val = np.concatenate(self.get_elmo_embedder().embed_batch(
+                    [[q]])[0], axis=1).flatten()
+            elif one_d:
+                r_val = np.concatenate(self.get_elmo_embedder().embed_batch(
+                    [q])[0], axis=1)
+            else:
+                r_val = [np.concatenate(row, axis=1)
+                         for row in self.get_elmo_embedder().embed_batch(q)]
+        if normalized:
+            if zero_d:
+                r_val = r_val / np.linalg.norm(r_val)
+            elif one_d:
+                r_val = norm_matrix(r_val)
+            else:
+                r_val = [norm_matrix(row) for row in r_val]
+        if self.placeholders > 0 or self.ngram_oov:
+            shape_p = list(r_val.shape) if zero_d or one_d else \
+                ([len(r_val)] + list(max((row.shape for row in r_val))))
+            shape_p[-1] = self.dim
+            if self.placeholders > 0:
+                if zero_d or one_d:
+                    r_val_p = np.zeros(shape_p, dtype=self.dtype)
+                else:
+                    r_val_p = [np.zeros(shape_p[1:], dtype=self.dtype)
+                               for row in r_val]
+            else:
+                r_val_p = r_val
+            if self.ngram_oov:
+                if zero_d:
+                    lookup = self._vectors_for_keys_cached(
+                        [q], normalized=normalized, force=True)
+                elif one_d:
+                    lookup = self._vectors_for_keys_cached(
+                        q, normalized=normalized, force=True)
+                else:
+                    lookup = [None] * len(q)
+                    for row, sq in enumerate(q):
+                        lookup[row] = self._vectors_for_keys_cached(
+                            sq, normalized=normalized, force=True)
+            for idx in product(*[xrange(s) for s in shape_p[:-1]]):
+                if zero_d:
+                    key = q
+                    if self.ngram_oov:
+                        vec = r_val if self.__contains__(key) else lookup[0]
+                    else:
+                        vec = r_val
+                    r_val_p[:self.emb_dim] = vec[:self.emb_dim]
+                elif one_d:
+                    key = q[idx[0]]
+                    if self.ngram_oov:
+                        vec = r_val[idx] if self.__contains__(key) else \
+                            lookup[idx[0]]
+                    else:
+                        vec = r_val[idx]
+                    r_val_p[idx][:self.emb_dim] = vec[:self.emb_dim]
+                elif idx[1] < len(q[idx[0]]):
+                    key = q[idx[0]][idx[1]]
+                    if self.ngram_oov:
+                        vec = r_val[idx[0]][idx[1]] if self.__contains__(key) \
+                            else lookup[idx[0]][idx[1]]
+                    else:
+                        vec = r_val[idx[0]][idx[1]]
+                    r_val_p[idx[0]][idx[1]][:self.emb_dim] = vec[:self.emb_dim]
+            r_val = r_val_p
+        if self.use_numpy:
+            return r_val
+        else:
+            return r_val.tolist()
+
+    def _out_of_vocab_vector(self, key, normalized=None, force=False):
         """Generates a random vector based on the hash of the key."""
         normalized = normalized if normalized is not None else self.normalized
         orig_key = key
         is_str, key = self._oov_key_t(key)
-        if self.elmo and is_str:
-            elmo_oov = np.concatenate(self.get_elmo_embedder().embed_batch(
-                [[key]])[0], axis=1).flatten()
-            if normalized:
-                elmo_oov = elmo_oov / np.linalg.norm(elmo_oov)
-            if self.use_numpy:
-                return elmo_oov
-            else:
-                return elmo_oov.tolist()
-
+        if self._is_lm() and is_str and not force:
+            return self._process_lm_output(key, normalized)
         if not is_str:
             seed = self._seed(type(key).__name__)
             Magnitude.OOV_RNG_LOCK.acquire()
@@ -904,7 +989,8 @@ class Magnitude(object):
                     orig_key,
                     normalized=normalized) *
                 0.7)
-            final_vector = final_vector / np.linalg.norm(final_vector)
+            if normalized:
+                final_vector = final_vector / np.linalg.norm(final_vector)
         else:
             final_vector = random_vector
         if self.use_numpy:
@@ -972,20 +1058,12 @@ class Magnitude(object):
         else:
             return self._db_result_to_vec(result[1:], normalized)
 
-    def _vectors_for_keys(self, keys, normalized=None):
+    def _vectors_for_keys_cached(self, keys, normalized=None, force=False):
         """Queries the database for multiple keys."""
         normalized = normalized if normalized is not None else self.normalized
-        if self.elmo:
+        if self._is_lm() and not force:
             keys = [self._key_t(key) for key in keys]
-            elmo_ctx = np.concatenate(self.get_elmo_embedder().embed_batch(
-                [keys])[0], axis=1)
-            if normalized:
-                elmo_ctx = norm_matrix(elmo_ctx)
-            if self.use_numpy:
-                return elmo_ctx
-            else:
-                return elmo_ctx.tolist()
-
+            return self._process_lm_output(keys, normalized)
         unseen_keys = tuple(
             key for key in keys if not self._query_is_cached(key, normalized))
         unseen_keys_map = {}
@@ -1026,12 +1104,25 @@ class Magnitude(object):
                     unseen_vectors[i])
                 if unseen_vectors[i] is None:
                     unseen_vectors[i] = self._out_of_vocab_vector_cached(
-                        unseen_keys[i], normalized)
+                        unseen_keys[i], normalized, force=force)
         vectors = [self.query(key, normalized=normalized)
                    if key not in unseen_keys_map else
                    unseen_vectors[unseen_keys_map[self._key_t(key)]]
                    for key in keys]
         return vectors
+
+    def _vectors_for_2D_keys(self, keys2D, normalized=None):
+        """Queries the database for 2D keys."""
+        normalized = normalized if normalized is not None else self.normalized
+        if self._is_lm():
+            # Only language models benefit from this kind of 2D batching,
+            # SQLite is slightly faster with more batching, but it also has
+            # a turning point where that changes
+            keys2D = [[self._key_t(key) for key in keys] for keys in keys2D]
+            return self._process_lm_output(keys2D, normalized)
+        else:
+            return (self._vectors_for_keys_cached(row, normalized)
+                    for row in keys2D)
 
     def _key_for_index(self, index, return_vector=True):
         """Queries the database the key at a single index."""
@@ -1125,7 +1216,7 @@ class Magnitude(object):
             pad_to_length = pad_to_length if pad_to_length else len(q)
             padding_length = max(pad_to_length - len(q), 0)
             keys_length = pad_to_length - padding_length
-            vectors = self._vectors_for_keys(q, normalized)
+            vectors = self._vectors_for_keys_cached(q, normalized)
             if truncate_left:
                 vectors = vectors[-keys_length:]
             else:
@@ -1148,13 +1239,10 @@ class Magnitude(object):
             else:
                 tensor = [[self._padding_vector() for i in range(pad_to_length)]
                           for j in range(len(q))]
-            for row, sq in enumerate(q):
-                padding_length = max(pad_to_length - len(sq), 0)
+            for row, vectors in \
+                    enumerate(self._vectors_for_2D_keys(q, normalized)):
+                padding_length = max(pad_to_length - len(vectors), 0)
                 keys_length = pad_to_length - padding_length
-                # TODO: if elmo pass entire 2d thing to vectors_for_keys and
-                # fill in a matrix one by one with the list result
-                vectors = self._vectors_for_keys(
-                    sq, normalized)
                 if truncate_left:
                     vectors = vectors[-keys_length:]
                 else:
@@ -1175,7 +1263,7 @@ class Magnitude(object):
         """ Unrolls a vector if it was concatenated from its base model
         form. """
         if self.elmo and isinstance(v, np.ndarray):
-            return unroll_elmo(v)
+            return unroll_elmo(v, self.placeholders)
         else:
             return v
 
@@ -1203,17 +1291,17 @@ class Magnitude(object):
         key_0_len_ge_0 = key_0_is_list and len(key[0]) > 0
         key_0_0_is_number = (key_0_is_list and key_0_len_ge_0 and
                              isinstance(key[0][0], Number))
-        rval = None
+        r_val = None
         if (key_is_ndarray or key_0_is_number or key_0_is_ndarray or key_0_0_is_number):  # noqa
-            rval = key
+            r_val = key
         elif not self.use_numpy:
-            rval = np.asarray(self.query(key, normalized=normalized))
+            r_val = np.asarray(self.query(key, normalized=normalized))
         else:
-            rval = self.query(key, normalized=normalized)
+            r_val = self.query(key, normalized=normalized)
         if contextualize:
-            return np.squeeze(rval, axis=1)
+            return np.squeeze(r_val, axis=1)
         else:
-            return rval
+            return r_val
 
     def _query_is_cached(self, key, normalized=None):
         """Checks if the query been cached by Magnitude."""
@@ -1534,7 +1622,7 @@ build the appropriate indexes into the `.magnitude` file.")
                         all_vectors = np.zeros((0, self.dim))
                         self._all_vectors = all_vectors
                     break
-                except:
+                except BaseException:
                     if not logged and log and self.log:
                         _log("Need to build a memory map. "
                              "This may take some time...but it only "
@@ -1567,7 +1655,7 @@ build the appropriate indexes into the `.magnitude` file.")
                                 all_vectors.flush()
                                 try:
                                     del all_vectors
-                                except:
+                                except BaseException:
                                     pass
                             if not self.closed:
                                 os.rename(path_to_mmap_temp, self.path_to_mmap)
@@ -1577,7 +1665,7 @@ build the appropriate indexes into the `.magnitude` file.")
                             self.MMAP_THREAD_LOCK.release()
                             try:
                                 self.MMAP_PROCESS_LOCK.release()
-                            except:
+                            except BaseException:
                                 pass
                 sleep(1)  # Block before trying again
         return self._all_vectors
@@ -1669,7 +1757,7 @@ build the appropriate indexes into the `.magnitude` file.")
                     approx_index.load(self.path_to_approx_mmap)
                     self._approx_index = approx_index
                     break
-                except:
+                except BaseException:
                     sys.stdout.flush()
                     sys.stderr.flush()
                     if not logged and log and self.log:
@@ -1705,7 +1793,7 @@ build the appropriate indexes into the `.magnitude` file.")
                             self.APPROX_MMAP_THREAD_LOCK.release()
                             try:
                                 self.APPROX_MMAP_PROCESS_LOCK.release()
-                            except:
+                            except BaseException:
                                 pass
                 sleep(1)  # Block before trying again
         return self._approx_index
@@ -1720,11 +1808,16 @@ build the appropriate indexes into the `.magnitude` file.")
                 if not self.setup_for_mmap:
                     self._setup_for_mmap()
                 try:
-                    elmo_embedder = ElmoEmbedder(
-                        self.path_to_elmo_o_mmap, self.path_to_elmo_w_mmap)
+                    if len(self.devices) > 0:
+                        elmo_embedder = ElmoEmbedder(
+                            self.path_to_elmo_o_mmap, self.path_to_elmo_w_mmap,
+                            cuda_device=self.devices[0])
+                    else:
+                        elmo_embedder = ElmoEmbedder(
+                            self.path_to_elmo_o_mmap, self.path_to_elmo_w_mmap)
                     self._elmo_embedder = elmo_embedder
                     break
-                except:
+                except BaseException:
                     if not logged and log and self.log:
                         _log("Need to build ElmoEmbedder. "
                              "This may take some time...but it only "
@@ -1772,12 +1865,12 @@ build the appropriate indexes into the `.magnitude` file.")
                             self.ELMO_W_MMAP_THREAD_LOCK.release()
                             try:
                                 self.ELMO_W_MMAP_PROCESS_LOCK.release()
-                            except:
+                            except BaseException:
                                 pass
                             self.ELMO_O_MMAP_THREAD_LOCK.release()
                             try:
                                 self.ELMO_O_MMAP_PROCESS_LOCK.release()
-                            except:
+                            except BaseException:
                                 pass
                 sleep(1)  # Block before trying again
         return self._elmo_embedder
@@ -1834,41 +1927,41 @@ build the appropriate indexes into the `.magnitude` file.")
         if hasattr(self, 'fd'):
             try:
                 os.close(self.fd)
-            except:
+            except BaseException:
                 pass
         try:
             self._all_vectors._mmap.close()
-        except:
+        except BaseException:
             pass
         try:
             del self._all_vectors
             gc.collect()
-        except:
+        except BaseException:
             pass
         try:
             self._approx_index.unload()
-        except:
+        except BaseException:
             pass
         if (hasattr(self, 'MMAP_PROCESS_LOCK') and
             hasattr(self.MMAP_PROCESS_LOCK, 'lockfile') and
                 self.MMAP_PROCESS_LOCK.lockfile is not None):
             try:
                 self.MMAP_PROCESS_LOCK.lockfile.close()
-            except:
+            except BaseException:
                 pass
         if (hasattr(self, 'APPROX_MMAP_PROCESS_LOCK') and
             hasattr(self.APPROX_MMAP_PROCESS_LOCK, 'lockfile') and
                 self.APPROX_MMAP_PROCESS_LOCK.lockfile is not None):
             try:
                 self.APPROX_MMAP_PROCESS_LOCK.lockfile.close()
-            except:
+            except BaseException:
                 pass
 
     def __del__(self):
         """ Destructor for the class """
         try:
             self.close()
-        except:
+        except BaseException:
             pass
 
 
@@ -2057,7 +2150,7 @@ class MagnitudeUtils(object):
                     os.path.join(
                         download_dir,
                         local_file_name))
-            except:
+            except BaseException:
                 if _local:
                     raise RuntimeError(
                         "The path to the Magnitude file at '" + orig_model + "' could not be found. Also failed to find a valid remote model at the following URL: " +  # noqa
@@ -2317,7 +2410,8 @@ if _APSW_LIB == 'internal':
             # succeed
             self.add_to_caches()
             if amount > 0:
-                return self.read_data(amount, offset)
+                return data[offset -
+                            start_offset: (offset - start_offset) + amount]
             else:
                 return "".encode('utf-8')
 
@@ -2352,7 +2446,7 @@ if _APSW_LIB == 'internal':
                         print(
                             "[HTTPVFS] Prefetching terminated early @ %d + %d" %
                             (offset, amount))
-            except:
+            except BaseException:
                 if self.vfsfile.trace_log:
                     print(
                         "[HTTPVFS] Prefetching error @ %d + %d" %
@@ -2569,7 +2663,7 @@ if _APSW_LIB == 'internal':
             try:
                 return os.path.getsize(os.path.join(self.cache_dir_path,
                                                     self.cache_key))
-            except:
+            except BaseException:
                 return 0
 
         def add_to_mmaps(self, new, mm):
@@ -2580,15 +2674,15 @@ if _APSW_LIB == 'internal':
                 _, evict = heapq.heappop(self.vfsfile.cache_mmaps_heap)
                 try:
                     evict_mm = self.vfsfile.cache_mmaps[evict]
-                except:
+                except BaseException:
                     pass
                 try:
                     evict_mm.close()
-                except:
+                except BaseException:
                     pass
                 try:
                     del self.vfsfile.cache_mmaps[evict]
-                except:
+                except BaseException:
                     pass
             heapq.heappush(self.vfsfile.cache_mmaps_heap,
                            (time.time(), new))
@@ -2632,11 +2726,11 @@ if _APSW_LIB == 'internal':
             mm = self.get_mmap(create=False)
             try:
                 del self.vfsfile.cache_mmaps[self.cache_key]
-            except:
+            except BaseException:
                 pass
             try:
                 mm.close()
-            except:
+            except BaseException:
                 pass
             f = open(os.path.join(self.cache_dir_path,
                                   self.cache_key), "w+b")
@@ -2674,13 +2768,13 @@ if _APSW_LIB == 'internal':
             new = os.path.join(self.cache_dir_path, new_key)
             try:
                 os.rename(old, new)
-            except:
+            except BaseException:
                 pass
             try:
                 mm = self.vfsfile.cache_mmaps[self.cache_key]
                 del self.vfsfile.cache_mmaps[self.cache_key]
                 self.add_to_mmaps(new_key, mm)
-            except:
+            except BaseException:
                 pass
             self.cache_key = new_key
 
@@ -2693,20 +2787,20 @@ if _APSW_LIB == 'internal':
                 if (current_time - cache.time) > self.vfsfile.cache_ttl:
                     try:
                         mmap = cache.get_mmap(create=False)
-                    except:
+                    except BaseException:
                         pass
                     try:
                         del self.vfsfile.cache_mmaps[self.cache_key]
-                    except:
+                    except BaseException:
                         pass
                     try:
                         mmap.close()
-                    except:
+                    except BaseException:
                         pass
                     try:
                         os.remove(os.path.join(cache.cache_dir_path,
                                                cache.cache_key))
-                    except:
+                    except BaseException:
                         pass
 
     class HTTPVFSFile(apsw.VFSFile):
@@ -2714,7 +2808,7 @@ if _APSW_LIB == 'internal':
             the HTTP virtual file system.
         """
 
-        def __init__(self, inheritfromvfsname, name, flags, vfs, options={}):
+        def __init__(self, inheritfromvfsname, name, flags, vfs, options=None):
             # Constants
             self.RANDOM_ACCESS = 0
             self.SEQUENTIAL = 1
@@ -2734,12 +2828,12 @@ if _APSW_LIB == 'internal':
                 'random_access_hit_tracker_ttl': 60,
                 'cache_ttl': 60,
                 'ttl_purge_interval': 5,
-                'use_mmap': True,
+                'use_mmap': False,
                 'mmap_max_files': 10,
                 'temp_dir': tempfile.gettempdir(),
                 'trace_log': False,
             }
-            defaults.update(options)
+            defaults.update(options or {})
             for k, v in defaults.items():
                 setattr(self, k, v)
             self.max_network_retries = max(self.max_network_retries, 4)
@@ -2784,7 +2878,7 @@ if _APSW_LIB == 'internal':
                     self._prepare_prefetch_connection(self.RANDOM_ACCESS)
                 if self.sequential_cache_prefetch:
                     self._prepare_prefetch_connection(self.SEQUENTIAL)
-            except:
+            except BaseException:
                 try:
                     self.url = self.url[url_cis.index('https://'):]
                     self.parsed_url = urlparse(self.url)
@@ -2793,7 +2887,7 @@ if _APSW_LIB == 'internal':
                         self._prepare_prefetch_connection(self.RANDOM_ACCESS)
                     if self.sequential_cache_prefetch:
                         self._prepare_prefetch_connection(self.SEQUENTIAL)
-                except:
+                except BaseException:
                     raise RuntimeError("Invalid URL.")
             self.cache_dir = (
                 hashlib.md5(
@@ -2821,7 +2915,7 @@ if _APSW_LIB == 'internal':
             """Prepares a new HTTP connection"""
             try:
                 self.conn.close()
-            except:
+            except BaseException:
                 pass
             if new:
                 self.conn = self._new_connection()
@@ -2833,7 +2927,7 @@ if _APSW_LIB == 'internal':
                 while self.pconn_count[n] > 0:
                     sleep(1)
                 self.pconn[n].close()
-            except:
+            except BaseException:
                 pass
             if new:
                 self.pconn[n] = self._new_connection()
@@ -2999,8 +3093,7 @@ if _APSW_LIB == 'internal':
                                 (start, 1 + end - start, offset, amount))
 
                         # Store the extra data fetched back in the network cache
-                        cache.write_data(start, data, amount, offset)
-                        data = data[offset - start: (offset-start)+amount]
+                        data = cache.write_data(start, data, amount, offset)
 
                         # Prefetch the next sequential chunk of data in the
                         # background
@@ -3028,7 +3121,7 @@ if _APSW_LIB == 'internal':
                 except BaseException as e:
                     try:
                         self.conn_lock.release()
-                    except:
+                    except BaseException:
                         pass
                     # Handle a network error
                     self._network_error(e, i)
@@ -3054,7 +3147,7 @@ if _APSW_LIB == 'internal':
                 except BaseException as e:
                     try:
                         self.conn_lock.release()
-                    except:
+                    except BaseException:
                         pass
                     # Handle a network error
                     self._network_error(e, i)
@@ -3086,10 +3179,10 @@ if _APSW_LIB == 'internal':
             to HTTP URLs.
         """
 
-        def __init__(self, vfsname="http", basevfs="", options={}):
+        def __init__(self, vfsname="http", basevfs="", options=None):
             self.vfsname = vfsname
             self.basevfs = basevfs
-            self.options = options
+            self.options = options or {}
             apsw.VFS.__init__(self, self.vfsname, self.basevfs)
             self.files = {}
             self.files_lock = threading.RLock()

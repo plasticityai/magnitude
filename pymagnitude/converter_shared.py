@@ -68,15 +68,21 @@ def norm_elmo(e):
         e[i, :, :] = norm_matrix(e[i, :, :])
 
 
-def unroll_elmo(v):
+def unroll_elmo(v, placeholders):
     if len(v.shape) <= 2:
+        if placeholders > 0:
+            if len(v.shape) == 1:
+                v = v[:-placeholders]
+            else:
+                v = v[:, :-placeholders]
         return np.asarray(np.split(v, 3, axis=-1))
     elif len(v.shape) == 3:
         result = np.zeros(
             (v.shape[0], 3, v.shape[1], int(
                 v.shape[2] / 3)), dtype=v.dtype)
         for i in xrange(v.shape[0]):
-            result[i] = np.asarray(np.split(v[i], 3, axis=-1))
+            result[i] = np.asarray(
+                np.split(v[i][:, :-placeholders], 3, axis=-1))
         return result
     else:
         return v

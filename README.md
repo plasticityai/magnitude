@@ -137,6 +137,7 @@ If needed, and included for convenience, you can also open a `.bin`, `.txt`, `.v
 * <sup>Optionally, you can pass in the `placeholders` argument, which will increase the dimensions of each vector by a `placeholders` amount, zero-padding those extra dimensions. This is useful, if you plan to add other values and information to the vectors and want the space for that pre-allocated in the vectors for efficiency.</sup>
 * <sup>Optionally, you can pass in the `language` argument with an [ISO 639-1 Language Code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes), which, if you are using Magnitude for word vectors, will ensure the library respects stemming and other language-specific features for that language. The default is `en` for English. You can also pass in `None` if you are not using Magnitude for word vectors. </sup>
 * <sup>Optionally, you can pass in the `dtype` argument which will let you control the data type of the NumPy arrays returned by Magnitude.</sup>
+* <sup>Optionally, you can pass in the `devices` argument which will let you control the usage of GPUs when the underlying models supports GPU usage. This argument should be a list of integers, where each integer represents the GPU device number (`0`, `1`, etc.).</sup>
 * <sup>Optionally, you can pass in the `temp_dir` argument which will let you control the location of the temporary directory Magnitude will use.</sup>
 * <sup>Optionally, you can pass in the `log` argument which will have Magnitude log progress to standard error when slow operations are taking place.</sup>
 
@@ -514,7 +515,7 @@ This is explicitly different from the [remote loading feature](#remote-loading),
 ```python
   vecs = Magnitude('http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude', stream=True) # full url
   vecs = Magnitude('word2vec/heavy/GoogleNews-vectors-negative300', stream=True) # or, use the shorthand for the url
-  
+
   vecs.query("king") # Returns: the vector for "king" quickly, even with no local model file downloaded
 ```
 
@@ -548,8 +549,6 @@ You can contact us at [opensource@plasticity.ai](mailto:opensource@plasticity.ai
 * Speed optimizations on remote streaming and exposing stream cache configuration options
 * Make `most_similar_approx` optimized for streaming
 * In addition to the "Light", "Medium", and "Heavy" flavors, add a "Ludicrous" flavor that will be of an even larger file size but removes the constraint of the initially slow `most_similar` lookups.
-* Expose an option to use Magnitude's OOV method instead of ELMo's for ELMo models
-* Speed optimizations for 2D-Query on ELMo
 * Add Google BERT support
 * Support fastText `.bin` format
 

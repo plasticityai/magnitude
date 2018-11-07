@@ -53,7 +53,7 @@ If you want to use a different vocabulary, see the [documentation for the conver
 
 ### Out-of-Vocabulary for ELMo Vectors
 
-ELMo models are character-based and, thus, handle out-of-vocabulary words through learned representations of subword information. In the [future](README.md#roadmap), we will add support for an option that lets you switch to using Magnitude's out-of-vocabulary method instead.
+ELMo models are character-based and, thus, handle out-of-vocabulary words through learned representations of subword information. Use `ngram_oov=True` on the Magnitude constructor to switch to using Magnitude's out-of-vocabulary method instead.
 
 ### Remote Streaming
 

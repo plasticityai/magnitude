@@ -134,7 +134,6 @@ def convert(input_file_path, output_file_path=None,
                 elmo_options_path +
                 "` to exist. ELMo models require a JSON options file.")
         input_is_elmo = True
-        subword = 0
         meta_1_path = input_file_path
         meta_2_path = elmo_options_path
 
