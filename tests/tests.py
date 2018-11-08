@@ -366,10 +366,13 @@ class MagnitudeTest(unittest.TestCase):
         self.vectors_oov_2.close()
 
     def test_oov_unnorm(self):
-        self.assertTrue(isclose(self.vectors.query("*<<<<")[0],
-                                self.vectors_un.query("*<<<<")[0]))
-        self.assertTrue(isclose(self.vectors.query("uberx")[0],
-                                self.vectors_un.query("uberx")[0]))
+        self.assertTrue(isclose(self.vectors.query("uberx"),
+                                self.vectors_un.query("uberx") /
+
+                                np.linalg.norm(
+                                    self.vectors_un.query("uberx")
+        )
+        ).all())
 
     def test_oov_subword_values(self):
         self.vectors_oov_1 = Magnitude(
@@ -1246,9 +1249,9 @@ class MagnitudeTest(unittest.TestCase):
                                 -0.03564348))
         self.assertTrue(isclose(self.vectors_elmo_n.query(q)[0][4][0], 0))
         self.assertTrue(isclose(self.vectors_elmo_n.query(q)[1][0][0],
-                                0.0049551507))
+                                0.005172105))
         self.assertTrue(isclose(self.vectors_elmo_n.query(q)[1][4][0],
-                                0.00026647424))
+                                0.00026250063))
 
     def test_elmo_oov(self):
         self.assertEqual(
@@ -1300,8 +1303,6 @@ class MagnitudeTest(unittest.TestCase):
                 self.vectors_elmo_ngram.query(
                     [["uberx", "the"], ["cat"]])[0][0][0], -0.0062455)
         )
-        print(self.vectors_elmo.similarity(self.vectors_elmo_ngram.query(
-                    [["uberx", "the"], ["cat"]])[1][0], "cat"))
         self.assertTrue(
             isclose(
                 self.vectors_elmo_ngram.query(
@@ -1310,7 +1311,7 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(
             self.vectors_elmo.similarity(
                 "discriminatoryy",
-                "discriminnatory") < .7)
+                "discriminnatory") < .8)
         self.assertTrue(
             self.vectors_elmo_ngram.similarity(
                 "discriminatoryy",
@@ -1338,7 +1339,7 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(
             isclose(
                 self.vectors_elmo_ngram_p.query(
-                    [["uberx", "the"], ["cat"]])[1][0][0], 0.0013800792)
+                    [["uberx", "the"], ["cat"]])[1][0][0], -0.000800420)
         )
 
     def test_elmo_unroll(self):
