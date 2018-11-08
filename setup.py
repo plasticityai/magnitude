@@ -420,8 +420,8 @@ def install_req_wheels():
         version = os.path.basename(whl).split('-')[1]
         requirement = package_name + ">=" + version
         print("Checking if requirement is met: ", requirement)
-        pkg_resources.require(requirement)
         try:
+            pkg_resources.require(requirement)
             importlib.import_module(package_name)
             print("Requirement met...skipping install of: ", package_name)
         except BaseException:

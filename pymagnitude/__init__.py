@@ -3182,6 +3182,20 @@ if _APSW_LIB == 'internal':
                             self.SEQUENTIAL, new=False)
                         self._prepare_connection(new=False)
                         del self.vfs.files[ident]
+                        while len(self.cache_mmaps_heap) >= 0:
+                            _, evict = heapq.heappop(self.cache_mmaps_heap)
+                            try:
+                                evict_mm = self.cache_mmaps[evict]
+                            except BaseException:
+                                pass
+                            try:
+                                evict_mm.close()
+                            except BaseException:
+                                pass
+                            try:
+                                del self.cache_mmaps[evict]
+                            except BaseException:
+                                pass
                     else:
                         self.vfs.files[ident] = (
                             self.vfs.files[ident][0] - 1,
