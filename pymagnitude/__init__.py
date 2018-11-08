@@ -1111,18 +1111,18 @@ class Magnitude(object):
                    for key in keys]
         return vectors
 
-    def _vectors_for_2D_keys(self, keys2D, normalized=None):
+    def _vectors_for_2d_keys(self, keys2d, normalized=None):
         """Queries the database for 2D keys."""
         normalized = normalized if normalized is not None else self.normalized
         if self._is_lm():
             # Only language models benefit from this kind of 2D batching,
             # SQLite is slightly faster with more batching, but it also has
             # a turning point where that changes
-            keys2D = [[self._key_t(key) for key in keys] for keys in keys2D]
-            return self._process_lm_output(keys2D, normalized)
+            keys2d = [[self._key_t(key) for key in keys] for keys in keys2d]
+            return self._process_lm_output(keys2d, normalized)
         else:
             return (self._vectors_for_keys_cached(row, normalized)
-                    for row in keys2D)
+                    for row in keys2d)
 
     def _key_for_index(self, index, return_vector=True):
         """Queries the database the key at a single index."""
@@ -1240,7 +1240,7 @@ class Magnitude(object):
                 tensor = [[self._padding_vector() for i in range(pad_to_length)]
                           for j in range(len(q))]
             for row, vectors in \
-                    enumerate(self._vectors_for_2D_keys(q, normalized)):
+                    enumerate(self._vectors_for_2d_keys(q, normalized)):
                 padding_length = max(pad_to_length - len(vectors), 0)
                 keys_length = pad_to_length - padding_length
                 if truncate_left:
