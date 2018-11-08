@@ -2,9 +2,7 @@ from __future__ import print_function
 
 import fnmatch
 import hashlib
-import importlib
 import os
-import pkg_resources
 import shutil
 import sys
 import subprocess
@@ -213,11 +211,17 @@ def download_and_install_wheel():
             version = os.path.basename(ewhl).split('-')[1]
             requirement = package_name + ">=" + version
             print("Checking if requirement is met: ", requirement)
-            try:
-                pkg_resources.require(requirement)
-                importlib.import_module(package_name)
+            req_rc = subprocess.Popen([
+                sys.executable,
+                '-c',
+                "import importlib;"
+                "import pkg_resources;"
+                "pkg_resources.require('" + requirement + "');"
+                "importlib.import_module('" + package_name + "');"
+            ])
+            if req_rc == 0:
                 print("Requirement met...skipping install of: ", package_name)
-            except BaseException:
+            else:
                 print("Requirement not met...installing: ", package_name)
                 exitcodes.append(install_wheel(ewhl))
         print("Installing wheel: ", dl_path)
