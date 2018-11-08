@@ -1956,6 +1956,20 @@ build the appropriate indexes into the `.magnitude` file.")
                 self.APPROX_MMAP_PROCESS_LOCK.lockfile.close()
             except BaseException:
                 pass
+        if (hasattr(self, 'ELMO_W_MMAP_PROCESS_LOCK') and
+            hasattr(self.ELMO_W_MMAP_PROCESS_LOCK, 'lockfile') and
+                self.ELMO_W_MMAP_PROCESS_LOCK.lockfile is not None):
+            try:
+                self.ELMO_W_MMAP_PROCESS_LOCK.lockfile.close()
+            except BaseException:
+                pass
+        if (hasattr(self, 'ELMO_O_MMAP_PROCESS_LOCK') and
+            hasattr(self.ELMO_O_MMAP_PROCESS_LOCK, 'lockfile') and
+                self.ELMO_O_MMAP_PROCESS_LOCK.lockfile is not None):
+            try:
+                self.ELMO_O_MMAP_PROCESS_LOCK.lockfile.close()
+            except BaseException:
+                pass
 
     def __del__(self):
         """ Destructor for the class """

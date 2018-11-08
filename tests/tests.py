@@ -91,10 +91,20 @@ class MagnitudeTest(unittest.TestCase):
 
     def tearDown(self):
         self.vectors.close()
+        self.vectors_un.close()
         self.vectors_cs.close()
         self.vectors_batch.close()
         self.vectors_sw.close()
+        self.vectors_approx.close()
         self.tmp_vectors.close()
+        try:
+            self.vectors_elmo.close()
+            self.vectors_elmo_p.close()
+            self.vectors_elmo_ngram.close()
+            self.vectors_elmo_ngram_p.close()
+            self.vectors_elmo_n.close()
+        except BaseException:
+            pass
         self.concat_1.close()
         self.concat_2.close()
         del self.concat
