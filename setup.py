@@ -209,7 +209,17 @@ def download_and_install_wheel():
         zip_ref.extractall(extract_dir)
         for ewhl in glob(extract_dir + "/*/req_wheels/*.whl"):
             print("Installing requirement wheel: ", ewhl)
-            exitcodes.append(install_wheel(ewhl))
+            package_name = os.path.basename(ewhl).split('-')[0]
+            version = os.path.basename(ewhl).split('-')[1]
+            requirement = package_name + ">=" + version
+            print("Checking if requirement is met: ", requirement)
+            try:
+                pkg_resources.require(requirement)
+                importlib.import_module(package_name)
+                print("Requirement met...skipping install of: ", package_name)
+            except BaseException:
+                print("Requirement not met...installing: ", package_name)
+                exitcodes.append(install_wheel(ewhl))
         print("Installing wheel: ", dl_path)
         exitcodes.append(install_wheel(dl_path))
         zip_ref.extractall(PROJ_PATH)
@@ -416,17 +426,7 @@ def install_req_wheels():
     """Installs requirement wheels"""
     print("Installing requirements wheels...")
     for whl in glob(PACKAGE_NAME + '/req_wheels/*.whl'):
-        package_name = os.path.basename(whl).split('-')[0]
-        version = os.path.basename(whl).split('-')[1]
-        requirement = package_name + ">=" + version
-        print("Checking if requirement is met: ", requirement)
-        try:
-            pkg_resources.require(requirement)
-            importlib.import_module(package_name)
-            print("Requirement met...skipping install of: ", package_name)
-        except BaseException:
-            print("Requirement not met...installing: ", package_name)
-            rc = install_wheel(whl)
+        rc = install_wheel(whl)
     print("Done installing requirements wheels")
 
 
