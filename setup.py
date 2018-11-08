@@ -218,7 +218,7 @@ def download_and_install_wheel():
                 "import pkg_resources;"
                 "pkg_resources.require('" + requirement + "');"
                 "importlib.import_module('" + package_name + "');"
-            ])
+            ]).wait()
             if req_rc == 0:
                 print("Requirement met...skipping install of: ", package_name)
             else:
