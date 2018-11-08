@@ -1300,10 +1300,12 @@ class MagnitudeTest(unittest.TestCase):
                 self.vectors_elmo_ngram.query(
                     [["uberx", "the"], ["cat"]])[0][0][0], -0.0062455)
         )
+        print(self.vectors_elmo.similarity(self.vectors_elmo_ngram.query(
+                    [["uberx", "the"], ["cat"]])[1][0], "cat"))
         self.assertTrue(
             isclose(
                 self.vectors_elmo_ngram.query(
-                    [["uberx", "the"], ["cat"]])[1][0][0], 0.0013800792)
+                    [["uberx", "the"], ["cat"]])[1][0][0], -0.0008004207)
         )
         self.assertTrue(
             self.vectors_elmo.similarity(

@@ -257,7 +257,7 @@ class Magnitude(object):
         self.closed = False
         self.uid = str(uuid.uuid4()).replace("-", "")
         self.stream = stream
-        self.stream_options = stream_options
+        self.stream_options = stream_options or {}
         if self.stream:
             if self.apsw_lib != 'internal':
                 raise RuntimeError(

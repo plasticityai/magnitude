@@ -81,8 +81,12 @@ def unroll_elmo(v, placeholders):
             (v.shape[0], 3, v.shape[1], int(
                 v.shape[2] / 3)), dtype=v.dtype)
         for i in xrange(v.shape[0]):
+            if placeholders > 0:
+                new_v = v[i][:, :-placeholders]
+            else:
+                new_v = v[i]
             result[i] = np.asarray(
-                np.split(v[i][:, :-placeholders], 3, axis=-1))
+                np.split(new_v, 3, axis=-1))
         return result
     else:
         return v
