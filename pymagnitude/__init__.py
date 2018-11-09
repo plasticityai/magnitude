@@ -2772,7 +2772,7 @@ if _APSW_LIB == 'internal':
                 str(self.running_hit_amount),
                 str(int(self.time)),
                 str(self.id),
-            ]) + '.rmsqlmmap'
+            ]) + '.supersqlmmap'
 
         def add_to_caches(self):
             """Adds self to the caches."""
@@ -2916,7 +2916,7 @@ if _APSW_LIB == 'internal':
             self.cache_dir = (
                 hashlib.md5(
                     self.url.encode('utf-8')).hexdigest() +
-                '_rmsqlmmap')
+                '_supersqlmmap')
             self.cache_dir_path = os.path.join(self.temp_dir, self.cache_dir)
             try:
                 os.makedirs(self.cache_dir_path + '/')

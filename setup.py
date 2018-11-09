@@ -155,7 +155,7 @@ def install_wheel(whl):
 
 def skip_wheel():
     """ Checks if a wheel install should be skipped """
-    return "SKIP_MAGNITUDE_WHEEL" in os.environ
+    return "SKIP_" + PACKAGE_SHORT_NAME.upper() + "_WHEEL" in os.environ
 
 
 def installed_wheel():
