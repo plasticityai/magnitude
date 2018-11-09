@@ -2403,31 +2403,29 @@ if _APSW_LIB == 'internal':
             """Writes data fetched to the network cache and
             returns only the amount requested back."""
             # Writes the entire data fetched to the cache
-
-            # Uses itself as a cache object
-            self._start_offset = start_offset
-            self.set_data(data)
-            if self.vfsfile.trace_log:
-                print("[HTTPVFS] Cache Size: %d bytes" % (self.cache_size,))
-
-            # Purge old caches
-            current_time = time.time()
-            if ((current_time -
-                    self.vfsfile.last_cache_purge) >
-                    self.vfsfile.ttl_purge_interval):
+            if self.vfsfile.should_cache:
+                # Uses itself as a cache object
+                self._start_offset = start_offset
+                self.set_data(data)
                 if self.vfsfile.trace_log:
-                    print("[HTTPVFS] Purging expired caches...")
-                self.vfsfile.last_cache_purge = current_time
-                self.delete_caches()
+                    print("[HTTPVFS] Cache Size: %d bytes" % (self.cache_size,))
 
-            # Adds itself to the cache array, so the next read
-            # succeed
-            self.add_to_caches()
-            if amount > 0:
-                return data[offset -
-                            start_offset: (offset - start_offset) + amount]
-            else:
-                return "".encode('utf-8')
+                # Purge old caches
+                current_time = time.time()
+                if ((current_time -
+                        self.vfsfile.last_cache_purge) >
+                        self.vfsfile.ttl_purge_interval):
+                    if self.vfsfile.trace_log:
+                        print("[HTTPVFS] Purging expired caches...")
+                    self.vfsfile.last_cache_purge = current_time
+                    self.delete_caches()
+
+                # Adds itself to the cache array, so the next read
+                # succeed
+                self.add_to_caches()
+
+            return data[offset -
+                        start_offset: (offset - start_offset) + amount]
 
         def _prefetch_in_background(
                 self,
@@ -2526,6 +2524,12 @@ if _APSW_LIB == 'internal':
             into the cache using _prefetch_in_background(amount, offset)
             if it detects a non-sequential access pattern in the
             cache misses."""
+
+            # Don't do anything if caching is disabled
+            if not self.vfsfile.should_cache:
+                return None
+
+            # Find the closest cache match
             current_time = time.time()
             (
                 running_hit_amount,
@@ -2829,6 +2833,7 @@ if _APSW_LIB == 'internal':
 
             # Cache + Network configuration
             defaults = {
+                'should_cache': True,
                 'network_retry_delay': 10,
                 'max_network_retries': 10,
                 'sequential_cache_default_read': 4096 * 2,
@@ -2838,7 +2843,7 @@ if _APSW_LIB == 'internal':
                 'prefetch_thread_limit': 3,
                 'sequential_cache_prefetch': True,
                 'random_access_cache_prefetch': True,
-                'random_access_cache_range': 500 * (1024 ** 2),
+                'random_access_cache_range': 100 * (1024 ** 2),
                 'random_access_hit_tracker_ttl': 60,
                 'cache_ttl': 60,
                 'ttl_purge_interval': 5,
@@ -2851,6 +2856,11 @@ if _APSW_LIB == 'internal':
             for k, v in defaults.items():
                 setattr(self, k, v)
             self.max_network_retries = max(self.max_network_retries, 4)
+            if not self.should_cache:
+                self.sequential_cache_prefetch = False
+                self.random_access_cache_prefetch = False
+                self.sequential_cache_default_read = 0
+                self.cache_amount = 0
 
             # Cache initialization
             self.caches = []
@@ -3050,7 +3060,7 @@ if _APSW_LIB == 'internal':
                     data = cache.read_data(
                         amount, offset, self._prefetch_in_background)
                     if data is None:
-                        if self.trace_log:
+                        if self.trace_log and self.should_cache:
                             print(
                                 "[HTTPVFS] Cache miss for request @ %d + %d" %
                                 (offset, amount))
@@ -3111,7 +3121,7 @@ if _APSW_LIB == 'internal':
 
                         # Prefetch the next sequential chunk of data in the
                         # background
-                        if self.sequential_cache_prefetch:
+                        if self.sequential_cache_prefetch and self.should_cache:
                             if self.running_hit_direction >= 0:
                                 cache.prefetch_in_background(
                                     self._prefetch_in_background,

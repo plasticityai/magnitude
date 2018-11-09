@@ -442,198 +442,198 @@ if __name__ == "__main__":
     _clear_memory_buffers()
     _clear_mmap()
 
-    # if not NO_GENSIM:
-    #     vectors_magnitude = create_magnitude(
-    #         case_insensitive=False, eager=False)
-    #     vectors_gensim = create_gensim()
-    #     run_integrity_checks(vectors_magnitude, vectors_gensim)
-    #     vectors_magnitude.close()
-    #     del vectors_magnitude
-    #     del vectors_gensim
+    if not NO_GENSIM:
+        vectors_magnitude = create_magnitude(
+            case_insensitive=False, eager=False)
+        vectors_gensim = create_gensim()
+        run_integrity_checks(vectors_magnitude, vectors_gensim)
+        vectors_magnitude.close()
+        del vectors_magnitude
+        del vectors_gensim
 
-    # run_benchmark("Initial Load Time",
-    #               initial_load_magnitude,
-    #               intitial_load_gensim,
-    #               repeat=1)
+    run_benchmark("Initial Load Time",
+                  initial_load_magnitude,
+                  intitial_load_gensim,
+                  repeat=1)
 
-    # run_benchmark("Cold query single key",
-    #               cold_query_magnitude,
-    #               cold_query_gensim,
-    #               repeat=1)
+    run_benchmark("Cold query single key",
+                  cold_query_magnitude,
+                  cold_query_gensim,
+                  repeat=1)
 
-    # vectors_magnitude = create_magnitude()
-    # warm_query_magnitude(lambda: None, vectors_magnitude)
-    # vectors_gensim = create_gensim()
-    # if not NO_GENSIM:
-    #     warm_query_gensim(lambda: None, vectors_gensim)
-    # run_benchmark("Warm query single key",
-    #               func_1=warm_query_magnitude, args_1=(vectors_magnitude,),
-    #               func_2=warm_query_gensim, args_2=(vectors_gensim,),
-    #               repeat=100
-    #               )
-    # vectors_magnitude.close()
-    # del vectors_magnitude
-    # del vectors_gensim
+    vectors_magnitude = create_magnitude()
+    warm_query_magnitude(lambda: None, vectors_magnitude)
+    vectors_gensim = create_gensim()
+    if not NO_GENSIM:
+        warm_query_gensim(lambda: None, vectors_gensim)
+    run_benchmark("Warm query single key",
+                  func_1=warm_query_magnitude, args_1=(vectors_magnitude,),
+                  func_2=warm_query_gensim, args_2=(vectors_gensim,),
+                  repeat=100
+                  )
+    vectors_magnitude.close()
+    del vectors_magnitude
+    del vectors_gensim
 
-    # run_benchmark("Cold query multiple key",
-    #               cold_multi_query_magnitude,
-    #               cold_multi_query_gensim,
-    #               repeat=1)
+    run_benchmark("Cold query multiple key",
+                  cold_multi_query_magnitude,
+                  cold_multi_query_gensim,
+                  repeat=1)
 
-    # gc.collect()
-    # vectors_magnitude = create_magnitude()
-    # warm_multi_query_magnitude(lambda: None, vectors_magnitude)
-    # run_benchmark("Warm query multiple key (magnitude)",
-    #               func_1=warm_multi_query_magnitude, args_1=(
-    #                   vectors_magnitude,),
-    #               repeat=100,
-    #               clear_memory_buffers=False
-    #               )
-    # vectors_magnitude.close()
-    # del vectors_magnitude
-    # gc.collect()
-    # vectors_gensim = create_gensim()
-    # if not NO_GENSIM:
-    #     warm_multi_query_gensim(lambda: None, vectors_gensim)
-    # run_benchmark("Warm query multiple key (gensim)",
-    #               func_1=warm_multi_query_gensim, args_1=(vectors_gensim,),
-    #               repeat=100,
-    #               clear_memory_buffers=False
-    #               )
-    # del vectors_gensim
+    gc.collect()
+    vectors_magnitude = create_magnitude()
+    warm_multi_query_magnitude(lambda: None, vectors_magnitude)
+    run_benchmark("Warm query multiple key (magnitude)",
+                  func_1=warm_multi_query_magnitude, args_1=(
+                      vectors_magnitude,),
+                  repeat=100,
+                  clear_memory_buffers=False
+                  )
+    vectors_magnitude.close()
+    del vectors_magnitude
+    gc.collect()
+    vectors_gensim = create_gensim()
+    if not NO_GENSIM:
+        warm_multi_query_gensim(lambda: None, vectors_gensim)
+    run_benchmark("Warm query multiple key (gensim)",
+                  func_1=warm_multi_query_gensim, args_1=(vectors_gensim,),
+                  repeat=100,
+                  clear_memory_buffers=False
+                  )
+    del vectors_gensim
 
-    # run_benchmark("First most similar search (worst case)",
-    #               first_most_similar_magnitude,
-    #               first_most_similar_gensim,
-    #               repeat=1)
+    run_benchmark("First most similar search (worst case)",
+                  first_most_similar_magnitude,
+                  first_most_similar_gensim,
+                  repeat=1)
 
-    # vectors_magnitude = create_magnitude(eager=True, blocking=True)
-    # time.sleep(10)
-    # vectors_magnitude.close()
-    # del vectors_magnitude
-    # run_benchmark("First most similar search (average case) (magnitude)",
-    #               func_1=first_most_similar_magnitude,
-    #               repeat=1,
-    #               clear_mmap=False,
-    #               clear_memory_buffers=False
-    #               )
-    # gc.collect()
-    # vectors_gensim = create_gensim()
-    # time.sleep(10)
-    # del vectors_gensim
-    # run_benchmark("First most similar search (average case) (gensim)",
-    #               func_1=first_most_similar_gensim,
-    #               repeat=1,
-    #               clear_mmap=False,
-    #               clear_memory_buffers=False
-    #               )
+    vectors_magnitude = create_magnitude(eager=True, blocking=True)
+    time.sleep(10)
+    vectors_magnitude.close()
+    del vectors_magnitude
+    run_benchmark("First most similar search (average case) (magnitude)",
+                  func_1=first_most_similar_magnitude,
+                  repeat=1,
+                  clear_mmap=False,
+                  clear_memory_buffers=False
+                  )
+    gc.collect()
+    vectors_gensim = create_gensim()
+    time.sleep(10)
+    del vectors_gensim
+    run_benchmark("First most similar search (average case) (gensim)",
+                  func_1=first_most_similar_gensim,
+                  repeat=1,
+                  clear_mmap=False,
+                  clear_memory_buffers=False
+                  )
 
-    # vectors_magnitude = first_most_similar_magnitude(lambda: None)
-    # time.sleep(10)
-    # run_benchmark("Subsequent most similar search (magnitude)",
-    #               func_1=subsequent_most_similar_magnitude,
-    #               args_1=(vectors_magnitude,),
-    #               repeat=1,
-    #               clear_mmap=False,
-    #               clear_memory_buffers=False
-    #               )
-    # vectors_magnitude.close()
-    # del vectors_magnitude
-    # gc.collect()
-    # if not NO_GENSIM:
-    #     vectors_gensim = first_most_similar_gensim(lambda: None)
-    #     time.sleep(10)
-    #     run_benchmark("Subsequent most similar search (gensim)",
-    #                   func_1=subsequent_most_similar_gensim,
-    #                   args_1=(vectors_gensim,),
-    #                   repeat=10,
-    #                   clear_mmap=False,
-    #                   clear_memory_buffers=False
-    #                   )
-    #     del vectors_gensim
+    vectors_magnitude = first_most_similar_magnitude(lambda: None)
+    time.sleep(10)
+    run_benchmark("Subsequent most similar search (magnitude)",
+                  func_1=subsequent_most_similar_magnitude,
+                  args_1=(vectors_magnitude,),
+                  repeat=1,
+                  clear_mmap=False,
+                  clear_memory_buffers=False
+                  )
+    vectors_magnitude.close()
+    del vectors_magnitude
+    gc.collect()
+    if not NO_GENSIM:
+        vectors_gensim = first_most_similar_gensim(lambda: None)
+        time.sleep(10)
+        run_benchmark("Subsequent most similar search (gensim)",
+                      func_1=subsequent_most_similar_gensim,
+                      args_1=(vectors_gensim,),
+                      repeat=10,
+                      clear_mmap=False,
+                      clear_memory_buffers=False
+                      )
+        del vectors_gensim
 
-    # vectors_magnitude = first_most_similar_magnitude(lambda: None)
-    # time.sleep(10)
-    # run_benchmark("Warm most similar search (magnitude)",
-    #               func_1=warm_most_similar_magnitude,
-    #               args_1=(vectors_magnitude,),
-    #               repeat=10,
-    #               clear_mmap=False,
-    #               clear_memory_buffers=False
-    #               )
-    # vectors_magnitude.close()
-    # del vectors_magnitude
-    # gc.collect()
-    # if not NO_GENSIM:
-    #     vectors_gensim = first_most_similar_gensim(lambda: None)
-    #     time.sleep(10)
-    #     run_benchmark("Warm most similar search (gensim)",
-    #                   func_1=warm_most_similar_gensim,
-    #                   args_1=(vectors_gensim,),
-    #                   repeat=10,
-    #                   clear_mmap=False,
-    #                   clear_memory_buffers=False
-    #                   )
-    #     del vectors_gensim
+    vectors_magnitude = first_most_similar_magnitude(lambda: None)
+    time.sleep(10)
+    run_benchmark("Warm most similar search (magnitude)",
+                  func_1=warm_most_similar_magnitude,
+                  args_1=(vectors_magnitude,),
+                  repeat=10,
+                  clear_mmap=False,
+                  clear_memory_buffers=False
+                  )
+    vectors_magnitude.close()
+    del vectors_magnitude
+    gc.collect()
+    if not NO_GENSIM:
+        vectors_gensim = first_most_similar_gensim(lambda: None)
+        time.sleep(10)
+        run_benchmark("Warm most similar search (gensim)",
+                      func_1=warm_most_similar_gensim,
+                      args_1=(vectors_gensim,),
+                      repeat=10,
+                      clear_mmap=False,
+                      clear_memory_buffers=False
+                      )
+        del vectors_gensim
 
-    # run_benchmark("First most similar approx search (worst case)",
-    #               func_1=first_most_similar_approx_magnitude,
-    #               repeat=1)
+    run_benchmark("First most similar approx search (worst case)",
+                  func_1=first_most_similar_approx_magnitude,
+                  repeat=1)
 
-    # vectors_magnitude = create_magnitude(eager=True, blocking=True)
-    # vectors_magnitude.get_approx_index()
-    # time.sleep(10)
-    # vectors_magnitude.close()
-    # del vectors_magnitude
-    # run_benchmark(
-    #     "First most similar approx (effort = 1.0) search (average case) (magnitude)",
-    #     func_1=first_most_similar_approx_magnitude,
-    #     repeat=1,
-    #     clear_mmap=False,
-    #     clear_memory_buffers=False)
+    vectors_magnitude = create_magnitude(eager=True, blocking=True)
+    vectors_magnitude.get_approx_index()
+    time.sleep(10)
+    vectors_magnitude.close()
+    del vectors_magnitude
+    run_benchmark(
+        "First most similar approx (effort = 1.0) search (average case) (magnitude)",
+        func_1=first_most_similar_approx_magnitude,
+        repeat=1,
+        clear_mmap=False,
+        clear_memory_buffers=False)
 
-    # vectors_magnitude = create_magnitude(eager=True, blocking=True)
-    # vectors_magnitude.get_approx_index()
-    # time.sleep(10)
-    # run_benchmark(
-    #     "Subsequent most similar approx (effort = 1.0) search (magnitude)",
-    #     func_1=subsequent_most_similar_approx_magnitude,
-    #     args_1=(
-    #         vectors_magnitude,
-    #         1.0),
-    #     repeat=1000,
-    #     clear_mmap=False,
-    #     clear_memory_buffers=False)
-    # vectors_magnitude.close()
-    # del vectors_magnitude
+    vectors_magnitude = create_magnitude(eager=True, blocking=True)
+    vectors_magnitude.get_approx_index()
+    time.sleep(10)
+    run_benchmark(
+        "Subsequent most similar approx (effort = 1.0) search (magnitude)",
+        func_1=subsequent_most_similar_approx_magnitude,
+        args_1=(
+            vectors_magnitude,
+            1.0),
+        repeat=1000,
+        clear_mmap=False,
+        clear_memory_buffers=False)
+    vectors_magnitude.close()
+    del vectors_magnitude
 
-    # vectors_magnitude = create_magnitude(eager=True, blocking=True)
-    # vectors_magnitude.get_approx_index()
-    # time.sleep(10)
-    # run_benchmark(
-    #     "Subsequent most similar approx (effort = 0.1) search (magnitude)",
-    #     func_1=subsequent_most_similar_approx_magnitude,
-    #     args_1=(
-    #         vectors_magnitude,
-    #         0.1),
-    #     repeat=1000,
-    #     clear_mmap=False,
-    #     clear_memory_buffers=False)
-    # vectors_magnitude.close()
-    # del vectors_magnitude
+    vectors_magnitude = create_magnitude(eager=True, blocking=True)
+    vectors_magnitude.get_approx_index()
+    time.sleep(10)
+    run_benchmark(
+        "Subsequent most similar approx (effort = 0.1) search (magnitude)",
+        func_1=subsequent_most_similar_approx_magnitude,
+        args_1=(
+            vectors_magnitude,
+            0.1),
+        repeat=1000,
+        clear_mmap=False,
+        clear_memory_buffers=False)
+    vectors_magnitude.close()
+    del vectors_magnitude
 
-    # vectors_magnitude = first_most_similar_approx_magnitude(
-    #     lambda: None, close=False)
-    # time.sleep(10)
-    # run_benchmark("Warm most similar approx (effort = 1.0) search (magnitude)",
-    #               func_1=warm_most_similar_approx_magnitude,
-    #               args_1=(vectors_magnitude,),
-    #               repeat=100,
-    #               clear_mmap=False,
-    #               clear_memory_buffers=False
-    #               )
-    # vectors_magnitude.close()
-    # del vectors_magnitude
+    vectors_magnitude = first_most_similar_approx_magnitude(
+        lambda: None, close=False)
+    time.sleep(10)
+    run_benchmark("Warm most similar approx (effort = 1.0) search (magnitude)",
+                  func_1=warm_most_similar_approx_magnitude,
+                  args_1=(vectors_magnitude,),
+                  repeat=100,
+                  clear_mmap=False,
+                  clear_memory_buffers=False
+                  )
+    vectors_magnitude.close()
+    del vectors_magnitude
 
     vectors_magnitude = create_magnitude(
         case_insensitive=False, lazy_loading=100)
