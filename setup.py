@@ -36,6 +36,139 @@ except BaseException:
 PACKAGE_NAME = 'pymagnitude'
 PACKAGE_SHORT_NAME = 'magnitude'
 
+DOWNLOAD_REQ_WHEELS = [
+    ('http://download.pytorch.org/whl/cpu/', 'torch', ('0.4.1', '0.4.1.post2')),
+]
+
+
+def install_custom_sqlite3(THIRD_PARTY, INTERNAL):
+    """ Begin install custom SQLite
+    Can be safely ignored even if it fails, however, system SQLite
+    imitations may prevent large database files with many columns
+    from working."""
+    PYSQLITE2 = INTERNAL + '/pysqlite2'
+    APSW = INTERNAL + '/apsw'
+    PYSQLITE = THIRD_PARTY + '/_pysqlite'
+    APSW_TP = THIRD_PARTY + '/_apsw'
+    if built_local():
+        return
+    print("Installing custom SQLite 3 (pysqlite) ....")
+    install_env = os.environ.copy()
+    install_env["PYTHONPATH"] = INTERNAL + \
+        (':' + install_env["PYTHONPATH"] if "PYTHONPATH" in install_env else "")
+    shutil.copy(
+        os.path.join(
+            PYSQLITE, 'sqlite3.c'), os.path.join(
+            APSW_TP, 'src', 'sqlite3.c'))
+    shutil.copy(
+        os.path.join(
+            PYSQLITE, 'sqlite3.h'), os.path.join(
+            APSW_TP, 'src', 'sqlite3.h'))
+    rc = subprocess.Popen([
+        sys.executable,
+        PYSQLITE + '/setup.py',
+        'install',
+        '--install-lib=' + INTERNAL,
+    ], cwd=PYSQLITE, env=install_env).wait()
+    if rc:
+        print("")
+        print("============================================================")
+        print("=========================WARNING============================")
+        print("============================================================")
+        print("It seems like building a custom version of SQLite on your")
+        print("machine has failed. This is fine, Magnitude will likely work")
+        print("just fine with the sytem version of SQLite for most use cases.")
+        print("However, if you are trying to load extremely high dimensional")
+        print("models > 999 dimensions, you may run in to SQLite limitations")
+        print("that can only be resolved by using the custom version of SQLite.")
+        print("To troubleshoot make sure you have appropriate build tools on")
+        print("your machine for building C programs like GCC and the standard")
+        print("library. Also make sure you have the python-dev development")
+        print("libraries and headers for building Python C extensions.")
+        print("If you need more help with this, please reach out to ")
+        print("opensource@plasticity.ai.")
+        print("============================================================")
+        print("============================================================")
+        print("")
+    else:
+        print("")
+        print("============================================================")
+        print("=========================SUCCESS============================")
+        print("============================================================")
+        print("Building a custom version of SQLite on your machine has")
+        print("succeeded.")
+        print("Listing internal...")
+        print(try_list_dir(INTERNAL))
+        print("Listing internal/pysqlite2...")
+        print(try_list_dir(PYSQLITE2))
+        print("============================================================")
+        print("============================================================")
+        print("")
+    print("Installing custom SQLite 3 (apsw) ....")
+    rc = subprocess.Popen([
+        sys.executable,
+        APSW_TP + '/setup.py',
+        'install',
+        '--install-lib=' + INTERNAL,
+    ], cwd=APSW_TP, env=install_env).wait()
+    if rc:
+        print("")
+        print("============================================================")
+        print("=========================WARNING============================")
+        print("============================================================")
+        print("It seems like building a custom version of SQLite on your")
+        print("machine has failed. This is fine, Magnitude will likely work")
+        print("just fine with the sytem version of SQLite for most use cases.")
+        print("However, if you are trying to stream a remote model that")
+        print("can only be resolved by using the custom version of SQLite.")
+        print("To troubleshoot make sure you have appropriate build tools on")
+        print("your machine for building C programs like GCC and the standard")
+        print("library. Also make sure you have the python-dev development")
+        print("libraries and headers for building Python C extensions.")
+        print("If you need more help with this, please reach out to ")
+        print("opensource@plasticity.ai.")
+        print("============================================================")
+        print("============================================================")
+        print("")
+    else:
+        print("")
+        print("============================================================")
+        print("=========================SUCCESS============================")
+        print("============================================================")
+        print("Building a custom version of SQLite on your machine has")
+        print("succeeded.")
+        print("Listing internal...")
+        print(try_list_dir(INTERNAL))
+        print("Listing internal/apsw...")
+        print(try_list_dir(APSW))
+        print("============================================================")
+        print("============================================================")
+        print("")
+        if not(os.path.exists(APSW)):
+            print("Install-lib did not install APSW, installing from egg...")
+            for egg in glob(INTERNAL + "/apsw-*.egg"):
+                if (os.path.isfile(egg)):
+                    print("Found an egg file, extracting...")
+                    try:
+                        zip_ref = zipfile.ZipFile(egg, 'r')
+                    except BaseException:
+                        print("Egg extraction error")
+                        continue
+                    zip_ref.extractall(APSW)
+                else:
+                    print("Found an egg folder, renaming...")
+                    os.rename(egg, APSW)
+                print("Renaming apsw.py to __init__.py")
+                os.rename(
+                    os.path.join(
+                        APSW, 'apsw.py'), os.path.join(
+                        APSW, '__init__.py'))
+
+
+def custom_compile(THIRD_PARTY, INTERNAL):
+    install_custom_sqlite3(THIRD_PARTY, INTERNAL)
+
+
 # Redirect output to a file
 tee = open(
     os.path.join(
@@ -68,11 +201,7 @@ sys.stderr = TeeUnbuffered(sys.stderr)
 PROJ_PATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 THIRD_PARTY = PROJ_PATH + '/' + PACKAGE_NAME + '/third_party'
 BUILD_THIRD_PARTY = PROJ_PATH + '/build/lib/' + PACKAGE_NAME + '/third_party'
-PYSQLITE = THIRD_PARTY + '/_pysqlite'
-APSW_TP = THIRD_PARTY + '/_apsw'
 INTERNAL = THIRD_PARTY + '/internal'
-PYSQLITE2 = INTERNAL + '/pysqlite2'
-APSW = INTERNAL + '/apsw'
 
 # Get the package version
 __version__ = None
@@ -243,138 +372,13 @@ def parse_requirements(filename):
     return [line for line in lineiter if line and not line.startswith("#")]
 
 
-def custom_sqlite3_build():
-    """ Checks if custom SQLite has been built already """
-    so_files = glob(INTERNAL + '/pysqlite2/*.so')
-    pyd_files = glob(INTERNAL + '/pysqlite2/*.pyd')
-    return len(so_files + pyd_files) > 0
-
-
-def install_custom_sqlite3():
-    """ Begin install custom SQLite
-    Can be safely ignored even if it fails, however, system SQLite
-    imitations may prevent large database files with many columns
-    from working."""
-    if built_local():
-        return
-    print("Installing custom SQLite 3 (pysqlite) ....")
-    install_env = os.environ.copy()
-    install_env["PYTHONPATH"] = INTERNAL + \
-        (':' + install_env["PYTHONPATH"] if "PYTHONPATH" in install_env else "")
-    shutil.copy(
-        os.path.join(
-            PYSQLITE, 'sqlite3.c'), os.path.join(
-            APSW_TP, 'src', 'sqlite3.c'))
-    shutil.copy(
-        os.path.join(
-            PYSQLITE, 'sqlite3.h'), os.path.join(
-            APSW_TP, 'src', 'sqlite3.h'))
-    rc = subprocess.Popen([
-        sys.executable,
-        PYSQLITE + '/setup.py',
-        'install',
-        '--install-lib=' + INTERNAL,
-    ], cwd=PYSQLITE, env=install_env).wait()
-    if rc:
-        print("")
-        print("============================================================")
-        print("=========================WARNING============================")
-        print("============================================================")
-        print("It seems like building a custom version of SQLite on your")
-        print("machine has failed. This is fine, Magnitude will likely work")
-        print("just fine with the sytem version of SQLite for most use cases.")
-        print("However, if you are trying to load extremely high dimensional")
-        print("models > 999 dimensions, you may run in to SQLite limitations")
-        print("that can only be resolved by using the custom version of SQLite.")
-        print("To troubleshoot make sure you have appropriate build tools on")
-        print("your machine for building C programs like GCC and the standard")
-        print("library. Also make sure you have the python-dev development")
-        print("libraries and headers for building Python C extensions.")
-        print("If you need more help with this, please reach out to ")
-        print("opensource@plasticity.ai.")
-        print("============================================================")
-        print("============================================================")
-        print("")
-    else:
-        print("")
-        print("============================================================")
-        print("=========================SUCCESS============================")
-        print("============================================================")
-        print("Building a custom version of SQLite on your machine has")
-        print("succeeded.")
-        print("Listing internal...")
-        print(try_list_dir(INTERNAL))
-        print("Listing internal/pysqlite2...")
-        print(try_list_dir(PYSQLITE2))
-        print("============================================================")
-        print("============================================================")
-        print("")
-    print("Installing custom SQLite 3 (apsw) ....")
-    rc = subprocess.Popen([
-        sys.executable,
-        APSW_TP + '/setup.py',
-        'install',
-        '--install-lib=' + INTERNAL,
-    ], cwd=APSW_TP, env=install_env).wait()
-    if rc:
-        print("")
-        print("============================================================")
-        print("=========================WARNING============================")
-        print("============================================================")
-        print("It seems like building a custom version of SQLite on your")
-        print("machine has failed. This is fine, Magnitude will likely work")
-        print("just fine with the sytem version of SQLite for most use cases.")
-        print("However, if you are trying to stream a remote model that")
-        print("can only be resolved by using the custom version of SQLite.")
-        print("To troubleshoot make sure you have appropriate build tools on")
-        print("your machine for building C programs like GCC and the standard")
-        print("library. Also make sure you have the python-dev development")
-        print("libraries and headers for building Python C extensions.")
-        print("If you need more help with this, please reach out to ")
-        print("opensource@plasticity.ai.")
-        print("============================================================")
-        print("============================================================")
-        print("")
-    else:
-        print("")
-        print("============================================================")
-        print("=========================SUCCESS============================")
-        print("============================================================")
-        print("Building a custom version of SQLite on your machine has")
-        print("succeeded.")
-        print("Listing internal...")
-        print(try_list_dir(INTERNAL))
-        print("Listing internal/apsw...")
-        print(try_list_dir(APSW))
-        print("============================================================")
-        print("============================================================")
-        print("")
-        if not(os.path.exists(APSW)):
-            print("Install-lib did not install APSW, installing from egg...")
-            for egg in glob(INTERNAL + "/apsw-*.egg"):
-                if (os.path.isfile(egg)):
-                    print("Found an egg file, extracting...")
-                    try:
-                        zip_ref = zipfile.ZipFile(egg, 'r')
-                    except BaseException:
-                        print("Egg extraction error")
-                        continue
-                    zip_ref.extractall(APSW)
-                else:
-                    print("Found an egg folder, renaming...")
-                    os.rename(egg, APSW)
-                print("Renaming apsw.py to __init__.py")
-                os.rename(
-                    os.path.join(
-                        APSW, 'apsw.py'), os.path.join(
-                        APSW, '__init__.py'))
-
-
 def build_req_wheels():
     """Builds requirement wheels"""
     if built_local():
         return
     print("Building requirements wheels...")
+
+    # Get wheels from PyPI
     rc = subprocess.Popen([
         sys.executable,
         '-m',
@@ -385,41 +389,36 @@ def build_req_wheels():
         '--wheel-dir=' + PACKAGE_NAME + '/req_wheels'
     ], cwd=PROJ_PATH).wait()
 
-    # Try torch from PyTorch website
-    download_req_wheels = [
-        ('http://download.pytorch.org/whl/cpu/', 'torch', '0.4.1'),
-        ('http://download.pytorch.org/whl/cpu/', 'torch', '0.4.1.post2')
-    ]
-
-    pytorch_success = False
-    for wheelhouse, package, version in download_req_wheels:
-        for whl in get_supported_wheels(package, version):
-            exitcodes = []
-            whl_url = wheelhouse + whl
-            sys.stdout.write("Trying to download... '" + whl_url + "'")
-            dl_path = os.path.join(PACKAGE_NAME + '/req_wheels', whl)
-            try:
-                urlretrieve(whl_url, dl_path)
-                zip_ref = zipfile.ZipFile(dl_path, 'r')
-                pytorch_success = True
-                sys.stdout.write(" ...SUCCESS\n")
-            except BaseException:
-                if os.path.exists(dl_path):
-                    os.remove(dl_path)
-                sys.stdout.write(" ...FAIL\n")
-                continue
-            sys.stdout.flush()
-
-    # Try torch from PyPI
-    if not pytorch_success:
-        rc2 = subprocess.Popen([
-            sys.executable,
-            '-m',
-            'pip',
-            'wheel',
-            'torch',
-            '--wheel-dir=' + PACKAGE_NAME + '/req_wheels'
-        ], cwd=PROJ_PATH).wait()
+    # Download wheels
+    for wheelhouse, package, versions in DOWNLOAD_REQ_WHEELS:
+        req_dl_success = False
+        for version in versions:
+            for whl in get_supported_wheels(package, version):
+                exitcodes = []
+                whl_url = wheelhouse + whl
+                sys.stdout.write("Trying to download... '" + whl_url + "'")
+                dl_path = os.path.join(PACKAGE_NAME + '/req_wheels', whl)
+                try:
+                    urlretrieve(whl_url, dl_path)
+                    zip_ref = zipfile.ZipFile(dl_path, 'r')
+                    req_dl_success = True
+                    sys.stdout.write(" ...SUCCESS\n")
+                except BaseException:
+                    if os.path.exists(dl_path):
+                        os.remove(dl_path)
+                    sys.stdout.write(" ...FAIL\n")
+                    continue
+                sys.stdout.flush()
+        # Try to get it from PyPI as last resort
+        if not req_dl_success:
+            rc2 = subprocess.Popen([
+                sys.executable,
+                '-m',
+                'pip',
+                'wheel',
+                package,
+                '--wheel-dir=' + PACKAGE_NAME + '/req_wheels'
+            ], cwd=PROJ_PATH).wait()
 
     if rc:
         print("Failed to build requirements wheels!")
@@ -450,8 +449,8 @@ def install_requirements():
     print("Done installing requirements")
 
 
-def copy_custom_sqlite3():
-    """Copy the pysqlite2 folder into site-packages under
+def copy_custom_compile():
+    """Copy the third party folders into site-packages under
     PACKAGE_NAME/third_party/internal/ and
     ./build/lib/PACKAGE_NAME/third_party/internal/
     for good measure"""
@@ -469,7 +468,8 @@ def copy_custom_sqlite3():
         for sitepack in site_packages:
             for globbed in glob(sitepack + '/' + PACKAGE_NAME + '*/'):
                 try:
-                    cp_to = globbed + '/' + PACKAGE_NAME + '/third_party/internal/'
+                    cp_to = (globbed + '/' + PACKAGE_NAME +
+                             '/third_party/internal/')
                 except IndexError as e:
                     print(
                         "Site Package: '" +
@@ -536,13 +536,13 @@ try:
     class CustomBdistWheelCommand(bdist_wheel_):
         def run(self):
             if not(download_and_install_wheel()):
-                install_custom_sqlite3()
+                custom_compile(THIRD_PARTY, INTERNAL)
                 build_req_wheels()
                 open(BUILT_LOCAL, 'w+').close()
             print("Running wheel...")
             bdist_wheel_.run(self)
             print("Done running wheel")
-            copy_custom_sqlite3()
+            copy_custom_compile()
 
     cmdclass['bdist_wheel'] = CustomBdistWheelCommand
 
@@ -553,7 +553,7 @@ except ImportError as e:
 class CustomInstallCommand(install):
     def run(self):
         if not(download_and_install_wheel()):
-            install_custom_sqlite3()
+            custom_compile(THIRD_PARTY, INTERNAL)
             install_req_wheels()
             open(BUILT_LOCAL, 'w+').close()
         print("Running install...")
@@ -570,7 +570,7 @@ class CustomInstallCommand(install):
             print("Done running egg_install")
         else:
             print("Skipping egg_install")
-        copy_custom_sqlite3()
+        copy_custom_compile()
 
     def finalize_options(self):
         install.finalize_options(self)
@@ -600,7 +600,9 @@ if __name__ == '__main__':
         reqs = []
     elif not any([a in sys.argv for a in ['-V']]):
         reqs = parse_requirements('requirements.txt')
-        reqs.append('torch')
+        for wheelhouse, package, versions in DOWNLOAD_REQ_WHEELS:
+            if package not in reqs:
+                reqs.append(package)
         print("Adding requirements: ", reqs)
     else:
         reqs = []
