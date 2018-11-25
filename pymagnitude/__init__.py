@@ -148,6 +148,7 @@ class Magnitude(object):
     OOV_RNG_LOCK = threading.Lock()
     SQLITE_MAX_VARIABLE_NUMBER = max(max((_sqlite_try_max_variable_number(n)
                                           for n in [99, 999, 9999, 99999])), 1)
+    MAX_KEY_LENGTH_FOR_STEM = 150
     MAX_KEY_LENGTH_FOR_OOV_SIM = 1000
     ENGLISH_PREFIXES = ['counter', 'electro', 'circum', 'contra', 'contro',
                         'crypto', 'deuter', 'franco', 'hetero', 'megalo',
@@ -718,8 +719,9 @@ class Magnitude(object):
 
     def _oov_stem(self, key):
         """Strips away common prefixes and suffixes."""
-        if self.language == 'en':
-            return self._oov_english_stem_english_ixes(key)
+        if len(key) <= Magnitude.MAX_KEY_LENGTH_FOR_STEM:
+            if self.language == 'en':
+                return self._oov_english_stem_english_ixes(key)
         return key
 
     def _db_query_similar_keys_vector(
