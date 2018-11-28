@@ -209,7 +209,7 @@ with open(os.path.join(PROJ_PATH, 'version.py')) as f:
     exec(f.read())
 
 # Setup remote wheel configurations
-RM_WHEELHOUSE = 'https://s3.amazonaws.com/' + \
+RM_WHEELHOUSE = 'http://s3.amazonaws.com/' + \
     PACKAGE_SHORT_NAME + '.plasticity.ai/wheelhouse/'
 TRIED_DOWNLOADING_WHEEL = os.path.join(
     tempfile.gettempdir(),
