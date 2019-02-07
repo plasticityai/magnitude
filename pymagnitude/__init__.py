@@ -1308,8 +1308,8 @@ class Magnitude(object):
     def _query_is_cached(self, key, normalized=None):
         """Checks if the query been cached by Magnitude."""
         normalized = normalized if normalized is not None else self.normalized
-        return ((self._vector_for_key_cached._cache.get((key, frozenset([('normalized', normalized)]))) is not None) or (  # noqa
-            self._out_of_vocab_vector_cached._cache.get((key, frozenset([('normalized', normalized)]))) is not None))  # noqa
+        return ((self._vector_for_key_cached._cache.get(((key,), frozenset([('normalized', normalized)]))) is not None) or (  # noqa
+            self._out_of_vocab_vector_cached._cache.get(((key,), frozenset([('normalized', normalized)]))) is not None))  # noqa
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def distance(self, key, q):
