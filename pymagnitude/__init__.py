@@ -1208,9 +1208,9 @@ class Magnitude(object):
         truncate_left = truncate_left or self.truncate_left
 
         if not isinstance(q, list):  # Single key
-            vec = self._vector_for_key_cached(q, normalized)
+            vec = self._vector_for_key_cached(q, normalized=normalized)
             if vec is None:
-                return self._out_of_vocab_vector_cached(q, normalized)
+                return self._out_of_vocab_vector_cached(q, normalized, force=False)
             else:
                 return vec
         elif isinstance(q, list) \
@@ -1308,8 +1308,8 @@ class Magnitude(object):
     def _query_is_cached(self, key, normalized=None, force=False):
         """Checks if the query been cached by Magnitude."""
         normalized = normalized if normalized is not None else self.normalized
-        return ((self._vector_for_key_cached._cache.get(((key,), frozenset([('normalized', normalized)]))) is not None) or (  # noqa
-            self._out_of_vocab_vector_cached._cache.get(((key,), frozenset([('normalized', normalized), ('force', force)]))) is not None))  # noqa
+        return ((self._vector_for_key_cached._cache.get(((key,), frozenset([('normalized', normalized)]))) is not None)   # noqa
+                or (self._out_of_vocab_vector_cached._cache.get(((key, normalized), frozenset([('force', force)]))) is not None))  # noqa
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def distance(self, key, q):
@@ -1906,7 +1906,7 @@ build the appropriate indexes into the `.magnitude` file.")
 
     def __contains__(self, key):
         """Checks whether a key exists in the vectors"""
-        return self._vector_for_key_cached(key) is not None
+        return self._vector_for_key_cached(key, normalized=self.normalized) is not None
 
     def __getitem__(self, q):
         """Performs the index method when indexed."""
