@@ -1067,7 +1067,7 @@ class Magnitude(object):
             keys = [self._key_t(key) for key in keys]
             return self._process_lm_output(keys, normalized)
         unseen_keys = tuple(
-            key for key in keys if not self._query_is_cached(key, normalized))
+            key for key in keys if not self._query_is_cached(key, normalized=normalized, force=force))
         unseen_keys_map = {}
         if len(unseen_keys) > 0:
             unseen_keys_map = {self._key_t(k): i for i, k in
@@ -1305,11 +1305,11 @@ class Magnitude(object):
         else:
             return r_val
 
-    def _query_is_cached(self, key, normalized=None):
+    def _query_is_cached(self, key, normalized=None, force=False):
         """Checks if the query been cached by Magnitude."""
         normalized = normalized if normalized is not None else self.normalized
         return ((self._vector_for_key_cached._cache.get(((key,), frozenset([('normalized', normalized)]))) is not None) or (  # noqa
-            self._out_of_vocab_vector_cached._cache.get(((key,), frozenset([('normalized', normalized)]))) is not None))  # noqa
+            self._out_of_vocab_vector_cached._cache.get(((key,), frozenset([('normalized', normalized), ('force', force)]))) is not None))  # noqa
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def distance(self, key, q):
