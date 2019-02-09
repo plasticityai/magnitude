@@ -1066,8 +1066,9 @@ class Magnitude(object):
         if self._is_lm() and not force:
             keys = [self._key_t(key) for key in keys]
             return self._process_lm_output(keys, normalized)
+        cached_vectors = {key: self._query_cached(key, normalized, force) for key in keys}
         unseen_keys = tuple(
-            key for key in keys if not self._query_is_cached(key, normalized=normalized, force=force))
+            key for key in keys if cached_vectors[key] is None)
         unseen_keys_map = {}
         if len(unseen_keys) > 0:
             unseen_keys_map = {self._key_t(k): i for i, k in
@@ -1106,8 +1107,8 @@ class Magnitude(object):
                     unseen_vectors[i])
                 if unseen_vectors[i] is None:
                     unseen_vectors[i] = self._out_of_vocab_vector_cached(
-                        unseen_keys[i], normalized, force=force)
-        vectors = [self.query(key, normalized=normalized)
+                        unseen_keys[i], normalized=normalized, force=force)
+        vectors = [cached_vectors[key]
                    if key not in unseen_keys_map else
                    unseen_vectors[unseen_keys_map[self._key_t(key)]]
                    for key in keys]
@@ -1210,7 +1211,7 @@ class Magnitude(object):
         if not isinstance(q, list):  # Single key
             vec = self._vector_for_key_cached(q, normalized=normalized)
             if vec is None:
-                return self._out_of_vocab_vector_cached(q, normalized, force=False)
+                return self._out_of_vocab_vector_cached(q, normalized=normalized)
             else:
                 return vec
         elif isinstance(q, list) \
@@ -1305,11 +1306,13 @@ class Magnitude(object):
         else:
             return r_val
 
-    def _query_is_cached(self, key, normalized=None, force=False):
+    def _query_cached(self, key, normalized=None, force=False):
         """Checks if the query been cached by Magnitude."""
         normalized = normalized if normalized is not None else self.normalized
-        return ((self._vector_for_key_cached._cache.get(((key,), frozenset([('normalized', normalized)]))) is not None)   # noqa
-                or (self._out_of_vocab_vector_cached._cache.get(((key, normalized), frozenset([('force', force)]))) is not None))  # noqa
+        cached = self._vector_for_key_cached._cache.get(((key,), frozenset([('normalized', normalized)])))
+        if cached is not None:
+            return cached
+        return self._out_of_vocab_vector_cached._cache.get(((key,), frozenset([('normalized', normalized), ('force', force)])))
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def distance(self, key, q):
