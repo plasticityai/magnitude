@@ -2082,15 +2082,8 @@ class ConcatenatedMagnitude(object):
         truncate_left = truncate_left or self.magnitudes[0].truncate_left
 
         # Query each model with the right set of keys
-        v = [m.query(self._take(q, multikey, i), pad_to_length=(
-            pad_to_length if pad_to_length is not None else m.pad_to_length
-        ), pad_left=(
-            pad_left if pad_left is not None else m.pad_left
-        ), truncate_left=(
-            truncate_left if truncate_left is not None else m.truncate_left
-        ), normalized=(
-            normalized if normalized is not None else m.normalized
-        ))
+        v = [m.query(self._take(q, multikey, i), pad_to_length=pad_to_length, pad_left=pad_left, truncate_left=truncate_left, 
+                     normalized=(normalized if normalized is not None else m.normalized))
             for i, m in enumerate(self.magnitudes)]
 
         if not isinstance(q, list):  # Single key
