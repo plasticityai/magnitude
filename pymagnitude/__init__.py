@@ -2048,20 +2048,20 @@ class ConcatenatedMagnitude(object):
             result = np.reshape(cut, np.shape(cut)[0:-1]).tolist()
             return result
 
-    def _hstack(self, l, use_numpy):
+    def _hstack(self, ls, use_numpy):
         """Horizontally stacks NumPy arrays or Python lists"""
         if use_numpy:
-            return np.concatenate(l, axis=-1)
+            return np.concatenate(ls, axis=-1)
         else:
-            return list(chain.from_iterable(l))
+            return list(chain.from_iterable(ls))
 
-    def _dstack(self, l, use_numpy):
+    def _dstack(self, ls, use_numpy):
         """Depth stacks NumPy arrays or Python lists"""
         if use_numpy:
-            return np.concatenate(l, axis=-1)
+            return np.concatenate(ls, axis=-1)
         else:
-            return [self._hstack((l3[example] for l3 in l),
-                                 use_numpy=use_numpy) for example in xrange(len(l[0]))]  # noqa
+            return [self._hstack((l3[example] for l3 in ls),
+                                 use_numpy=use_numpy) for example in xrange(len(ls[0]))]  # noqa
 
     @lru_cache(DEFAULT_LRU_CACHE_SIZE, ignore_unhashable_args=True)
     def query(self, q, pad_to_length=None,
