@@ -151,8 +151,8 @@ Deploy to PyPI:
     # Upload to PyPI
     - envsubst < deployment/.pypirc > ~/.pypirc
     - chmod 600 ~/.pypirc
-    - pip2 install setuptools -U
-    - pip3 install setuptools -U
+    - pip2 install setuptools wheel twine -U
+    - pip3 install setuptools wheel twine -U
     - python3 setup.py sdist upload -r pypitest
     - python3 setup.py sdist upload -r pypi
     # Trigger Travis CI
