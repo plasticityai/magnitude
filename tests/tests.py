@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 from pymagnitude import Magnitude, FeaturizerMagnitude, MagnitudeUtils
-from numpy import asarray
+from numpy import isclose, asarray
 
 try:
     unicode
@@ -22,10 +22,6 @@ except NameError:
 def _clear_mmap():
     os.system("rm -rf " + os.path.join(tempfile.gettempdir(), '*.magmmap'))
     os.system("rm -rf " + os.path.join(tempfile.gettempdir(), '*.magmmap*'))
-
-def isclose(a, b):
-    print("ISCLOSE:", "A", a, "B", b)
-    return True
 
 class MagnitudeTest(unittest.TestCase):
     ELMO_PATH = "elmo.magnitude"
@@ -1236,7 +1232,7 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(isclose(self.vectors_elmo.query(q)[1][0][0],
                                 0.09789153))
         self.assertTrue(isclose(self.vectors_elmo.query(q)[1][4][0],
-                                0.005302878))
+                                0.005302556))
 
     def test_elmo_norm(self):
         self.assertEqual(len(self.vectors_elmo_n), 5)
@@ -1264,7 +1260,7 @@ class MagnitudeTest(unittest.TestCase):
         self.assertTrue(isclose(self.vectors_elmo_n.query(q)[1][0][0],
                                 0.005172105))
         self.assertTrue(isclose(self.vectors_elmo_n.query(q)[1][4][0],
-                                0.00026250063))
+                                0.0002624847))
 
     def test_elmo_oov(self):
         self.assertEqual(

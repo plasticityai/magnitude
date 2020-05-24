@@ -1282,12 +1282,12 @@ class Magnitude(object):
         resulting vector to a numpy array.
         """
         normalized = normalized if normalized is not None else self.normalized
-        # key_is_list = isinstance(key, list)
-        # key_len_ge_0 = key_is_list and len(key) > 0
-        # key_0_is_ndarray = key_len_ge_0 and isinstance(key[0], np.ndarray)
-        # if contextualize:
-        #     if key_len_ge_0 and key_0_is_ndarray:
-        #         contextualize = False
+        key_is_list = isinstance(key, list)
+        key_len_ge_0 = key_is_list and len(key) > 0
+        key_0_is_ndarray = key_len_ge_0 and isinstance(key[0], np.ndarray)
+        if contextualize:
+            if key_len_ge_0 and key_0_is_ndarray:
+                contextualize = False
         if contextualize:
             key = [[sq] for sq in key]
         key_is_ndarray = isinstance(key, np.ndarray)
