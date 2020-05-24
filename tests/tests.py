@@ -23,6 +23,7 @@ def _clear_mmap():
     os.system("rm -rf " + os.path.join(tempfile.gettempdir(), '*.magmmap'))
     os.system("rm -rf " + os.path.join(tempfile.gettempdir(), '*.magmmap*'))
 
+
 class MagnitudeTest(unittest.TestCase):
     ELMO_PATH = "elmo.magnitude"
     MAGNITUDE_PATH = ""
