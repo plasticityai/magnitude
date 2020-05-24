@@ -152,8 +152,9 @@ Deploy to PyPI:
     - envsubst < deployment/.pypirc > ~/.pypirc
     - chmod 600 ~/.pypirc
     - pip2 install setuptools -U
-    - python setup.py sdist upload -r pypitest
-    - python setup.py sdist upload -r pypi
+    - pip3 install setuptools -U
+    - python3 setup.py sdist upload -r pypitest
+    - python3 setup.py sdist upload -r pypi
     # Trigger Travis CI
     - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Travis-API-Version:3" -H "Authorization:token $TRAVIS_CI_TOKEN" -d '{"request":{"branch":"master"}}' https://api.travis-ci.org/repo/plasticityai%2Fmagnitude/requests
     # Trigger Appveyor CI
