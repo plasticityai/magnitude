@@ -1289,6 +1289,8 @@ class Magnitude(object):
         if contextualize:
             if not key_is_str_list:
                 contextualize = False
+        if contextualize:
+            key = [[sq] for sq in key]
         key_is_ndarray = isinstance(key, np.ndarray)
         key_is_list = isinstance(key, list)
         key_len_ge_0 = key_is_list and len(key) > 0
