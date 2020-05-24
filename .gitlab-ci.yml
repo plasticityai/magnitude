@@ -16,7 +16,7 @@ before_script:
   - apt-get install python -y
   - apt-get install python-pip -y
   - apt-get install python-setuptools -y
-  - apt-get install python3-setuptools python3-dev -y
+  - apt-get install python3-setuptools python3-dev python3-pip -y
   - apt-get install python-dev -y
   - apt-get install openssh-server -y
   # Setup SSH configuration
