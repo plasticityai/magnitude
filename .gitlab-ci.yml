@@ -151,6 +151,7 @@ Deploy to PyPI:
     # Upload to PyPI
     - envsubst < deployment/.pypirc > ~/.pypirc
     - chmod 600 ~/.pypirc
+    - pip2 install setuptools distutils -U
     - python setup.py sdist upload -r pypitest
     - python setup.py sdist upload -r pypi
     # Trigger Travis CI
