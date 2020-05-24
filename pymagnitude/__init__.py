@@ -1289,6 +1289,7 @@ class Magnitude(object):
         key_0_len_ge_0 = key_0_is_list and len(key[0]) > 0
         key_0_0_is_str = (key_0_is_list and key_0_len_ge_0 and
                           isinstance(key[0][0], str))
+        print('KEY', key)
         if contextualize:
             if key_len_ge_0 and not (key_0_is_str or key_0_0_is_str):
                 contextualize = False
