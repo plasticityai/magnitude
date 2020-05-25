@@ -15,7 +15,7 @@ jobs:
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" ; fi
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then (brew install python || brew upgrade python) ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then (brew install python || true) ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export PYTHON_EXEC_PATH=$(which python) ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then rm -rf $PYTHON_EXEC_PATH ; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ln -s $(which python3) $PYTHON_EXEC_PATH ; fi
