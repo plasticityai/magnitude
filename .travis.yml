@@ -3,7 +3,6 @@ language: python
 env:
   global:
     CIBW_BUILD_VERBOSITY: 3
-    PIP: pip3
 
 language: generic
 
@@ -22,12 +21,12 @@ script:
   - python --version
   - python3 --version
   - /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-  - $PIP install pip setuptools -U
-  - $PIP install cibuildwheel==0.10.0
+  - python3 -m pip install pip setuptools -U
+  - python3 -m pip install cibuildwheel==1.4.1
   - eval "buildwheel() { cibuildwheel --output-dir wheelhouse >>buildwheel.log 2>&1; }"
   - travis_wait 60 buildwheel || (tail -c 3670016 buildwheel.log && exit 1)
   - tail -c 3670016 buildwheel.log
   - ls wheelhouse
-  - $PIP install awscli --upgrade
+  - python3 -m pip install awscli --upgrade
   - brew install awscli || true
   - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/
