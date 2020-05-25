@@ -1,8 +1,8 @@
 env:
   matrix:
-    - CIBW_SKIP='cp34-* cp35-* cp36-* cp37-* cp38-*'
-    - CIBW_SKIP='cp27-* cp33-* cp36-* cp37-* cp38-*'
-    - CIBW_SKIP='cp27-* cp33-* cp34-* cp35-*'
+    - CIBW_SKIP='pp* cp34-* cp35-* cp36-* cp37-* cp38-*'
+    - CIBW_SKIP='pp* cp27-* cp33-* cp36-* cp37-* cp38-*'
+    - CIBW_SKIP='pp* cp27-* cp33-* cp34-* cp35-*'
   global:
     CIBW_BUILD_VERBOSITY: 3
 
