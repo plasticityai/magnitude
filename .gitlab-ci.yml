@@ -177,7 +177,7 @@ Deploy Linux Wheels:
     - echo "[default]" >> /.awsstore/credentials
     - echo "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> /.awsstore/credentials
     - echo "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> /.awsstore/credentials
-    - eval "copytocibuildwheel() { export CIBUILDWHEEL_CONTAINER=\$(docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux1' | head -n1 | awk '{print \$2}') && (docker cp $CI_PROJECT_DIR/. \$CIBUILDWHEEL_CONTAINER:/project || true) && docker exec \$CIBUILDWHEEL_CONTAINER mkdir -p /root/.aws && docker cp /.awsstore/credentials \$CIBUILDWHEEL_CONTAINER:/root/.aws/credentials; }"
+    - eval "copytocibuildwheel() { export CIBUILDWHEEL_CONTAINER=\$(docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux' | head -n1 | awk '{print \$2}') && (docker cp $CI_PROJECT_DIR/. \$CIBUILDWHEEL_CONTAINER:/project || true) && docker exec \$CIBUILDWHEEL_CONTAINER mkdir -p /root/.aws && docker cp /.awsstore/credentials \$CIBUILDWHEEL_CONTAINER:/root/.aws/credentials; }"
     - eval "repeatcopytocibuildwheel() { while sleep 1; do copytocibuildwheel || (echo 'Could not locate container:' && docker ps); done }"
     - export -f copytocibuildwheel
     - export -f repeatcopytocibuildwheel
