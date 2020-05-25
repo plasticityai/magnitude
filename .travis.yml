@@ -8,11 +8,12 @@ env:
   global:
     CIBW_BUILD_VERBOSITY: 3
 
-language: generic
-
-os:
-  - linux
-  - osx
+jobs:
+  include:
+    # perform a linux build
+    - services: docker
+    # and a mac build
+    - os: osx
 
 script:
   - export PYTHON_EXEC_PATH=$(which python)
