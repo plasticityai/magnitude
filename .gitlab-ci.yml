@@ -6,7 +6,7 @@ services:
 stages:
   # - Test
   - Deploy to PyPI
-  - Deploy Linux Wheels
+  # - Deploy Linux Wheels
 
 before_script:
   # Setup package manager
@@ -163,31 +163,31 @@ Deploy to PyPI:
   only:
     - master
 
-Deploy Linux Wheels:
-  stage: Deploy Linux Wheels
-  script:
-    - export SHARED_PATH=/builds/shared/$CI_PROJECT_PATH
-    - mkdir -p ${SHARED_PATH}
-    - touch ${SHARED_PATH}/setup.py
-    - echo $SHARED_PATH
-    - cp -a $CI_PROJECT_DIR/. /$SHARED_PATH/
-    - cd /$SHARED_PATH/
-    - mkdir -p /.awsstore
-    - touch /.awsstore/credentials
-    - echo "[default]" >> /.awsstore/credentials
-    - echo "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> /.awsstore/credentials
-    - echo "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> /.awsstore/credentials
-    - eval "copytocibuildwheel() { export CIBUILDWHEEL_CONTAINER=\$(docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux' | head -n1 | awk '{print \$2}') && docker exec \$CIBUILDWHEEL_CONTAINER mkdir -p /root/.aws && docker cp /.awsstore/credentials \$CIBUILDWHEEL_CONTAINER:/root/.aws/credentials; }"
-    - eval "repeatcopytocibuildwheel() { while sleep 1; do copytocibuildwheel || (echo 'Could not locate container:' && docker ps); done }"
-    - export -f copytocibuildwheel
-    - export -f repeatcopytocibuildwheel
-    - export CIBW_PLATFORM=linux
-    - export CIBW_BUILD_VERBOSITY=3
-    - export CIBW_BEFORE_BUILD="echo 'Installing AWS...'; pip install awscli --upgrade; echo 'Sleeping...waiting for copy to complete...'; sleep 90; echo 'Project Directory After Copy:'; ls /project; echo 'AWS After Copy:'; ls /root/.aws/;"
-    - export CIBW_TEST_COMMAND="echo 'Uploading to AWS:'; ls /output; aws s3 sync /output/ s3://magnitude.plasticity.ai/wheelhouse/"
-    - pip3 install pip setuptools -U
-    - pip3 install cibuildwheel==1.4.1
-    - /bin/bash -c "set -m; cibuildwheel --output-dir wheelhouse $SHARED_PATH & sleep 30 && echo 'Copying to sub-Docker container...' && repeatcopytocibuildwheel& sleep 28 && echo 'Done copying.' && fg 1"
+# Deploy Linux Wheels:
+#   stage: Deploy Linux Wheels
+#   script:
+#     - export SHARED_PATH=/builds/shared/$CI_PROJECT_PATH
+#     - mkdir -p ${SHARED_PATH}
+#     - touch ${SHARED_PATH}/setup.py
+#     - echo $SHARED_PATH
+#     - cp -a $CI_PROJECT_DIR/. /$SHARED_PATH/
+#     - cd /$SHARED_PATH/
+#     - mkdir -p /.awsstore
+#     - touch /.awsstore/credentials
+#     - echo "[default]" >> /.awsstore/credentials
+#     - echo "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> /.awsstore/credentials
+#     - echo "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> /.awsstore/credentials
+#     - eval "copytocibuildwheel() { export CIBUILDWHEEL_CONTAINER=\$(docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux' | head -n1 | awk '{print \$2}') && docker exec \$CIBUILDWHEEL_CONTAINER mkdir -p /root/.aws && docker cp /.awsstore/credentials \$CIBUILDWHEEL_CONTAINER:/root/.aws/credentials; }"
+#     - eval "repeatcopytocibuildwheel() { while sleep 1; do copytocibuildwheel || (echo 'Could not locate container:' && docker ps); done }"
+#     - export -f copytocibuildwheel
+#     - export -f repeatcopytocibuildwheel
+#     - export CIBW_PLATFORM=linux
+#     - export CIBW_BUILD_VERBOSITY=3
+#     - export CIBW_BEFORE_BUILD="echo 'Installing AWS...'; pip install awscli --upgrade; echo 'Sleeping...waiting for copy to complete...'; sleep 90; echo 'Project Directory After Copy:'; ls /project; echo 'AWS After Copy:'; ls /root/.aws/;"
+#     - export CIBW_TEST_COMMAND="echo 'Uploading to AWS:'; ls /output; aws s3 sync /output/ s3://magnitude.plasticity.ai/wheelhouse/"
+#     - pip3 install pip setuptools -U
+#     - pip3 install cibuildwheel==1.4.1
+#     - /bin/bash -c "set -m; cibuildwheel --output-dir wheelhouse $SHARED_PATH & sleep 30 && echo 'Copying to sub-Docker container...' && repeatcopytocibuildwheel& sleep 28 && echo 'Done copying.' && fg 1"
 
-  only:
-    - master
+#   only:
+#     - master
