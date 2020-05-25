@@ -171,6 +171,7 @@ Deploy Linux Wheels:
     - touch ${SHARED_PATH}/setup.py
     - echo $SHARED_PATH
     - cp -a $CI_PROJECT_DIR/. /$SHARED_PATH/
+    - cd /$SHARED_PATH/
     - mkdir -p /.awsstore
     - touch /.awsstore/credentials
     - echo "[default]" >> /.awsstore/credentials
