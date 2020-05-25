@@ -4,9 +4,9 @@ services:
   - docker:dind
 
 stages:
-  # - Test
+  - Test
   - Deploy to PyPI
-  # - Deploy Linux Wheels
+  - Deploy Linux Wheels
 
 before_script:
   # Setup package manager
@@ -25,104 +25,104 @@ before_script:
   # Install gettext for envsubst
   - apt-get install gettext -y
 
-# Lint:
-#   stage: Test
-#   script:
-#     - apt-get install python3 -y
-#     - apt-get install python3-pip -y
-#     - pip3 install flake8
-#     - pip3 install pep8-naming
-#     - flake8 --version
-#     - flake8 
+Lint:
+  stage: Test
+  script:
+    - apt-get install python3 -y
+    - apt-get install python3-pip -y
+    - pip3 install flake8
+    - pip3 install pep8-naming
+    - flake8 --version
+    - flake8 
 
 
-# Test Python 2:
-#   stage: Test
-#   script:
-#     - apt-get install python-pip -y
-#     - pip2 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
-#     - pip2 install -U pip setuptools
-#     - python2 setup.py install
-#     - pip install gensim
-#     - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
-#     - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
-#     - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
-#     - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
-#     - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
-#     - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
-#     - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude
-#     - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude
-#     - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude
-#     - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s
-#     - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s
-#     - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s
-#     - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s
-#     - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s
-#     - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s
-#     - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s -a
-#     - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s -a
-#     - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s -a
-#     - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s -a
-#     - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s -a
-#     - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s -a
-#     - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o w2v.magnitude
-#     - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude
-#     - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s
-#     - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s -a
-#     - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude
-#     - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -s
-#     - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -a
-#     - ls
-#     - python2 -m tests.tests -i GoogleNews-vectors-negative300.light.magnitude -s GoogleNews-vectors-negative300.medium.magnitude -a GoogleNews-vectors-negative300.heavy.magnitude -- -v
+Test Python 2:
+  stage: Test
+  script:
+    - apt-get install python-pip -y
+    - pip2 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
+    - pip2 install -U pip setuptools
+    - python2 setup.py install
+    - pip install gensim
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/word2vec.bin -o w2v.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s -a
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -s
+    - python2 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -a
+    - ls
+    - python2 -m tests.tests -i GoogleNews-vectors-negative300.light.magnitude -s GoogleNews-vectors-negative300.medium.magnitude -a GoogleNews-vectors-negative300.heavy.magnitude -- -v
 
-# Test Python 3:
-#   stage: Test
-#   script:
-#     - apt-get install build-essential -y
-#     - apt-get install libffi-dev libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev  -y
-#     - apt-get install libgdbm-dev libdb5.3-dev libbz2-dev libexpat1-dev liblzma-dev tk-dev -y
-#     - wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
-#     - tar xf Python-3.7.1.tar.xz
-#     - cd Python-3.7.1 && ./configure --enable-shared && make -j 8 && make altinstall && cd ../
-#     - echo $(pwd)/Python-3.7.1
-#     - ls $(pwd)/Python-3.7.1
-#     - export LD_LIBRARY_PATH=$(pwd)/Python-3.7.1:$LD_LIBRARY_PATH
-#     - echo $LD_LIBRARY_PATH
-#     - curl https://bootstrap.pypa.io/get-pip.py | python3.7
-#     - python3.7 -m pip install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
-#     - python3.7 -m pip install -U wheel setuptools # TEMP: removing upgrading of pip here, because the newest one is broken for Python 3
-#     - python3.7 setup.py install
-#     - python3.7 -m pip install gensim
-#     - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
-#     - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
-#     - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
-#     - python3.7 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
-#     - python3.7 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
-#     - python3.7 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
-#     - python3.7 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude
-#     - python3.7 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude
-#     - python3.7 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude
-#     - python3.7 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s
-#     - python3.7 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s
-#     - python3.7 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s
-#     - python3.7 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s
-#     - python3.7 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s
-#     - python3.7 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s
-#     - python3.7 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s -a
-#     - python3.7 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s -a
-#     - python3.7 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s -a
-#     - python3.7 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s -a
-#     - python3.7 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s -a
-#     - python3.7 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s -a
-#     - python3.7 -m pymagnitude.converter -i tests/models/word2vec.bin -o w2v.magnitude
-#     - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude
-#     - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s
-#     - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s -a
-#     - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude
-#     - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -s
-#     - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -a
-#     - ls
-#     - python3.7 -m tests.tests -i GoogleNews-vectors-negative300.light.magnitude -s GoogleNews-vectors-negative300.medium.magnitude -a GoogleNews-vectors-negative300.heavy.magnitude -- -v
+Test Python 3:
+  stage: Test
+  script:
+    - apt-get install build-essential -y
+    - apt-get install libffi-dev libssl-dev zlib1g-dev libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev  -y
+    - apt-get install libgdbm-dev libdb5.3-dev libbz2-dev libexpat1-dev liblzma-dev tk-dev -y
+    - wget https://www.python.org/ftp/python/3.7.1/Python-3.7.1.tar.xz
+    - tar xf Python-3.7.1.tar.xz
+    - cd Python-3.7.1 && ./configure --enable-shared && make -j 8 && make altinstall && cd ../
+    - echo $(pwd)/Python-3.7.1
+    - ls $(pwd)/Python-3.7.1
+    - export LD_LIBRARY_PATH=$(pwd)/Python-3.7.1:$LD_LIBRARY_PATH
+    - echo $LD_LIBRARY_PATH
+    - curl https://bootstrap.pypa.io/get-pip.py | python3.7
+    - python3.7 -m pip install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
+    - python3.7 -m pip install -U wheel setuptools # TEMP: removing upgrading of pip here, because the newest one is broken for Python 3
+    - python3.7 setup.py install
+    - python3.7 -m pip install gensim
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/light/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.light.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/medium/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.medium.magnitude
+    - wget --quiet http://magnitude.plasticity.ai/word2vec/heavy/GoogleNews-vectors-negative300.magnitude -O GoogleNews-vectors-negative300.heavy.magnitude
+    - python3.7 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude
+    - python3.7 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude
+    - python3.7 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude
+    - python3.7 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude
+    - python3.7 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude
+    - python3.7 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude
+    - python3.7 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s
+    - python3.7 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s
+    - python3.7 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s
+    - python3.7 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s
+    - python3.7 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s
+    - python3.7 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s
+    - python3.7 -m pymagnitude.converter -i tests/models/word2vec.txt -o out.magnitude -s -a
+    - python3.7 -m pymagnitude.converter -i tests/models/word2vec.bin -o out.magnitude -s -a
+    - python3.7 -m pymagnitude.converter -i tests/models/glove.txt -o out.magnitude -s -a
+    - python3.7 -m pymagnitude.converter -i tests/models/fasttext.vec -o out.magnitude -s -a
+    - python3.7 -m pymagnitude.converter -i tests/models/zero.txt -o out.magnitude -s -a
+    - python3.7 -m pymagnitude.converter -i tests/models/large.txt -o out.magnitude -s -a
+    - python3.7 -m pymagnitude.converter -i tests/models/word2vec.bin -o w2v.magnitude
+    - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude
+    - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s
+    - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -s -a
+    - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude
+    - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -s
+    - python3.7 -m pymagnitude.converter -i tests/models/elmo_weights.hdf5 -o elmo.magnitude -v w2v.magnitude -a
+    - ls
+    - python3.7 -m tests.tests -i GoogleNews-vectors-negative300.light.magnitude -s GoogleNews-vectors-negative300.medium.magnitude -a GoogleNews-vectors-negative300.heavy.magnitude -- -v
 
 Deploy to PyPI:
   stage: Deploy to PyPI
@@ -159,35 +159,5 @@ Deploy to PyPI:
     - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Travis-API-Version:3" -H "Authorization:token $TRAVIS_CI_TOKEN" -d '{"request":{"branch":"master"}}' https://api.travis-ci.org/repo/plasticityai%2Fmagnitude/requests
     # Trigger Appveyor CI
     - curl -s -X POST -H "Content-Type:application/json" -H "Accept:application/json" -H "Authorization:Bearer $APPVEYOR_CI_TOKEN" -d '{"accountName":"plasticity-admin","projectSlug":"magnitude","branch":"master"}' https://ci.appveyor.com/api/builds
-
   only:
     - master
-
-# Deploy Linux Wheels:
-#   stage: Deploy Linux Wheels
-#   script:
-#     - export SHARED_PATH=/builds/shared/$CI_PROJECT_PATH
-#     - mkdir -p ${SHARED_PATH}
-#     - touch ${SHARED_PATH}/setup.py
-#     - echo $SHARED_PATH
-#     - cp -a $CI_PROJECT_DIR/. /$SHARED_PATH/
-#     - cd /$SHARED_PATH/
-#     - mkdir -p /.awsstore
-#     - touch /.awsstore/credentials
-#     - echo "[default]" >> /.awsstore/credentials
-#     - echo "aws_access_key_id = $AWS_ACCESS_KEY_ID" >> /.awsstore/credentials
-#     - echo "aws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> /.awsstore/credentials
-#     - eval "copytocibuildwheel() { export CIBUILDWHEEL_CONTAINER=\$(docker ps --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}' | grep 'quay.io/pypa/manylinux' | head -n1 | awk '{print \$2}') && docker exec \$CIBUILDWHEEL_CONTAINER mkdir -p /root/.aws && docker cp /.awsstore/credentials \$CIBUILDWHEEL_CONTAINER:/root/.aws/credentials; }"
-#     - eval "repeatcopytocibuildwheel() { while sleep 1; do copytocibuildwheel || (echo 'Could not locate container:' && docker ps); done }"
-#     - export -f copytocibuildwheel
-#     - export -f repeatcopytocibuildwheel
-#     - export CIBW_PLATFORM=linux
-#     - export CIBW_BUILD_VERBOSITY=3
-#     - export CIBW_BEFORE_BUILD="echo 'Installing AWS...'; pip install awscli --upgrade; echo 'Sleeping...waiting for copy to complete...'; sleep 90; echo 'Project Directory After Copy:'; ls /project; echo 'AWS After Copy:'; ls /root/.aws/;"
-#     - export CIBW_TEST_COMMAND="echo 'Uploading to AWS:'; ls /output; aws s3 sync /output/ s3://magnitude.plasticity.ai/wheelhouse/"
-#     - pip3 install pip setuptools -U
-#     - pip3 install cibuildwheel==1.4.1
-#     - /bin/bash -c "set -m; cibuildwheel --output-dir wheelhouse $SHARED_PATH & sleep 30 && echo 'Copying to sub-Docker container...' && repeatcopytocibuildwheel& sleep 28 && echo 'Done copying.' && fg 1"
-
-#   only:
-#     - master
