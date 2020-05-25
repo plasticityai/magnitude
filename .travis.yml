@@ -15,12 +15,19 @@ jobs:
     # and a mac build
     - os: osx
 
+before_install:
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install python ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then export PYTHON_EXEC_PATH=$(which python) ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then rm -rf $PYTHON_EXEC_PATH ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then ln -s $(which python3) $PYTHON_EXEC_PATH ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then python --version ; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then python3 --version ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then apt-get update ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then apt-get install python3-setuptools python3-dev python3-pip -y ; fi
+
 script:
-  - export PYTHON_EXEC_PATH=$(which python)
-  - rm -rf $PYTHON_EXEC_PATH
-  - ln -s $(which python3) $PYTHON_EXEC_PATH
-  - python --version
-  - python3 --version
+
   - python3 -m pip install pip setuptools -U
   - python3 -m pip install cibuildwheel==1.4.1
   - eval "buildwheel() { cibuildwheel --output-dir wheelhouse >>buildwheel.log 2>&1; }"
