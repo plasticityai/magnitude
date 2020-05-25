@@ -16,6 +16,11 @@ matrix:
     - os: linux
 
 script:
+  - export PYTHON_EXEC_PATH=$(which python)
+  - rm -rf $PYTHON_EXEC_PATH
+  - ln -s $(which python3) $PYTHON_EXEC_PATH
+  - python --version
+  - python3 --version
   - /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
   - $PIP install pip setuptools -U
   - $PIP install cibuildwheel==0.10.0
