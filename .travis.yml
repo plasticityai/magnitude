@@ -35,4 +35,5 @@ script:
   - tail -c 3670016 buildwheel.log
   - ls wheelhouse
   - python3 -m pip install awscli --upgrade
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then (brew install awscli || true) ; fi
   - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/
