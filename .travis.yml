@@ -26,7 +26,7 @@ before_install:
 
 script:
   - echo $CIBW_SKIP
-  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then unset CIBW_SKIP; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then unset CIBW_SKIP; export CIBW_SKIP=''; fi
   - echo $CIBW_SKIP
   - python3 -m pip install pip setuptools -U
   - python3 -m pip install cibuildwheel==1.4.1
