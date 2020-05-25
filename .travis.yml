@@ -1,6 +1,10 @@
 language: python
 
 env:
+  matrix:
+    - CIBW_SKIP: cp34-* cp35-* cp36-* cp37-* cp38-*
+    - CIBW_SKIP: cp27-* cp33-* cp36-* cp37-* cp38-*
+    - CIBW_SKIP: cp27-* cp33-* cp34-* cp35-*
   global:
     CIBW_BUILD_VERBOSITY: 3
 
@@ -10,17 +14,12 @@ os:
   - linux
   - osx
 
-matrix:
-  exclude:
-    - os: linux
-
 script:
   - export PYTHON_EXEC_PATH=$(which python)
   - rm -rf $PYTHON_EXEC_PATH
   - ln -s $(which python3) $PYTHON_EXEC_PATH
   - python --version
   - python3 --version
-  - /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
   - python3 -m pip install pip setuptools -U
   - python3 -m pip install cibuildwheel==1.4.1
   - eval "buildwheel() { cibuildwheel --output-dir wheelhouse >>buildwheel.log 2>&1; }"
@@ -28,5 +27,4 @@ script:
   - tail -c 3670016 buildwheel.log
   - ls wheelhouse
   - python3 -m pip install awscli --upgrade
-  - brew install awscli || true
   - aws s3 sync ./wheelhouse/ s3://magnitude.plasticity.ai/wheelhouse/
