@@ -40,7 +40,7 @@ Test Python 2:
   stage: Test
   script:
     - apt-get install python-pip -y
-    - pip2 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
+    - pip2 install torch\>=1.5.1 # This is not in requirements.txt so must be installed like this
     - pip2 install -U pip setuptools
     - python2 setup.py install
     - pip install gensim
@@ -89,7 +89,7 @@ Test Python 3:
     - export LD_LIBRARY_PATH=$(pwd)/Python-3.7.1:$LD_LIBRARY_PATH
     - echo $LD_LIBRARY_PATH
     - curl https://bootstrap.pypa.io/get-pip.py | python3.7
-    - python3.7 -m pip install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
+    - python3.7 -m pip install torch\>=1.5.1 # This is not in requirements.txt so must be installed like this
     - python3.7 -m pip install -U wheel setuptools # TEMP: removing upgrading of pip here, because the newest one is broken for Python 3
     - python3.7 setup.py install
     - python3.7 -m pip install gensim
