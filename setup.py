@@ -37,7 +37,7 @@ PACKAGE_NAME = 'pymagnitude'
 PACKAGE_SHORT_NAME = 'magnitude'
 
 DOWNLOAD_REQ_WHEELS = [
-    ('http://download.pytorch.org/whl/cpu/', 'torch', ('1.5.1', '1.5.1+cu101')),
+    ('http://download.pytorch.org/whl/cpu/', 'torch', ('0.4.1', '0.4.1.post2')),
 ]
 
 
