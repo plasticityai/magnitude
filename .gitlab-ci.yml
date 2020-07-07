@@ -40,7 +40,7 @@ Test Python 2:
   stage: Test
   script:
     - apt-get install python-pip -y
-    - pip2 install torch\>=0.4.1 # This is not in requirements.txt so must be installed like this
+    - pip2 install torch\>=1.5.1 # This is not in requirements.txt so must be installed like this
     - pip2 install -U pip setuptools
     - python2 setup.py install
     - pip install gensim
