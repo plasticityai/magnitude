@@ -42,6 +42,14 @@ pip install pymagnitude # Python 2.7
 pip3 install pymagnitude # Python 3
 ```
 
+Google Colaboratory has some dependency issues with installing Magnitude due to conflicting dependencies. You can use the following snippet to install Magnitude on Google Colaboratory:
+```bash
+# Install Magnitude on Google Colab
+! echo "Installing Magnitude.... (please wait, can take a while)"
+! (curl https://raw.githubusercontent.com/plasticityai/magnitude/master/install-colab.sh | /bin/bash 1>/dev/null 2>/dev/null)
+! echo "Done installing Magnitude."
+```
+
 ## Motivation
 Vector space embedding models have become increasingly common in machine learning and traditionally have been popular for natural language processing applications. A fast, lightweight tool to consume these large vector space embedding models efficiently is lacking.
 
