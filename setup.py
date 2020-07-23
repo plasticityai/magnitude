@@ -170,13 +170,12 @@ def custom_compile(THIRD_PARTY, INTERNAL):
 
 
 # Redirect output to a file
-tee = open(
-    os.path.join(
-        tempfile.gettempdir(),
-        PACKAGE_SHORT_NAME +
-        '.install'),
-    'a+')
-
+tee_fn = os.path.join(
+    tempfile.gettempdir(),
+    PACKAGE_SHORT_NAME +
+    '.install')
+tee = open(tee_fn, 'a+')
+os.chmod(tee_fn, 0o664)
 
 class TeeUnbuffered:
     def __init__(self, stream):
