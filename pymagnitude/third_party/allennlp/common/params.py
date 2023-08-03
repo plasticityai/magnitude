@@ -9,7 +9,8 @@ logging and validation.
 from __future__ import with_statement
 from __future__ import absolute_import
 #typing
-from collections import MutableMapping, OrderedDict
+from collections import OrderedDict
+from collections.abc import MutableMapping
 import copy
 import json
 import logging
