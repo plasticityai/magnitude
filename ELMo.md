@@ -19,7 +19,7 @@ ELMo vectors are "contextual" meaning they take into account the nature of the w
 For example, where as in word2vec the word "play" only has a single embedding that combines both interpretations of the word (a command to start music or a theatrical act).
 In ELMo, this is not the case. The embedding for the word "play" in ELMo would, in theory, be different when trained and used with example sentences like "Play some music on the living room speakers." and "Get tickets for the play tonight.".
 
-An ELMo vector for a target word is actually comprised of 3 components (a 2D array `3 x (embedding dimensions)` instead of just a 1D array of `(embedding dimensions)`):
+An ELMo vector for a target word actually comprises 3 components (a 2D array `3 x (embedding dimensions)` instead of just a 1D array of `(embedding dimensions)`):
 1) A forward pass bi-directional RNN contextual embedding taking into account words before the target word in the sentence.
 2) A backward pass bi-directional RNN contextual embedding taking into account words after the target word in the sentence.
 3) A context-independent embedding of the target word.
